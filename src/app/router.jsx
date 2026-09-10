@@ -12,6 +12,7 @@ import RoutePage from '../pages/RoutePage.jsx'
 import StoryPage from '../pages/StoryPage.jsx'
 import TourPage from '../pages/TourPage.jsx'
 import VideoPage from '../pages/VideoPage.jsx'
+import ManageRouter from './manageRouter.jsx'
 
 export const router = createBrowserRouter([
   {
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
       { path: 'events/:eventSlug', element: <EventPage /> },
       { path: 'about', element: <AboutPage /> },
       { path: 'contact', element: <ContactPage /> },
+      { path: 'manage/*', element: <ManageRouter /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

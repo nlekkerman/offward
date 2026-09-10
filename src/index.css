@@ -9,9 +9,11 @@
 
 * { box-sizing: border-box; }
 
-body { margin: 0; min-width: 320px; }
+body { margin: 0; min-width: 320px; background: #121310; color: #f3efe6; }
 
 a { color: inherit; }
+
+button, input, select, textarea { font: inherit; }
 
 .app-shell { min-height: 100svh; }
 
@@ -49,7 +51,336 @@ nav a { color: #aaa99e; text-decoration: none; }
 
 .eyebrow { color: #d8b47c !important; font: 0.75rem/1 sans-serif; letter-spacing: 0.18em; }
 
+.management-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-height: 100svh;
+  background: #121310;
+}
+
+.management-sidebar {
+  background: #191b17;
+  border-right: 1px solid #2f332d;
+  padding: 1.5rem 1rem;
+}
+
+.management-brand-wrap {
+  margin-bottom: 2rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.management-brand {
+  color: #d8b47c;
+  font: 700 0.8rem/1 sans-serif;
+  letter-spacing: 0.22em;
+}
+
+.management-brand-subtitle {
+  margin-top: 0.5rem;
+  color: #9a968d;
+  font: 0.7rem/1 sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.management-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.management-nav-link,
+.management-logout,
+.primary-button,
+.secondary-button,
+.danger-button {
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+  font: 600 0.9rem/1 sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.management-nav-link {
+  color: #dfe0da;
+  background: transparent;
+  display: block;
+  text-decoration: none;
+}
+
+.management-nav-link.is-active {
+  background: #252a24;
+  border-color: #403b2f;
+  color: #f2ead7;
+}
+
+.management-logout {
+  margin-top: 1rem;
+  background: #331a1a;
+  border-color: #5a2a2a;
+  color: #f5d9d9;
+}
+
+.management-content {
+  padding: 2rem;
+}
+
+.management-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.management-page h1 { margin: 0.5rem 0 1.5rem; font-size: clamp(2rem, 4vw, 3rem); }
+
+.management-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+}
+
+.primary-button {
+  background: #d8b47c;
+  color: #121310;
+}
+
+.secondary-button {
+  background: #1a1d1a;
+  border-color: #373b36;
+  color: #f0efe9;
+}
+
+.danger-button {
+  background: #2a1b1b;
+  border-color: #5b2d2d;
+  color: #f4d8d8;
+}
+
+.small-button {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.management-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.management-dashboard-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+  padding: 1.25rem;
+  text-decoration: none;
+  background: linear-gradient(180deg, #1d201b, #151813);
+  border: 1px solid #353b35;
+  border-radius: 1rem;
+  color: #f2ece4;
+}
+
+.management-dashboard-card strong {
+  color: #d8b47c;
+}
+
+.management-empty,
+.management-error,
+.management-loading {
+  padding: 1.5rem;
+  background: #171a17;
+  border: 1px solid #363933;
+  border-radius: 1rem;
+  margin-top: 1rem;
+}
+
+.management-error {
+  border-color: rgba(192, 95, 95, 0.7);
+  color: #f0c6c6;
+  background: rgba(50, 18, 18, 0.7);
+}
+
+.management-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #30362f;
+  border-radius: 1rem;
+  background: #171b18;
+}
+
+.management-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.management-table th,
+.management-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #2d312d;
+  text-align: left;
+  vertical-align: top;
+}
+
+.management-table th {
+  background: #1b1f1a;
+  color: #d8b47c;
+  font: 700 0.75rem/1 sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.table-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.management-login-shell {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  background: radial-gradient(circle at top, #1a1f1a, #101210 55%);
+}
+
+.management-login-card {
+  width: min(460px, calc(100% - 2rem));
+  background: #171b18;
+  border: 1px solid #30362e;
+  border-radius: 1.25rem;
+  padding: 2rem;
+}
+
+.management-login-card h1 {
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: clamp(2rem, 5vw, 2.7rem);
+}
+
+.management-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.management-login-form label,
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #e1ddd1;
+}
+
+.management-login-form input,
+.form-input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #3a413c;
+  border-radius: 0.75rem;
+  background: #0f110f;
+  color: #f6f1e7;
+  padding: 0.8rem 0.9rem;
+}
+
+.management-form {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.form-field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.management-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.field-error {
+  border-color: #9c4f4f;
+}
+
+.field-error-text {
+  color: #f2c0c0;
+  font-size: 0.85rem;
+}
+
+.checkbox-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: #151a16;
+  border: 1px solid #2f3430;
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.route-stops-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.route-stop-row {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  background: #151a16;
+  border: 1px solid #2b312d;
+  border-radius: 0.8rem;
+}
+
+.route-stop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.small-number {
+  max-width: 120px;
+}
+
+.access-denied-page {
+  padding-top: 4rem;
+}
+
+@media (max-width: 900px) {
+  .management-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .management-sidebar {
+    border-right: none;
+    border-bottom: 1px solid #2f332d;
+  }
+
+  .management-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 @media (max-width: 600px) {
   .app-header { align-items: flex-start; flex-direction: column; padding: 1.25rem; }
   .page-placeholder { padding: 5rem 1.25rem; }
+  .management-content { padding: 1rem; }
+  .management-form-actions { flex-direction: column-reverse; }
+  .management-form-actions button { width: 100%; }
 }
