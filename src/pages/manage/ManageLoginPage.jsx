@@ -10,32 +10,26 @@ function ManageLoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sessionState, setSessionState] = useState('loading')
+  const [sessionState, setSessionState] = useState('checking')
 
   useEffect(() => {
     let active = true
 
     async function validateSession() {
-      try {
-        const result = await getSession()
-        if (!active) return
+      const result = await getSession()
+      if (!active) return
 
-        if (result.status === 'authenticated') {
-          setSessionState('authenticated')
-          return
-        }
-
-        if (result.status === 'denied') {
-          setSessionState('denied')
-          return
-        }
-
-        setSessionState('unauthenticated')
-      } catch {
-        if (active) {
-          setSessionState('unauthenticated')
-        }
+      if (result.isAuthenticated === true && result.isStaff === true) {
+        setSessionState('authenticated')
+        return
       }
+
+      if (result.isAuthenticated === true) {
+        setSessionState('denied')
+        return
+      }
+
+      setSessionState('unauthenticated')
     }
 
     validateSession()
@@ -60,12 +54,12 @@ function ManageLoginPage() {
 
     try {
       const result = await loginWithSession({ username, password })
-      if (result.status === 'authenticated') {
+      if (result.isAuthenticated === true && result.isStaff === true) {
         navigate(from, { replace: true })
         return
       }
 
-      if (result.status === 'denied') {
+      if (result.isAuthenticated === true) {
         navigate('/manage/access-denied', { replace: true })
         return
       }
@@ -82,7 +76,8 @@ function ManageLoginPage() {
     <div className="management-login-shell">
       <div className="management-login-card">
         <p className="eyebrow">Management</p>
-        <h1>Offward Admin</h1>
+        <h1>Offward Management</h1>
+        {sessionState === 'checking' && <div className="management-login-status">Checking existing session...</div>}
         <form onSubmit={handleSubmit} className="management-login-form">
           <label>
             Username
@@ -94,7 +89,7 @@ function ManageLoginPage() {
           </label>
           {error && <div className="management-error">{error}</div>}
           <button type="submit" className="primary-button" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
       </div>

@@ -1,174 +1,71 @@
-import { apiClient } from './apiClient.js'
+import { apiClient, clearCsrfToken, ensureCsrfToken, setCsrfToken } from './apiClient.js'
 
-const candidateSessionEndpoints = [
-  '/api/auth/session/',
-  '/api/session/',
-  '/api/auth/user/',
-  '/api/user/',
-  '/api/me/',
-]
+const UNAUTHENTICATED_SESSION = Object.freeze({
+  isAuthenticated: false,
+  isStaff: false,
+  username: '',
+})
 
-function getCookie(name) {
-  if (typeof document === 'undefined') {
-    return ''
+// HTTP 200 alone never implies a session: only the parsed JSON body decides.
+function normalizeSession(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { ...UNAUTHENTICATED_SESSION }
   }
 
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
-  return match ? decodeURIComponent(match[1]) : ''
+  const isAuthenticated = payload.is_authenticated === true
+  const isStaff = isAuthenticated && payload.is_staff === true
+
+  return {
+    isAuthenticated,
+    isStaff,
+    username: typeof payload.username === 'string' ? payload.username : '',
+  }
 }
 
-function normalizeUser(payload) {
-  if (!payload || typeof payload !== 'object') {
-    return null
+function getReadableAuthError(error) {
+  const detail = error?.response?.data?.detail
+  if (detail) {
+    return detail
   }
 
-  if (payload.user && typeof payload.user === 'object') {
-    return normalizeUser(payload.user)
+  const nonFieldError = error?.response?.data?.non_field_errors?.[0]
+  if (nonFieldError) {
+    return nonFieldError
   }
 
-  const user = {
-    id: payload.id ?? payload.pk ?? payload.user_id ?? null,
-    username: payload.username ?? payload.email ?? payload.name ?? null,
-    email: payload.email ?? null,
-    first_name: payload.first_name ?? payload.given_name ?? null,
-    last_name: payload.last_name ?? payload.family_name ?? null,
-    is_staff: Boolean(payload.is_staff ?? payload.staff ?? false),
-    is_superuser: Boolean(payload.is_superuser ?? payload.superuser ?? false),
-  }
+  return error?.message || 'Unable to sign in.'
+}
 
-  if (!user.username && !user.email && user.id === null) {
-    return null
-  }
-
-  return user
+export async function getCsrf() {
+  const { data } = await apiClient.get('/api/auth/csrf/')
+  setCsrfToken(data?.csrfToken || '')
+  return data?.csrfToken || ''
 }
 
 export async function getSession() {
-  let lastError = null
-
-  for (const endpoint of candidateSessionEndpoints) {
-    try {
-      const { data, status } = await apiClient.get(endpoint, {
-        validateStatus: () => true,
-      })
-
-      if (typeof data === 'string' && data.includes('<html')) {
-        continue
-      }
-
-      if ((status === 200 || status === 204) && data && typeof data === 'object') {
-        const user = normalizeUser(data)
-
-        if (data.authenticated === false || data.isAuthenticated === false) {
-          return { status: 'unauthenticated', user: null }
-        }
-
-        if (user) {
-          if (!user.is_staff && !user.is_superuser) {
-            return { status: 'denied', user }
-          }
-          return { status: 'authenticated', user }
-        }
-
-        if (data.detail === 'Authentication credentials were not provided.') {
-          return { status: 'unauthenticated', user: null }
-        }
-      }
-    } catch (error) {
-      lastError = error
-    }
+  try {
+    const { data } = await apiClient.get('/api/auth/session/')
+    return normalizeSession(data)
+  } catch {
+    return { ...UNAUTHENTICATED_SESSION }
   }
-
-  if (lastError) {
-    return { status: 'unauthenticated', user: null, error: lastError }
-  }
-
-  return { status: 'unauthenticated', user: null }
 }
 
 export async function loginWithSession({ username, password }) {
-  const credentials = { username, password }
-  const attempts = [
-    {
-      endpoint: '/api/auth/login/',
-      payload: credentials,
+  try {
+    await getCsrf()
+    await apiClient.post('/api/auth/login/', { username, password }, {
       headers: { 'Content-Type': 'application/json' },
-    },
-    {
-      endpoint: '/api/auth/login/',
-      payload: new URLSearchParams(credentials),
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    },
-    {
-      endpoint: '/api/login/',
-      payload: credentials,
-      headers: { 'Content-Type': 'application/json' },
-    },
-    {
-      endpoint: '/api/login/',
-      payload: new URLSearchParams(credentials),
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    },
-    {
-      endpoint: '/admin/login/',
-      payload: new URLSearchParams(credentials),
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    },
-  ]
-
-  let lastError = null
-
-  for (const attempt of attempts) {
-    try {
-      const csrftoken = getCookie('csrftoken')
-      const { status } = await apiClient.post(attempt.endpoint, attempt.payload, {
-        withCredentials: true,
-        validateStatus: () => true,
-        headers: {
-          ...(csrftoken ? { 'X-CSRFToken': csrftoken } : {}),
-          ...attempt.headers,
-        },
-      })
-
-      if (status >= 200 && status < 300) {
-        const session = await getSession()
-        if (session.status === 'authenticated' || session.status === 'denied') {
-          return session
-        }
-        return { status: 'authenticated', user: null }
-      }
-    } catch (error) {
-      lastError = error
-    }
+    })
+    return getSession()
+  } catch (error) {
+    throw new Error(getReadableAuthError(error), { cause: error })
   }
-
-  throw lastError || new Error('Unable to sign in.')
 }
 
 export async function logoutSession() {
-  const endpoints = ['/api/auth/logout/', '/api/logout/']
-  let lastError = null
-
-  for (const endpoint of endpoints) {
-    try {
-      const csrftoken = getCookie('csrftoken')
-      await apiClient.post(
-        endpoint,
-        {},
-        {
-          withCredentials: true,
-          headers: csrftoken ? { 'X-CSRFToken': csrftoken } : {},
-        },
-      )
-      return true
-    } catch (error) {
-      lastError = error
-    }
-  }
-
-  if (lastError) {
-    throw lastError
-  }
-
+  await ensureCsrfToken()
+  await apiClient.post('/api/auth/logout/', {})
+  clearCsrfToken()
   return true
 }

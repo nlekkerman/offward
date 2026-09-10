@@ -4,41 +4,32 @@ import { getSession } from '../../services/authApi.js'
 
 function ManagementGuard() {
   const location = useLocation()
-  const [state, setState] = useState({ status: 'loading', user: null })
+  const [session, setSession] = useState(null)
 
   useEffect(() => {
     let isMounted = true
 
-    async function loadSession() {
-      try {
-        const result = await getSession()
-        if (isMounted) {
-          setState({ status: result.status, user: result.user })
-        }
-      } catch {
-        if (isMounted) {
-          setState({ status: 'unauthenticated', user: null })
-        }
+    getSession().then((result) => {
+      if (isMounted) {
+        setSession(result)
       }
-    }
-
-    loadSession()
+    })
 
     return () => {
       isMounted = false
     }
   }, [location.pathname])
 
-  if (state.status === 'loading') {
-    return <div className="management-loading">Loading management session…</div>
+  if (session === null) {
+    return <div className="management-loading">Loading management session...</div>
   }
 
-  if (state.status === 'unauthenticated') {
+  if (session.isAuthenticated !== true) {
     return <Navigate to="/manage/login" replace state={{ from: location }} />
   }
 
-  if (state.status === 'denied') {
-    return <Navigate to="/manage/access-denied" replace state={{ user: state.user }} />
+  if (session.isStaff !== true) {
+    return <Navigate to="/manage/access-denied" replace />
   }
 
   return <Outlet />

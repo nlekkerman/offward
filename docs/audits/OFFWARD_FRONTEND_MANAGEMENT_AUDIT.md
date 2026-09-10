@@ -171,3 +171,35 @@ Both commands completed successfully after the final fix set.
 ## Issues discovered
 - The initial implementation needed a cleanup pass for lint issues around unused variables and effect-driven state updates.
 - The backend authentication/session endpoints are not explicitly defined in the current frontend repo, so the auth flow uses the most likely Kata Wild Django DRF patterns and session-cookie conventions rather than inventing a separate auth system.
+
+## Authentication Fix
+- Root cause of the broken management login flow: the frontend auth service used dummy/probe logic across guessed session and login endpoints, including `/api/login/` and `/admin/login/`, and normalized unverified response shapes instead of the verified Kata Wild `is_authenticated` and `is_staff` session contract. The management router also used absolute child paths inside the `/manage/*` mount, which made the login route hierarchy brittle and obscured why `/manage/login` could fail to visibly render during auth bootstrap.
+- Files changed: `src/services/authApi.js`, `src/services/apiClient.js`, `src/pages/manage/ManageLoginPage.jsx`, `src/pages/manage/ManagementGuard.jsx`, `src/app/manageRouter.jsx`, `src/index.css`, and `docs/audits/OFFWARD_FRONTEND_MANAGEMENT_AUDIT.md`.
+- Login endpoint: `POST /api/auth/login/` with JSON username and password only.
+- Logout endpoint: `POST /api/auth/logout/` only.
+- Session endpoint: `GET /api/auth/session/` only.
+- CSRF endpoint: `GET /api/auth/csrf/` only.
+- Axios credential strategy: the shared Axios client keeps `withCredentials: true` and continues to use `VITE_API_BASE_URL`; no Heroku origin is hard-coded.
+- CSRF header strategy: the shared Axios client stores the CSRF token returned by `/api/auth/csrf/`, falls back to the `csrftoken` cookie when available, and centrally sends `X-CSRFToken` for authenticated unsafe `POST`, `PATCH`, and `DELETE` requests. Management CRUD requests inherit this through the shared client.
+- `/manage/login` behavior: public route, not protected by `ManagementGuard`, renders the Offward Management username/password login form immediately, shows a small existing-session checking indicator when applicable, redirects staff users to `/manage`, redirects authenticated non-staff users to `/manage/access-denied`, and keeps the form visible with a readable error after login failure.
+- `/manage` unauthenticated behavior: protected by `ManagementGuard`, shows visible loading while `GET /api/auth/session/` is pending, then redirects unauthenticated users to `/manage/login`.
+- Authorized staff behavior: authenticated users with `is_staff === true`, including the existing Django superuser `nikola`, are allowed into protected management routes.
+- Unauthorized user behavior: authenticated users with `is_staff === false` are redirected to `/manage/access-denied`.
+- Logout behavior: logout ensures CSRF is available, posts to `/api/auth/logout/`, clears cached frontend CSRF state, and navigates to `/manage/login` without a full application reload.
+- Dummy/probe logic removed: no endpoint arrays, fallback URLs, `/api/login/`, `/admin/login/`, guessed session endpoints, JWTs, localStorage auth tokens, fake auth state, or separate Offward users remain in the auth flow.
+- Local limitation: the verified backend currently has `SESSION_COOKIE_SECURE=True` and `CSRF_COOKIE_SECURE=True`, so a plain `http://localhost:5173` frontend cannot retain those Secure cookies. The frontend now implements the correct production-compatible session flow; local development still needs HTTPS or backend environment-specific non-secure cookie settings.
+- Production prerequisite: `https://offward.eu` and `https://www.offward.eu` must be added to backend `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` for production credentialed cross-origin management auth.
+- Lint result: `npm run lint` passed.
+- Build result: `npm run build` passed.
+
+## Anonymous Session Guard Fix
+
+- Root cause: the management auth state was derived from a session result object whose shape allowed a non-JSON or unexpected `GET /api/auth/session/` success body to be normalized into a usable session envelope, and `ManagementGuard` gated rendering on a derived `status` string plus a pathname equality check rather than on the two verified boolean fields. Because the guard trusted the resolved request/normalized envelope instead of strictly requiring `data.is_authenticated === true`, an anonymous `HTTP 200` session response could fall through to the protected `Outlet` and mount `ManageLayout`, the management sidebar, and the dashboard.
+- Was HTTP 200 incorrectly treated as authenticated: yes, effectively. The anonymous backend response is `HTTP 200` with `{"is_authenticated": false, "is_staff": false, "username": ""}`, and the previous flow allowed a successful, resolved response to produce a renderable management state. Authentication is now decided only by the response body booleans; HTTP status, a resolved Axios promise, a non-null response object, and the presence of `username` are never treated as proof of authentication.
+- Files changed: `src/services/authApi.js`, `src/pages/manage/ManagementGuard.jsx`, `src/pages/manage/ManageLoginPage.jsx`, `docs/audits/OFFWARD_FRONTEND_MANAGEMENT_AUDIT.md`.
+- Session response normalization: `getSession()` returns `{ isAuthenticated: data.is_authenticated === true, isStaff: isAuthenticated && data.is_staff === true, username: typeof data.username === 'string' ? data.username : '' }`. Non-object bodies (HTML, arrays, null) and request failures normalize to a frozen unauthenticated default of `{ isAuthenticated: false, isStaff: false, username: '' }`.
+- Protected route behavior: `ManagementGuard` shows a visible loading state while the session request is pending, redirects to `/manage/login` with `replace` when `isAuthenticated !== true`, redirects to `/manage/access-denied` with `replace` when authenticated but `isStaff !== true`, and renders `<Outlet />` only after both booleans are positively confirmed. `ManageLayout` is mounted only inside the guarded route tree, so anonymous users never see the sidebar, dashboard, entity links, or Logout.
+- Login route behavior: `/manage/login` remains outside `ManagementGuard`, renders the login form immediately for unauthenticated visitors, redirects authenticated staff to `/manage` (or the captured `from` route), and redirects authenticated non-staff to `/manage/access-denied`.
+- Endpoints unchanged: `GET /api/auth/csrf/`, `POST /api/auth/login/`, `GET /api/auth/session/`, `POST /api/auth/logout/`. No probing, dummy auth, JWT, or localStorage authentication.
+- Lint result: `npm run lint` passed.
+- Build result: `npm run build` passed.
