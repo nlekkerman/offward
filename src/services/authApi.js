@@ -6,6 +6,12 @@ const UNAUTHENTICATED_SESSION = Object.freeze({
   username: '',
 })
 
+const UNAUTHORIZED_OFFWARD_ACCESS = Object.freeze({
+  isAuthenticated: false,
+  isSuperuser: false,
+  canManageOffward: false,
+})
+
 // HTTP 200 alone never implies a session: only the parsed JSON body decides.
 function normalizeSession(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
@@ -19,6 +25,23 @@ function normalizeSession(payload) {
     isAuthenticated,
     isStaff,
     username: typeof payload.username === 'string' ? payload.username : '',
+  }
+}
+
+// A shared Kata Wild Django session must never imply Offward management access on its own.
+function normalizeOffwardAccess(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { ...UNAUTHORIZED_OFFWARD_ACCESS }
+  }
+
+  const isAuthenticated = payload.is_authenticated === true
+  const isSuperuser = isAuthenticated && payload.is_superuser === true
+  const canManageOffward = payload.can_manage_offward === true
+
+  return {
+    isAuthenticated,
+    isSuperuser,
+    canManageOffward,
   }
 }
 
@@ -51,13 +74,23 @@ export async function getSession() {
   }
 }
 
+// Authoritative Offward authorization check; never derive access from /api/auth/session/.
+export async function getOffwardAccess() {
+  try {
+    const { data } = await apiClient.get('/api/offward/manage/access/')
+    return normalizeOffwardAccess(data)
+  } catch {
+    return { ...UNAUTHORIZED_OFFWARD_ACCESS }
+  }
+}
+
 export async function loginWithSession({ username, password }) {
   try {
     await getCsrf()
     await apiClient.post('/api/auth/login/', { username, password }, {
       headers: { 'Content-Type': 'application/json' },
     })
-    return getSession()
+    return getOffwardAccess()
   } catch (error) {
     throw new Error(getReadableAuthError(error), { cause: error })
   }

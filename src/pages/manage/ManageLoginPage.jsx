@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { getSession, loginWithSession } from '../../services/authApi.js'
+import { getOffwardAccess, loginWithSession } from '../../services/authApi.js'
 
 function ManageLoginPage() {
   const navigate = useNavigate()
@@ -15,36 +15,28 @@ function ManageLoginPage() {
   useEffect(() => {
     let active = true
 
-    async function validateSession() {
-      const result = await getSession()
+    async function validateAccess() {
+      const result = await getOffwardAccess()
       if (!active) return
 
-      if (result.isAuthenticated === true && result.isStaff === true) {
-        setSessionState('authenticated')
+      if (result.canManageOffward === true) {
+        setSessionState('authorized')
         return
       }
 
-      if (result.isAuthenticated === true) {
-        setSessionState('denied')
-        return
-      }
-
-      setSessionState('unauthenticated')
+      // A shared Kata Wild session may be authenticated but still lacks Offward access.
+      setSessionState('unauthorized')
     }
 
-    validateSession()
+    validateAccess()
 
     return () => {
       active = false
     }
   }, [])
 
-  if (sessionState === 'authenticated') {
+  if (sessionState === 'authorized') {
     return <Navigate to={from} replace />
-  }
-
-  if (sessionState === 'denied') {
-    return <Navigate to="/manage/access-denied" replace />
   }
 
   const handleSubmit = async (event) => {
@@ -54,17 +46,12 @@ function ManageLoginPage() {
 
     try {
       const result = await loginWithSession({ username, password })
-      if (result.isAuthenticated === true && result.isStaff === true) {
+      if (result.canManageOffward === true) {
         navigate(from, { replace: true })
         return
       }
 
-      if (result.isAuthenticated === true) {
-        navigate('/manage/access-denied', { replace: true })
-        return
-      }
-
-      setError('Unable to sign in with the supplied account.')
+      setError('This account does not have Offward management access.')
     } catch (err) {
       setError(err?.response?.data?.detail || err?.message || 'Unable to sign in.')
     } finally {
@@ -77,7 +64,7 @@ function ManageLoginPage() {
       <div className="management-login-card">
         <p className="eyebrow">Management</p>
         <h1>Offward Management</h1>
-        {sessionState === 'checking' && <div className="management-login-status">Checking existing session...</div>}
+        {sessionState === 'checking' && <div className="management-login-status">Checking Offward access...</div>}
         <form onSubmit={handleSubmit} className="management-login-form">
           <label>
             Username
