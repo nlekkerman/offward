@@ -619,6 +619,17 @@ function EntityFormPage({ resourceKey, title }) {
           Back to list
         </Link>
       </div>
+      {resourceKey === 'routes' && isEdit && (
+        <div className="management-related-actions">
+          <div>
+            <p className="eyebrow">Route map</p>
+            <strong>Waypoints, candidate calculation and accepted geometry</strong>
+          </div>
+          <Link to={`/manage/routes/${id}/map`} className="secondary-button">
+            Edit route map
+          </Link>
+        </div>
+      )}
 
       {error && <div className="management-error">{error}</div>}
 

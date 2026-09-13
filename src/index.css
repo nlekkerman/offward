@@ -315,6 +315,219 @@ nav a { color: #aaa99e; text-decoration: none; }
   gap: 0.75rem;
 }
 
+.management-related-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #171a17;
+  border: 1px solid #30362f;
+  border-radius: 1rem;
+}
+
+.management-related-actions strong {
+  color: #f0efe9;
+  font: 600 0.95rem/1.3 sans-serif;
+}
+
+.route-map-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.route-map-main-column,
+.route-map-side-column {
+  display: grid;
+  gap: 1rem;
+}
+
+.route-map-header-actions,
+.route-map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.route-authoring-map {
+  min-height: 560px;
+}
+
+.route-map-panel {
+  padding: 1rem;
+  background: #171a17;
+  border: 1px solid #30362f;
+  border-radius: 1rem;
+}
+
+.route-map-panel h2 {
+  margin: 0.35rem 0 0;
+  color: #f2ece4;
+  font: 600 1.15rem/1.2 sans-serif;
+}
+
+.route-map-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.route-map-empty {
+  margin-top: 0;
+}
+
+.route-map-notice {
+  margin-bottom: 1rem;
+  color: #e9d7b3;
+}
+
+.waypoint-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.waypoint-list-item {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  background: #121510;
+  border: 1px solid #2f3430;
+  border-radius: 0.85rem;
+}
+
+.waypoint-list-item.is-selected {
+  border-color: #8d6034;
+  background: #1b1a14;
+}
+
+.waypoint-select-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.waypoint-order {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #5c4a32;
+  border-radius: 50%;
+  color: #d8b47c;
+  font: 700 0.8rem/1 sans-serif;
+}
+
+.waypoint-list-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.waypoint-list-copy strong {
+  color: #f2ece4;
+  font: 700 0.9rem/1.2 sans-serif;
+}
+
+.waypoint-list-copy span,
+.route-map-muted {
+  color: #aaa99e;
+  font: 0.8rem/1.3 sans-serif;
+}
+
+.waypoint-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.route-map-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.route-map-wide-field {
+  grid-column: 1 / -1;
+}
+
+.route-geometry-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  color: #cbc6ba;
+  font: 0.82rem/1 sans-serif;
+}
+
+.route-geometry-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend-line {
+  width: 1.6rem;
+  height: 0;
+  border-top: 3px solid #d8b47c;
+}
+
+.legend-line.candidate {
+  border-top-color: #c25e00;
+  border-top-style: dashed;
+}
+
+.legend-point {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid #d8b47c;
+  border-radius: 50%;
+  background: #121310;
+}
+
+.route-map-summary-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.route-map-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.route-map-summary-grid div {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem;
+  background: #121510;
+  border: 1px solid #2f3430;
+  border-radius: 0.75rem;
+}
+
+.route-map-summary-grid span {
+  color: #aaa99e;
+  font: 0.74rem/1.2 sans-serif;
+  text-transform: uppercase;
+}
+
+.route-map-summary-grid strong {
+  color: #f2ece4;
+  font: 700 1rem/1.2 sans-serif;
+}
+
 .field-error {
   border-color: #9c4f4f;
 }
@@ -381,12 +594,28 @@ nav a { color: #aaa99e; text-decoration: none; }
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .route-map-editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .route-authoring-map {
+    min-height: 420px;
+  }
+
+  .route-map-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 600px) {
   .app-header { align-items: flex-start; flex-direction: column; padding: 1.25rem; }
   .page-placeholder { padding: 5rem 1.25rem; }
   .management-content { padding: 1rem; }
+  .management-related-actions { flex-direction: column; align-items: flex-start; }
   .management-form-actions { flex-direction: column-reverse; }
   .management-form-actions button { width: 100%; }
+  .route-map-header-actions, .route-map-actions { width: 100%; flex-direction: column-reverse; }
+  .route-map-header-actions a, .route-map-header-actions button, .route-map-actions button { width: 100%; }
+  .route-map-form-grid, .route-map-summary-grid { grid-template-columns: 1fr; }
 }

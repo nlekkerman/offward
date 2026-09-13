@@ -56,3 +56,10 @@
   font-family: sans-serif;
   font-size: 0.95rem;
 }
+
+.map-status-text {
+  color: #aaa99e;
+  font-family: sans-serif;
+  font-size: 0.85rem;
+  margin: -1rem 0 1rem;
+}

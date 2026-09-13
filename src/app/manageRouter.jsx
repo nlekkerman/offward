@@ -4,6 +4,7 @@ import ManageDashboardPage from '../pages/manage/ManageDashboardPage.jsx'
 import ManageLayout from '../pages/manage/ManageLayout.jsx'
 import ManageLoginPage from '../pages/manage/ManageLoginPage.jsx'
 import AccessDeniedPage from '../pages/manage/AccessDeniedPage.jsx'
+import RouteMapEditorPage from '../pages/manage/routes/RouteMapEditorPage.jsx'
 
 import EntityListPage from '../features/management/EntityListPage.jsx'
 import EntityFormPage from '../features/management/EntityFormPage.jsx'
@@ -28,6 +29,7 @@ function ManageRouter() {
           <Route path="routes" element={<EntityListPage resourceKey="routes" title="Routes" />} />
           <Route path="routes/new" element={<EntityFormPage resourceKey="routes" title="Create Route" />} />
           <Route path="routes/:id/edit" element={<EntityFormPage resourceKey="routes" title="Edit Route" />} />
+          <Route path="routes/:routeId/map" element={<RouteMapEditorPage />} />
 
           <Route path="stories" element={<EntityListPage resourceKey="stories" title="Stories" />} />
           <Route path="stories/new" element={<EntityFormPage resourceKey="stories" title="Create Story" />} />
