@@ -17,7 +17,6 @@ export function createEmptyWaypoint(order = 1, values = {}) {
     place_id: values.place_id || '',
     latitude: values.latitude === undefined || values.latitude === null ? '' : String(values.latitude),
     longitude: values.longitude === undefined || values.longitude === null ? '' : String(values.longitude),
-    notes: values.notes || '',
   }
 }
 
@@ -37,8 +36,8 @@ export function getPlaceCoordinates(place) {
 
 export function normalizeWaypoint(waypoint = {}, index = 0) {
   const place = waypoint.place && typeof waypoint.place === 'object' ? waypoint.place : null
-  const latitude = waypoint.latitude ?? waypoint.lat ?? waypoint.coordinates?.[1] ?? ''
-  const longitude = waypoint.longitude ?? waypoint.lng ?? waypoint.lon ?? waypoint.coordinates?.[0] ?? ''
+  const latitude = waypoint.latitude ?? waypoint.lat ?? waypoint.coordinates?.lat ?? waypoint.coordinates?.[1] ?? ''
+  const longitude = waypoint.longitude ?? waypoint.lng ?? waypoint.lon ?? waypoint.coordinates?.lng ?? waypoint.coordinates?.[0] ?? ''
 
   return {
     id: waypoint.id || `waypoint-${index + 1}`,
@@ -48,7 +47,6 @@ export function normalizeWaypoint(waypoint = {}, index = 0) {
     place_id: waypoint.place_id || waypoint.placeId || place?.id || '',
     latitude: latitude === null || latitude === undefined ? '' : String(latitude),
     longitude: longitude === null || longitude === undefined ? '' : String(longitude),
-    notes: waypoint.notes || waypoint.description || '',
   }
 }
 
@@ -151,42 +149,45 @@ export function normalizeGeometry(value) {
 export function normalizeRouteMap(data = {}) {
   const source = Array.isArray(data) ? { waypoints: data } : data
   const acceptedGeometry = normalizeGeometry(source.accepted_geometry || source.acceptedGeometry || source.geometry)
-  const candidateGeometry = normalizeGeometry(source.candidate_geometry || source.candidateGeometry || source.candidate?.geometry)
+  const candidateGeometry = normalizeGeometry(source.candidate_geometry || source.candidateGeometry)
   const hasWaypoints = Array.isArray(data) || Array.isArray(source.waypoints) || Array.isArray(source.route_waypoints)
 
   return {
     hasWaypoints,
     waypoints: normalizeWaypoints(source.waypoints || source.route_waypoints || []),
     acceptedGeometry,
-    candidate: source.candidate
-      ? { ...source.candidate, geometry: candidateGeometry }
-      : candidateGeometry
-        ? { geometry: candidateGeometry }
-        : null,
-    mapRevision: source.map_revision || source.mapRevision || source.revision || '',
+    candidate: candidateGeometry
+      ? {
+          geometry: candidateGeometry,
+          distance_meters: source.distance_meters,
+          duration_seconds: source.duration_seconds,
+        }
+      : null,
+    mapRevision: source.map_revision ?? source.mapRevision ?? source.revision ?? '',
     updatedAt: source.updated_at || source.updatedAt || '',
   }
 }
 
 export function normalizeCandidate(data = {}) {
-  const source = data.candidate ? data.candidate : data
-  const geometry = normalizeGeometry(source.geometry || data.candidate_geometry || data.candidateGeometry)
+  const geometry = normalizeGeometry(data.candidate_geometry || data.candidateGeometry)
 
   return geometry ? {
-    ...source,
     geometry,
+    distance_meters: data.distance_meters,
+    duration_seconds: data.duration_seconds,
   } : null
 }
 
 export function buildWaypointPayload(waypoints) {
   return normalizeWaypoints(waypoints).map((waypoint, index) => ({
-    id: String(waypoint.id).startsWith('new-') ? undefined : waypoint.id,
+    ...(String(waypoint.id).startsWith('new-') ? {} : { id: waypoint.id }),
     order: index + 1,
     type: waypoint.type,
+    coordinates: {
+      lat: Number(waypoint.latitude),
+      lng: Number(waypoint.longitude),
+    },
     label: waypoint.label || '',
     place_id: waypoint.place_id || null,
-    latitude: Number(waypoint.latitude),
-    longitude: Number(waypoint.longitude),
-    notes: waypoint.notes || '',
   }))
 }

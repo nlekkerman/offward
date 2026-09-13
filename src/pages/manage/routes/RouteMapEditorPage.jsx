@@ -12,6 +12,12 @@ import { routeMapApi } from '../../../services/management/routeMapApi.js'
 
 function getErrorMessage(err, fallback) {
   const responseData = err?.response?.data
+  if (Array.isArray(responseData?.errors)) {
+    const messages = responseData.errors.map((item) => item?.message).filter(Boolean)
+    if (messages.length) {
+      return messages.join(' ')
+    }
+  }
   if (typeof responseData?.detail === 'string') {
     return responseData.detail
   }
@@ -216,7 +222,7 @@ function RouteMapEditorPage() {
       setSaving(true)
       setError('')
       setNotice('')
-      const routeMapData = await routeMapApi.updateWaypoints(routeId, waypoints, mapRevision)
+      const routeMapData = await routeMapApi.updateWaypoints(routeId, waypoints)
       applyRouteMap(routeMapData)
       setNotice('Route map saved.')
     } catch (err) {
@@ -236,7 +242,7 @@ function RouteMapEditorPage() {
       setCalculating(true)
       setError('')
       setNotice('')
-      const routeMapData = await routeMapApi.calculateCandidate(routeId, mapRevision)
+      const routeMapData = await routeMapApi.calculateCandidate(routeId, waypoints)
       setCandidate(routeMapData.candidate)
       if (routeMapData.mapRevision) {
         setMapRevision(routeMapData.mapRevision)
@@ -267,7 +273,11 @@ function RouteMapEditorPage() {
       applyRouteMap(routeMapData, { updateWaypoints: false })
       setNotice('Candidate accepted as route geometry.')
     } catch (err) {
-      if (err?.response?.data?.code === 'stale_acceptance_request') {
+      const responseErrors = err?.response?.data?.errors
+      const isStaleAcceptance = err?.response?.status === 400
+        && Array.isArray(responseErrors)
+        && responseErrors.some((item) => item?.code === 'stale_acceptance_request')
+      if (isStaleAcceptance) {
         try {
           const routeData = await managementApis.routes.getById(routeId)
           setRoute(routeData)

@@ -76,10 +76,6 @@ function WaypointEditor({ waypoint, places, onChange }) {
           {fieldErrors.longitude && <span className="field-error-text">{fieldErrors.longitude}</span>}
         </div>
 
-        <div className="form-field route-map-wide-field">
-          <label htmlFor="waypoint-notes">Notes</label>
-          <textarea id="waypoint-notes" name="notes" value={waypoint.notes} onChange={handleChange} className="form-input" rows="4" />
-        </div>
       </div>
     </section>
   )
