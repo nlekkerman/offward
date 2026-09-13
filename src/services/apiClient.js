@@ -42,7 +42,7 @@ export async function ensureCsrfToken() {
 
 apiClient.interceptors.request.use(async (config) => {
   const method = config.method?.toUpperCase()
-  const unsafeMethod = ['POST', 'PATCH', 'DELETE'].includes(method)
+  const unsafeMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
 
   if (unsafeMethod) {
     const token = await ensureCsrfToken()

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { CircleMarker, GeoJSON, MapContainer, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
+import { GeoJSON, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import MapErrorBoundary from './MapErrorBoundary.jsx'
 import { MAP_TILE_LAYER } from '../tileConfig.js'
 import { normalizeGeometry } from '../../routes/routeMap/routeMapUtils.js'
@@ -59,11 +60,20 @@ function AuthoringViewport({ waypoints, acceptedGeometry, candidateGeometry }) {
   return null
 }
 
-function MapClickHandler({ selectedWaypointId, onWaypointPositionChange }) {
+function createWaypointIcon({ waypoint, selected }) {
+  return L.divIcon({
+    className: selected ? 'route-waypoint-marker is-selected' : 'route-waypoint-marker',
+    html: `<span>${waypoint.order}</span>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  })
+}
+
+function MapClickHandler({ addMode, onMapAddWaypoint }) {
   useMapEvents({
     click(event) {
-      if (selectedWaypointId) {
-        onWaypointPositionChange(selectedWaypointId, {
+      if (addMode) {
+        onMapAddWaypoint({
           latitude: event.latlng.lat,
           longitude: event.latlng.lng,
         })
@@ -91,14 +101,14 @@ const CANDIDATE_STYLE = {
   lineJoin: 'round',
 }
 
-function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeometry, selectedWaypointId, onWaypointSelect, onWaypointPositionChange }) {
+function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeometry, selectedWaypointId, addMode, onWaypointSelect, onMapAddWaypoint }) {
   const validWaypoints = useMemo(() => waypoints.map((waypoint) => ({ waypoint, latLng: toLatLng(waypoint) })).filter((item) => item.latLng), [waypoints])
   const waypointLine = validWaypoints.map((item) => item.latLng)
   const accepted = normalizeGeometry(acceptedGeometry)
   const candidate = normalizeGeometry(candidateGeometry)
 
   return (
-    <div className="offward-map-container route-authoring-map">
+    <div className={addMode ? 'offward-map-container route-authoring-map is-add-mode' : 'offward-map-container route-authoring-map'} aria-label="Route waypoint authoring map">
       <MapContainer center={[50, 10]} zoom={4} scrollWheelZoom={true} className="offward-map-inner">
         <TileLayer attribution={MAP_TILE_LAYER.attribution} url={MAP_TILE_LAYER.url} />
         {accepted && <GeoJSON key={`accepted-${JSON.stringify(accepted.coordinates)}`} data={{ type: 'Feature', geometry: accepted, properties: {} }} style={ACCEPTED_STYLE} />}
@@ -107,22 +117,17 @@ function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeomet
         {validWaypoints.map(({ waypoint, latLng }) => {
           const selected = waypoint.id === selectedWaypointId
           return (
-            <CircleMarker
+            <Marker
               key={waypoint.id}
-              center={latLng}
-              radius={selected ? 9 : 7}
-              pathOptions={{
-                color: selected ? '#f2ead7' : '#d8b47c',
-                fillColor: selected ? '#c25e00' : '#121310',
-                fillOpacity: 0.95,
-                weight: selected ? 3 : 2,
-              }}
+              position={latLng}
+              icon={createWaypointIcon({ waypoint, selected })}
+              title={`Waypoint ${waypoint.order}: ${waypoint.label || waypoint.type}`}
               eventHandlers={{ click: () => onWaypointSelect(waypoint.id) }}
             />
           )
         })}
         <AuthoringViewport waypoints={waypoints} acceptedGeometry={accepted} candidateGeometry={candidate} />
-        <MapClickHandler selectedWaypointId={selectedWaypointId} onWaypointPositionChange={onWaypointPositionChange} />
+        <MapClickHandler addMode={addMode} onMapAddWaypoint={onMapAddWaypoint} />
       </MapContainer>
     </div>
   )

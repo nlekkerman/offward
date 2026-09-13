@@ -1,15 +1,37 @@
 export const WAYPOINT_TYPES = ['start', 'via', 'stop', 'finish']
+export const INTERMEDIATE_WAYPOINT_TYPES = ['via', 'stop']
 
-export function createEmptyWaypoint(order = 1) {
+function createDraftWaypointId(order) {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `new-${crypto.randomUUID()}`
+  }
+  return `new-${Date.now()}-${order}`
+}
+
+export function createEmptyWaypoint(order = 1, values = {}) {
   return {
-    id: `new-${Date.now()}-${order}`,
+    id: createDraftWaypointId(order),
     order,
-    type: order === 1 ? 'start' : 'via',
-    label: '',
-    place_id: '',
-    latitude: '',
-    longitude: '',
-    notes: '',
+    type: order === 1 ? 'start' : 'finish',
+    label: values.label || '',
+    place_id: values.place_id || '',
+    latitude: values.latitude === undefined || values.latitude === null ? '' : String(values.latitude),
+    longitude: values.longitude === undefined || values.longitude === null ? '' : String(values.longitude),
+    notes: values.notes || '',
+  }
+}
+
+export function getPlaceCoordinates(place) {
+  const latitude = place?.latitude ?? place?.lat
+  const longitude = place?.longitude ?? place?.lng ?? place?.lon
+
+  if (!isValidLatitude(latitude) || !isValidLongitude(longitude)) {
+    return null
+  }
+
+  return {
+    latitude: String(latitude),
+    longitude: String(longitude),
   }
 }
 
@@ -41,8 +63,18 @@ export function normalizeWaypoints(waypoints) {
     .map((waypoint, index, array) => ({
       ...waypoint,
       order: index + 1,
-      type: waypoint.type || (index === 0 ? 'start' : index === array.length - 1 ? 'finish' : 'via'),
+      type: getWaypointTypeForPosition(waypoint.type, index, array.length),
     }))
+}
+
+export function getWaypointTypeForPosition(type, index, length) {
+  if (index === 0) {
+    return 'start'
+  }
+  if (index === length - 1) {
+    return 'finish'
+  }
+  return INTERMEDIATE_WAYPOINT_TYPES.includes(type) ? type : 'via'
 }
 
 export function isValidLatitude(value) {
@@ -117,20 +149,33 @@ export function normalizeGeometry(value) {
 }
 
 export function normalizeRouteMap(data = {}) {
-  const acceptedGeometry = normalizeGeometry(data.accepted_geometry || data.acceptedGeometry || data.geometry)
-  const candidateGeometry = normalizeGeometry(data.candidate_geometry || data.candidateGeometry || data.candidate?.geometry)
+  const source = Array.isArray(data) ? { waypoints: data } : data
+  const acceptedGeometry = normalizeGeometry(source.accepted_geometry || source.acceptedGeometry || source.geometry)
+  const candidateGeometry = normalizeGeometry(source.candidate_geometry || source.candidateGeometry || source.candidate?.geometry)
+  const hasWaypoints = Array.isArray(data) || Array.isArray(source.waypoints) || Array.isArray(source.route_waypoints)
 
   return {
-    waypoints: normalizeWaypoints(data.waypoints || data.route_waypoints || []),
+    hasWaypoints,
+    waypoints: normalizeWaypoints(source.waypoints || source.route_waypoints || []),
     acceptedGeometry,
-    candidate: data.candidate
-      ? { ...data.candidate, geometry: candidateGeometry }
+    candidate: source.candidate
+      ? { ...source.candidate, geometry: candidateGeometry }
       : candidateGeometry
         ? { geometry: candidateGeometry }
         : null,
-    mapRevision: data.map_revision || data.mapRevision || data.revision || '',
-    updatedAt: data.updated_at || data.updatedAt || '',
+    mapRevision: source.map_revision || source.mapRevision || source.revision || '',
+    updatedAt: source.updated_at || source.updatedAt || '',
   }
+}
+
+export function normalizeCandidate(data = {}) {
+  const source = data.candidate ? data.candidate : data
+  const geometry = normalizeGeometry(source.geometry || data.candidate_geometry || data.candidateGeometry)
+
+  return geometry ? {
+    ...source,
+    geometry,
+  } : null
 }
 
 export function buildWaypointPayload(waypoints) {
@@ -144,12 +189,4 @@ export function buildWaypointPayload(waypoints) {
     longitude: Number(waypoint.longitude),
     notes: waypoint.notes || '',
   }))
-}
-
-export function buildRouteMapPayload({ waypoints, acceptedGeometry, mapRevision }) {
-  return {
-    waypoints: buildWaypointPayload(waypoints),
-    accepted_geometry: normalizeGeometry(acceptedGeometry),
-    map_revision: mapRevision || undefined,
-  }
 }

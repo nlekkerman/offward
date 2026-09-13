@@ -1,4 +1,4 @@
-import { WAYPOINT_TYPES, getWaypointErrors } from '../routeMapUtils.js'
+import { INTERMEDIATE_WAYPOINT_TYPES, getPlaceCoordinates, getWaypointErrors } from '../routeMapUtils.js'
 
 function WaypointEditor({ waypoint, places, onChange }) {
   if (!waypoint) {
@@ -14,8 +14,22 @@ function WaypointEditor({ waypoint, places, onChange }) {
 
   const handleChange = (event) => {
     const { name, value } = event.target
+    if (name === 'place_id') {
+      const place = places.find((item) => item.id === value)
+      const coordinates = value ? getPlaceCoordinates(place) : null
+      onChange({
+        ...waypoint,
+        place_id: value,
+        label: value && !waypoint.label ? place?.name || place?.title || waypoint.label : waypoint.label,
+        latitude: coordinates?.latitude ?? waypoint.latitude,
+        longitude: coordinates?.longitude ?? waypoint.longitude,
+      })
+      return
+    }
     onChange({ ...waypoint, [name]: value })
   }
+
+  const typeLocked = waypoint.type === 'start' || waypoint.type === 'finish'
 
   return (
     <section className="route-map-panel">
@@ -34,8 +48,8 @@ function WaypointEditor({ waypoint, places, onChange }) {
 
         <div className="form-field">
           <label htmlFor="waypoint-type">Type</label>
-          <select id="waypoint-type" name="type" value={waypoint.type} onChange={handleChange} className={fieldErrors.type ? 'form-input field-error' : 'form-input'}>
-            {WAYPOINT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+          <select id="waypoint-type" name="type" value={waypoint.type} onChange={handleChange} className={fieldErrors.type ? 'form-input field-error' : 'form-input'} disabled={typeLocked}>
+            {typeLocked ? <option value={waypoint.type}>{waypoint.type}</option> : INTERMEDIATE_WAYPOINT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
           </select>
           {fieldErrors.type && <span className="field-error-text">{fieldErrors.type}</span>}
         </div>

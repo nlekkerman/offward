@@ -1,28 +1,35 @@
 import { apiClient } from '../apiClient.js'
-import { buildRouteMapPayload, buildWaypointPayload, normalizeRouteMap } from '../../features/routes/routeMap/routeMapUtils.js'
+import { buildWaypointPayload, normalizeCandidate, normalizeRouteMap } from '../../features/routes/routeMap/routeMapUtils.js'
 
 function routeMapPath(routeId, suffix = '') {
-  return `/api/offward/manage/routes/${routeId}/map/${suffix}`
+  return `/api/offward/manage/routes/${routeId}/${suffix}`
 }
 
 export const routeMapApi = {
-  get: async (routeId) => {
-    const { data } = await apiClient.get(routeMapPath(routeId))
+  getWaypoints: async (routeId) => {
+    const { data } = await apiClient.get(routeMapPath(routeId, 'waypoints/'))
     return normalizeRouteMap(data)
   },
-  update: async (routeId, values) => {
-    const { data } = await apiClient.patch(routeMapPath(routeId), buildRouteMapPayload(values))
-    return normalizeRouteMap(data)
-  },
-  calculateCandidate: async (routeId, waypoints) => {
-    const { data } = await apiClient.post(routeMapPath(routeId, 'candidate/'), {
+  updateWaypoints: async (routeId, waypoints, mapRevision) => {
+    const { data } = await apiClient.put(routeMapPath(routeId, 'waypoints/'), {
       waypoints: buildWaypointPayload(waypoints),
+      map_revision: mapRevision,
     })
     return normalizeRouteMap(data)
   },
-  acceptCandidate: async (routeId, candidateGeometry) => {
-    const { data } = await apiClient.post(routeMapPath(routeId, 'accept-candidate/'), {
+  calculateCandidate: async (routeId, mapRevision) => {
+    const { data } = await apiClient.post(routeMapPath(routeId, 'calculate-candidate/'), {
+      map_revision: mapRevision,
+    })
+    return {
+      candidate: normalizeCandidate(data),
+      mapRevision: data?.map_revision || data?.mapRevision || data?.revision || mapRevision,
+    }
+  },
+  acceptGeometry: async (routeId, candidateGeometry, mapRevision) => {
+    const { data } = await apiClient.post(routeMapPath(routeId, 'accept-geometry/'), {
       geometry: candidateGeometry,
+      map_revision: mapRevision,
     })
     return normalizeRouteMap(data)
   },

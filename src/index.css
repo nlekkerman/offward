@@ -357,6 +357,34 @@ nav a { color: #aaa99e; text-decoration: none; }
   min-height: 560px;
 }
 
+.route-authoring-map.is-add-mode .leaflet-container {
+  cursor: crosshair;
+}
+
+.route-waypoint-marker {
+  display: grid;
+  place-items: center;
+  border: 2px solid #d8b47c;
+  border-radius: 50%;
+  background: #121310;
+  color: #f2ead7;
+  box-shadow: 0 0 0 2px rgba(18, 19, 16, 0.72);
+  font: 700 0.78rem/1 sans-serif;
+}
+
+.route-waypoint-marker.is-selected {
+  border-color: #f2ead7;
+  background: #c25e00;
+  color: #121310;
+}
+
+.route-waypoint-marker span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
 .route-map-panel {
   padding: 1rem;
   background: #171a17;
@@ -390,6 +418,17 @@ nav a { color: #aaa99e; text-decoration: none; }
 .waypoint-list {
   display: grid;
   gap: 0.75rem;
+}
+
+.waypoint-add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.waypoint-place-add-field {
+  margin-bottom: 1rem;
 }
 
 .waypoint-list-item {

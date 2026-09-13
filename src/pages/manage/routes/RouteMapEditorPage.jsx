@@ -6,7 +6,7 @@ import RouteGeometryLegend from '../../../features/routes/routeMap/components/Ro
 import RouteMapActions from '../../../features/routes/routeMap/components/RouteMapActions.jsx'
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
-import { createEmptyWaypoint, normalizeRouteMap, normalizeWaypoints, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
+import { buildWaypointPayload, createEmptyWaypoint, getPlaceCoordinates, normalizeGeometry, normalizeRouteMap, normalizeWaypoints, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
 import { managementApis } from '../../../services/management/index.js'
 import { routeMapApi } from '../../../services/management/routeMapApi.js'
 
@@ -18,7 +18,22 @@ function getErrorMessage(err, fallback) {
   if (Array.isArray(responseData?.non_field_errors)) {
     return responseData.non_field_errors.join(' ')
   }
+  if (typeof responseData?.code === 'string') {
+    return responseData.code.replace(/_/g, ' ')
+  }
   return fallback
+}
+
+function getRouteMapRevision(route, waypointMap) {
+  return waypointMap?.mapRevision || route?.map_revision || route?.mapRevision || route?.revision || ''
+}
+
+function getRouteAcceptedGeometry(route, waypointMap) {
+  return waypointMap?.acceptedGeometry || normalizeGeometry(route?.accepted_geometry || route?.acceptedGeometry || route?.geometry)
+}
+
+function getWaypointSignature(waypoints) {
+  return JSON.stringify(buildWaypointPayload(waypoints))
 }
 
 function RouteMapEditorPage() {
@@ -32,6 +47,8 @@ function RouteMapEditorPage() {
   const [mapRevision, setMapRevision] = useState('')
   const [updatedAt, setUpdatedAt] = useState('')
   const [selectedWaypointId, setSelectedWaypointId] = useState('')
+  const [savedWaypointSignature, setSavedWaypointSignature] = useState('[]')
+  const [addMode, setAddMode] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -48,21 +65,23 @@ function RouteMapEditorPage() {
         setError('')
         const [routeData, routeMapData, placesData] = await Promise.all([
           managementApis.routes.getById(routeId),
-          routeMapApi.get(routeId),
+          routeMapApi.getWaypoints(routeId),
           managementApis.places.list(),
         ])
 
         if (!active) return
 
         const normalizedMap = normalizeRouteMap(routeMapData)
+        const nextWaypoints = normalizedMap.waypoints
         setRoute(routeData)
         setPlaces(placesData)
-        setWaypoints(normalizedMap.waypoints)
-        setAcceptedGeometry(normalizedMap.acceptedGeometry)
+        setWaypoints(nextWaypoints)
+        setSavedWaypointSignature(getWaypointSignature(nextWaypoints))
+        setAcceptedGeometry(getRouteAcceptedGeometry(routeData, normalizedMap))
         setCandidate(normalizedMap.candidate)
-        setMapRevision(normalizedMap.mapRevision)
+        setMapRevision(getRouteMapRevision(routeData, normalizedMap))
         setUpdatedAt(normalizedMap.updatedAt)
-        setSelectedWaypointId(normalizedMap.waypoints[0]?.id || '')
+        setSelectedWaypointId(nextWaypoints[0]?.id || '')
       } catch (err) {
         if (active) {
           setError(getErrorMessage(err, 'Unable to load this route map.'))
@@ -86,30 +105,84 @@ function RouteMapEditorPage() {
     [selectedWaypointId, waypoints],
   )
 
-  const applyRouteMap = (routeMapData) => {
+  const hasUnsavedChanges = savedWaypointSignature !== getWaypointSignature(waypoints)
+  const waypointValidation = validateWaypoints(waypoints)
+  const canCalculate = waypointValidation.valid && !hasUnsavedChanges
+  const canAccept = Boolean(candidate?.geometry && mapRevision && !hasUnsavedChanges)
+
+  const applyRouteMap = (routeMapData, { updateWaypoints = true } = {}) => {
     const normalizedMap = normalizeRouteMap(routeMapData)
-    setWaypoints(normalizedMap.waypoints)
-    setAcceptedGeometry(normalizedMap.acceptedGeometry)
+    if (updateWaypoints && normalizedMap.hasWaypoints) {
+      setWaypoints(normalizedMap.waypoints)
+      setSavedWaypointSignature(getWaypointSignature(normalizedMap.waypoints))
+    }
+    if (normalizedMap.acceptedGeometry) {
+      setAcceptedGeometry(normalizedMap.acceptedGeometry)
+    }
     setCandidate(normalizedMap.candidate)
-    setMapRevision(normalizedMap.mapRevision)
+    if (normalizedMap.mapRevision) {
+      setMapRevision(normalizedMap.mapRevision)
+    }
     setUpdatedAt(normalizedMap.updatedAt)
-    setSelectedWaypointId((current) => normalizedMap.waypoints.some((waypoint) => waypoint.id === current) ? current : normalizedMap.waypoints[0]?.id || '')
+    if (updateWaypoints && normalizedMap.hasWaypoints) {
+      setSelectedWaypointId((current) => normalizedMap.waypoints.some((waypoint) => waypoint.id === current) ? current : normalizedMap.waypoints[0]?.id || '')
+    }
+  }
+
+  const changeWaypoints = (updater) => {
+    setWaypoints((current) => normalizeWaypoints(typeof updater === 'function' ? updater(current) : updater))
+    setCandidate(null)
+    setNotice('')
+    setError('')
   }
 
   const updateWaypoint = (nextWaypoint) => {
-    setWaypoints((current) => normalizeWaypoints(current.map((waypoint) => waypoint.id === nextWaypoint.id ? nextWaypoint : waypoint)))
+    changeWaypoints((current) => current.map((waypoint) => waypoint.id === nextWaypoint.id ? nextWaypoint : waypoint))
   }
 
-  const addWaypoint = () => {
-    setWaypoints((current) => {
+  const addBlankWaypoint = () => {
+    changeWaypoints((current) => {
       const nextWaypoint = createEmptyWaypoint(current.length + 1)
       setSelectedWaypointId(nextWaypoint.id)
-      return normalizeWaypoints([...current, nextWaypoint])
+      return [...current, nextWaypoint]
+    })
+  }
+
+  const addWaypointFromPlace = (placeId) => {
+    if (!placeId) {
+      return
+    }
+
+    const place = places.find((item) => item.id === placeId)
+    const coordinates = getPlaceCoordinates(place)
+    if (!coordinates) {
+      setError('Selected Place does not have valid coordinates.')
+      return
+    }
+
+    setError('')
+    changeWaypoints((current) => {
+      const nextWaypoint = createEmptyWaypoint(current.length + 1, {
+        place_id: place.id,
+        label: place.name || place.title || '',
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+      })
+      setSelectedWaypointId(nextWaypoint.id)
+      return [...current, nextWaypoint]
+    })
+  }
+
+  const addWaypointFromMap = (coordinates) => {
+    changeWaypoints((current) => {
+      const nextWaypoint = createEmptyWaypoint(current.length + 1, coordinates)
+      setSelectedWaypointId(nextWaypoint.id)
+      return [...current, nextWaypoint]
     })
   }
 
   const removeWaypoint = (waypointId) => {
-    setWaypoints((current) => {
+    changeWaypoints((current) => {
       const nextWaypoints = normalizeWaypoints(current.filter((waypoint) => waypoint.id !== waypointId))
       if (selectedWaypointId === waypointId) {
         setSelectedWaypointId(nextWaypoints[0]?.id || '')
@@ -119,7 +192,7 @@ function RouteMapEditorPage() {
   }
 
   const moveWaypoint = (index, direction) => {
-    setWaypoints((current) => {
+    changeWaypoints((current) => {
       const targetIndex = index + direction
       if (targetIndex < 0 || targetIndex >= current.length) {
         return current
@@ -128,16 +201,8 @@ function RouteMapEditorPage() {
       const movingWaypoint = nextWaypoints[index]
       nextWaypoints[index] = nextWaypoints[targetIndex]
       nextWaypoints[targetIndex] = movingWaypoint
-      return normalizeWaypoints(nextWaypoints)
+      return nextWaypoints
     })
-  }
-
-  const updateWaypointPosition = (waypointId, coordinates) => {
-    setWaypoints((current) => normalizeWaypoints(current.map((waypoint) => waypoint.id === waypointId ? {
-      ...waypoint,
-      latitude: String(coordinates.latitude),
-      longitude: String(coordinates.longitude),
-    } : waypoint)))
   }
 
   const saveRouteMap = async () => {
@@ -151,7 +216,7 @@ function RouteMapEditorPage() {
       setSaving(true)
       setError('')
       setNotice('')
-      const routeMapData = await routeMapApi.update(routeId, { waypoints, acceptedGeometry, mapRevision })
+      const routeMapData = await routeMapApi.updateWaypoints(routeId, waypoints, mapRevision)
       applyRouteMap(routeMapData)
       setNotice('Route map saved.')
     } catch (err) {
@@ -162,9 +227,8 @@ function RouteMapEditorPage() {
   }
 
   const calculateCandidate = async () => {
-    const validation = validateWaypoints(waypoints)
-    if (!validation.valid) {
-      setError(validation.message)
+    if (!canCalculate) {
+      setError(hasUnsavedChanges ? 'Save valid waypoints before calculating a candidate.' : waypointValidation.message)
       return
     }
 
@@ -172,8 +236,11 @@ function RouteMapEditorPage() {
       setCalculating(true)
       setError('')
       setNotice('')
-      const routeMapData = await routeMapApi.calculateCandidate(routeId, waypoints)
-      applyRouteMap(routeMapData)
+      const routeMapData = await routeMapApi.calculateCandidate(routeId, mapRevision)
+      setCandidate(routeMapData.candidate)
+      if (routeMapData.mapRevision) {
+        setMapRevision(routeMapData.mapRevision)
+      }
       setNotice('Candidate route calculated.')
     } catch (err) {
       setError(getErrorMessage(err, 'Unable to calculate a candidate route.'))
@@ -187,14 +254,30 @@ function RouteMapEditorPage() {
       return
     }
 
+    const confirmed = window.confirm('Accept this candidate as the saved route geometry?')
+    if (!confirmed) {
+      return
+    }
+
     try {
       setAccepting(true)
       setError('')
       setNotice('')
-      const routeMapData = await routeMapApi.acceptCandidate(routeId, candidate.geometry)
-      applyRouteMap(routeMapData)
+      const routeMapData = await routeMapApi.acceptGeometry(routeId, candidate.geometry, mapRevision)
+      applyRouteMap(routeMapData, { updateWaypoints: false })
       setNotice('Candidate accepted as route geometry.')
     } catch (err) {
+      if (err?.response?.data?.code === 'stale_acceptance_request') {
+        try {
+          const routeData = await managementApis.routes.getById(routeId)
+          setRoute(routeData)
+          setAcceptedGeometry(getRouteAcceptedGeometry(routeData, null))
+          setMapRevision(getRouteMapRevision(routeData, null))
+          setCandidate(null)
+        } catch {
+          // Keep the original stale error visible if refresh also fails.
+        }
+      }
       setError(getErrorMessage(err, 'Unable to accept this candidate route.'))
     } finally {
       setAccepting(false)
@@ -227,8 +310,10 @@ function RouteMapEditorPage() {
         </div>
       </div>
 
-      {error && <div className="management-error">{error}</div>}
-      {notice && <div className="management-empty route-map-notice">{notice}</div>}
+      {error && <div className="management-error" role="alert">{error}</div>}
+      {notice && <div className="management-empty route-map-notice" role="status">{notice}</div>}
+      {hasUnsavedChanges && <div className="management-empty route-map-notice" role="status">Waypoint changes are not saved. Candidate calculation is disabled until you save them.</div>}
+      {addMode && <div className="management-empty route-map-notice" role="status">Map click mode is active. Click the map to add the next waypoint.</div>}
 
       <div className="route-map-editor-layout">
         <div className="route-map-main-column">
@@ -237,8 +322,9 @@ function RouteMapEditorPage() {
             acceptedGeometry={acceptedGeometry}
             candidateGeometry={candidate?.geometry}
             selectedWaypointId={selectedWaypointId}
+            addMode={addMode}
             onWaypointSelect={setSelectedWaypointId}
-            onWaypointPositionChange={updateWaypointPosition}
+            onMapAddWaypoint={addWaypointFromMap}
           />
           <RouteGeometryLegend />
           <RouteCandidateSummary acceptedGeometry={acceptedGeometry} candidate={candidate} mapRevision={mapRevision} updatedAt={updatedAt} />
@@ -247,8 +333,12 @@ function RouteMapEditorPage() {
         <div className="route-map-side-column">
           <WaypointList
             waypoints={waypoints}
+            places={places}
             selectedWaypointId={selectedWaypointId}
-            onAdd={addWaypoint}
+            addMode={addMode}
+            onAddBlank={addBlankWaypoint}
+            onAddModeChange={setAddMode}
+            onAddFromPlace={addWaypointFromPlace}
             onSelect={setSelectedWaypointId}
             onMove={moveWaypoint}
             onRemove={removeWaypoint}
@@ -258,7 +348,9 @@ function RouteMapEditorPage() {
             calculating={calculating}
             saving={saving}
             accepting={accepting}
-            hasCandidate={Boolean(candidate?.geometry)}
+            canCalculate={canCalculate}
+            canAccept={canAccept}
+            hasUnsavedChanges={hasUnsavedChanges}
             onSave={saveRouteMap}
             onCalculate={calculateCandidate}
             onAccept={acceptCandidate}
