@@ -136,6 +136,8 @@ Tours and Events may surface contextually without requiring permanent top-level 
 - Route selection may navigate to `/routes/:routeSlug`.
 - Event selection may navigate to `/events/:eventSlug`.
 - Map interactions must use canonical entity routes rather than provider-specific URLs.
+- Route Waypoints and Route Segments remain subordinate to `/routes/:routeSlug` in v1 and do not receive separate public URLs.
+- A selected Segment may be represented as transient UI state or a query/hash value when shareable selection becomes necessary, but it must not create a second canonical Route URL.
 
 ## Locked Principles
 - Public routes are entity-oriented.

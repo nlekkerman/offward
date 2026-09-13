@@ -72,7 +72,15 @@ Examples:
 Exact filter names may be refined during implementation, but filters must remain generic and country-agnostic.
 
 ## Map Data
-The map consumes canonical Place and Route data.
+The map consumes canonical Place, Route, Route Waypoint, and Route Segment data.
+
+Canonical geometry rules:
+- Place and Waypoint coordinates use latitude/longitude fields in the canonical API representation.
+- Route and Route Segment geometry is returned as GeoJSON `LineString` data.
+- GeoJSON coordinate arrays use `[longitude, latitude]` order.
+- Saved Route geometry is authoritative for public rendering.
+- Public clients do not call a routing provider to redraw an existing Route.
+- Waypoints and Segments are subordinate Route resources in v1; they do not require independent public detail URLs.
 
 Potential future options include:
 - using normal Place/Route endpoints with filters or lightweight serializers
@@ -86,6 +94,50 @@ Possible future endpoints:
 ```
 
 Dedicated map endpoints are not locked as mandatory in v1.
+
+Whether normal resource endpoints or dedicated map endpoints are used, the API must support progressive map loading without returning the entire Offward geography graph.
+
+Required query capability direction:
+
+```text
+?country=ireland
+?bounds=west,south,east,north
+?include_geometry=false
+?route=killarney-loop
+```
+
+Exact parameter naming may be finalized during implementation, but the contract must support:
+- lightweight Europe/country summaries
+- country-scoped Place and Route discovery
+- visible-bounds filtering when justified by map density
+- summary results without full route geometry
+- full Route detail including geometry, Waypoints, Segments, and required preview relationships
+
+## Route Authoring and Calculation
+
+Road-following route calculation is an authenticated authoring concern, not a public read concern.
+
+Canonical direction:
+- editors submit ordered Waypoint coordinates
+- an isolated routing integration calculates a candidate path
+- the editor reviews or adjusts the candidate
+- Offward saves the accepted route as provider-neutral GeoJSON
+- public clients consume the saved result
+
+The initial routing integration should be compatible with OSRM while remaining replaceable. Routing-provider URLs, response shapes, and credentials must not leak into public serializers or frontend domain models.
+
+Route recalculation must be explicit. Editing descriptive Route content must not silently replace saved geometry.
+
+## Route Segment Media
+
+A full Route detail response may expose ordered Segments with:
+- stable ID
+- title and summary where present
+- GeoJSON geometry
+- start/end Waypoint references where present
+- related media preview identifiers/data required by the page
+
+Selecting or playing related media may cause the frontend to highlight the complete associated Segment. Time-synchronized playback coordinates are not required in v1.
 
 ## Media
 Video/media provider details may be managed by the backend.
@@ -189,6 +241,10 @@ This means:
 - Relationships stay shallow and independently addressable.
 - Filters remain generic and country-agnostic.
 - Map data comes from Places and Routes.
+- Route geometry and Route Segment geometry use GeoJSON `LineString` data.
+- Public clients render stored geometry and never calculate existing Routes on page load.
+- Route calculation is isolated as an authenticated authoring operation.
+- Map reads support progressive, scoped loading rather than returning all geographical detail at once.
 - No public prices, checkout, or payment API in v1.
 - Public auth is not required in v1.
 - Pagination readiness is expected.

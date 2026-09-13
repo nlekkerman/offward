@@ -113,6 +113,46 @@ Future work should not silently override these decisions. If a locked decision c
 **Decision:** Redux is not part of v1. TanStack Query may be added later only if server-state complexity justifies it.  
 **Reason:** Keep the initial architecture lean while preserving a clear path for growth.
 
+## DEC-021 — Canonical Route Geometry
+**Status:** Locked  
+**Decision:** Published Routes store their accepted geometry as provider-neutral GeoJSON `LineString` data. Public visitors render saved geometry and never calculate an existing Route on page load.  
+**Reason:** Public maps must remain fast and available independently from a routing provider.
+
+## DEC-022 — Waypoints and Places Are Different
+**Status:** Locked  
+**Decision:** Routes use explicitly ordered Route Waypoints. A Waypoint may reference a canonical Place but does not have to.  
+**Reason:** Technical points used to shape a road must not create fake Places or pollute the content model.
+
+## DEC-023 — Route Segments
+**Status:** Locked  
+**Decision:** A Route may contain ordered Route Segments that associate Videos, Stories, notes, or other media with an approximate section of the saved Route. The complete associated Segment may be highlighted during media selection or playback. Frame-accurate moving-map synchronization is out of scope for v1.  
+**Reason:** Offward needs a clear visual connection between road sections and recorded content without depending on constant speed or GPS-timestamp synchronization.
+
+## DEC-024 — Route Authoring
+**Status:** Locked  
+**Decision:** An editor may create a Route by placing start, finish, and optional via/stop Waypoints. An isolated routing adapter calculates a candidate road-following path, the editor reviews it, and Offward saves the accepted GeoJSON. Recorded GPS tracks may be supported later but are not required.  
+**Reason:** Routes must be creatable from approximate pins and physical landmarks even when no GPS track was recorded.
+
+## DEC-025 — V1 Map Technology
+**Status:** Locked  
+**Decision:** Leaflet with React Leaflet is the v1 rendering implementation, OpenStreetMap is the initial geographical data source, and road calculation uses an isolated OSRM-compatible adapter. Provider-specific code remains inside the map/routing boundaries.  
+**Reason:** This supplies real roads, interactive maps, and route calculation without coupling Offward to Google Maps or a paid SDK.
+
+## DEC-026 — Zero-Cost Map Dependency
+**Status:** Locked  
+**Decision:** V1 introduces no paid map or routing dependency. Provider attribution and usage policies remain mandatory, and tile/routing configuration must remain replaceable.  
+**Reason:** Offward's current operating constraint is no map-service cost while keeping a clean migration path if traffic or provider policy later requires a change.
+
+## DEC-027 — Progressive Map Loading
+**Status:** Locked  
+**Decision:** Europe views load lightweight country/content summaries; country selection loads country-scoped Place and Route summaries; full Route geometry, Waypoints, Segments, and media load only for the selected Route or page context.  
+**Reason:** The application must scale across Ireland, Bosnia, Spain, and future countries without loading every detailed geographical object at once.
+
+## DEC-028 — One Contextual Map System
+**Status:** Locked  
+**Decision:** Explore, Country, Route, Story, Video, and Place surfaces reuse one canonical map system configured with context-specific data and interaction. They do not implement independent map models.  
+**Reason:** Geography should remain consistent and reusable while each surface displays only what matters to its current context.
+
 ## Change Rule
 If a locked decision is changed later:
 1. do not silently edit history

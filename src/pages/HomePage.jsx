@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCountries } from '../services/countriesApi.js'
+import HomeMapSection from '../features/map/components/HomeMapSection.jsx'
 
 function HomePage() {
   const [countries, setCountries] = useState([])
@@ -38,18 +39,21 @@ function HomePage() {
   }
 
   return (
-    <section className="page-placeholder">
-      <p className="eyebrow">OFFWARD</p>
-      <h1>Explore by country</h1>
-      <ul>
-        {countries.map((country) => (
-          <li key={country.id}>
-            <Link to={`/countries/${country.slug}`}>{country.name}</Link>
-            {' '}({country.status})
-          </li>
-        ))}
-      </ul>
-    </section>
+    <>
+      <section className="page-placeholder">
+        <p className="eyebrow">OFFWARD</p>
+        <h1>Explore by country</h1>
+        <ul>
+          {countries.map((country) => (
+            <li key={country.id}>
+              <Link to={`/countries/${country.slug}`}>{country.name}</Link>
+              {' '}({country.status})
+            </li>
+          ))}
+        </ul>
+      </section>
+      <HomeMapSection />
+    </>
   )
 }
 

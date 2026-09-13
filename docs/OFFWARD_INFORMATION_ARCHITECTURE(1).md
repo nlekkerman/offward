@@ -41,13 +41,38 @@ An ordered journey or path connecting Places.
 
 A Route may:
 - belong to a Country
-- contain ordered Place references
-- contain geographic path data
+- contain ordered Waypoints
+- contain saved geographic path data
+- contain ordered Route Segments
+- reference canonical Places independently from its routing points
 - have attached media
 - be used by Tours
 - be used by Events/Expeditions
 
 A Place may belong to multiple Routes.
+
+### Route Waypoint
+An ordered geographical point used to create and shape a Route.
+
+A Route Waypoint:
+- belongs to exactly one Route
+- contains coordinates and an explicit order
+- may optionally reference a canonical Place
+- may represent a start, via point, stop, or finish
+
+A routing point is not automatically a Place. This prevents route construction from polluting the Place catalogue with technical points.
+
+### Route Segment
+An ordered, selectable section of a Route.
+
+A Route Segment:
+- belongs to exactly one Route
+- contains the geometry for its approximate section of road or path
+- may connect two Route Waypoints
+- may surface related Videos, Stories, notes, or other media
+- may be highlighted independently while its related content is active
+
+Route Segments are not independent public destinations in v1. Their parent Route remains the canonical detail page.
 
 ### Story
 Editorial or narrative content.
@@ -122,8 +147,11 @@ Partner relationships should remain flexible and not be hard-coded into one prod
 - Country has many Tours.
 - Country has many Events/Expeditions.
 - Country may have many Partners.
-- Route contains many Places in an explicit order.
+- Route contains ordered Waypoints and ordered Route Segments.
+- Route may reference many canonical Places.
 - Place may belong to many Routes.
+- Route Waypoint belongs to one Route and may optionally reference one Place.
+- Route Segment belongs to one Route and may reference related media.
 - Story may reference Places, Routes, Tours, Events/Expeditions, and Videos.
 - Video may attach to Places, Routes, Stories, Tours, and Events/Expeditions.
 - Tour belongs to a Country and may use Routes and Places.
@@ -135,8 +163,10 @@ The map is a presentation layer over Places and Routes.
 
 The map is not a separate content silo and does not own canonical content.
 
-Places provide point data.
-Routes provide path and ordered-stop data.
+Places provide canonical location data.
+Routes provide saved GeoJSON path data.
+Route Waypoints provide ordered route-building points.
+Route Segments provide selectable, media-linked sections of a Route.
 The map renders and connects those entities.
 
 ## Country Hub Principle

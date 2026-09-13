@@ -64,6 +64,9 @@ It should:
 - lead into detail pages
 - remain visually uncluttered
 - avoid oversized overlays that hide the map
+- begin with lightweight country/content summaries at Europe scale
+- reveal country Places and Routes progressively as the user selects or zooms into a country
+- avoid loading or visually emphasizing every detailed Route at once
 
 ### Latest
 The homepage may surface recent real content such as:
@@ -110,6 +113,13 @@ Marker click
 Route click
 → Route preview
 → View Route
+
+Route selector
+→ emphasize selected Route
+→ subdue or hide alternatives according to context
+
+Segment-related media selection/playback
+→ highlight the associated Route section
 ```
 
 Previews may surface:
@@ -120,6 +130,38 @@ Previews may surface:
 - contextual metadata
 
 The map must not be overloaded with large persistent panels.
+
+## Contextual Map Presentation
+
+Offward uses one reusable map system with different context-specific presentations:
+- Explore may use a large Europe/country discovery map.
+- Country pages show that country's available Places and Routes.
+- Route pages focus on one Route and its Stops/Waypoints, Segments, and related Places.
+- Story and Video pages show only their related geography.
+- Place pages focus on one marker and deliberately selected nearby/related content.
+
+A contextual map may first appear as a compact card and expand into a larger view. Expansion must preserve the active Route, marker, Segment, and relevant viewport.
+
+## Multiple Routes in One Area
+
+When many Routes overlap geographically:
+- provide compact route selectors or another touch-friendly selection control
+- strongly emphasize only the selected Route
+- visually subdue, summarize, cluster, or hide other Routes based on zoom and context
+- do not force all Route labels and full geometry onto the map simultaneously
+- preserve clear access to each Route's canonical detail page
+
+## Route Video Presentation
+
+On a Route page, a selected Video may appear above or beside the map depending on viewport size.
+
+When that Video relates to a Route Segment:
+- highlight the complete associated section of the Route
+- keep the rest of the Route visible but visually secondary
+- remove or change the highlight when another Segment is selected
+- do not imply frame-accurate vehicle position
+
+A synchronized moving cursor is not part of v1.
 
 ## Content Cards
 Content cards should normally contain:

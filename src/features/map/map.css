@@ -1,0 +1,58 @@
+@import 'leaflet/dist/leaflet.css';
+
+.offward-map-container {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #2f332d;
+  background: #191b17;
+}
+
+@media (min-width: 768px) {
+  .offward-map-container {
+    height: 480px;
+  }
+}
+
+.offward-map-inner {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.offward-map-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #aaa99e;
+  font-family: sans-serif;
+  font-size: 0.9rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.home-map-section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 2rem 8rem;
+}
+
+.home-map-section h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 400;
+  margin: 0.5rem 0 0.75rem;
+  color: #f3efe6;
+}
+
+.home-map-section p.home-map-description {
+  color: #aaa99e;
+  margin: 0 0 2rem;
+  max-width: 600px;
+  line-height: 1.5;
+  font-family: sans-serif;
+  font-size: 0.95rem;
+}
