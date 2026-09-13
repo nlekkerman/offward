@@ -520,11 +520,11 @@ nav a { color: #aaa99e; text-decoration: none; }
 .legend-line {
   width: 1.6rem;
   height: 0;
-  border-top: 3px solid #d8b47c;
+  border-top: 3px solid #4F8A3C;
 }
 
 .legend-line.candidate {
-  border-top-color: #c25e00;
+  border-top-color: #D28A22;
   border-top-style: dashed;
 }
 

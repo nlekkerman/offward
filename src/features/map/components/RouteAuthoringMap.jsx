@@ -85,18 +85,18 @@ function MapClickHandler({ addMode, onMapAddWaypoint }) {
 }
 
 const ACCEPTED_STYLE = {
-  color: '#d8b47c',
-  weight: 5,
-  opacity: 0.9,
+  color: '#4F8A3C',
+  weight: 7,
+  opacity: 0.95,
   lineCap: 'round',
   lineJoin: 'round',
 }
 
 const CANDIDATE_STYLE = {
-  color: '#c25e00',
-  weight: 4,
-  opacity: 0.75,
-  dashArray: '8 8',
+  color: '#D28A22',
+  weight: 5,
+  opacity: 0.9,
+  dashArray: '10 8',
   lineCap: 'round',
   lineJoin: 'round',
 }
