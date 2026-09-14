@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCountries } from '../services/countriesApi.js'
-import HomeMapSection from '../features/map/components/HomeMapSection.jsx'
+import heroImage from '../assets/images/home/off-hero.webp'
 
 function HomePage() {
   const [countries, setCountries] = useState([])
@@ -31,18 +31,28 @@ function HomePage() {
   }, [])
 
   if (error) {
-    return <section className="page-placeholder">Unable to load countries.</section>
+    return (
+      <>
+        <HomeHero />
+        <section className="page-placeholder">Unable to load countries.</section>
+      </>
+    )
   }
 
   if (!countries.length) {
-    return <section className="page-placeholder">Loading countries...</section>
+    return (
+      <>
+        <HomeHero />
+        <section className="page-placeholder">Loading countries...</section>
+      </>
+    )
   }
 
   return (
     <>
+      <HomeHero />
       <section className="page-placeholder">
-        <p className="eyebrow">OFFWARD</p>
-        <h1>Explore by country</h1>
+        <h2>Explore by country</h2>
         <ul>
           {countries.map((country) => (
             <li key={country.id}>
@@ -52,8 +62,30 @@ function HomePage() {
           ))}
         </ul>
       </section>
-      <HomeMapSection />
     </>
+  )
+}
+
+function HomeHero() {
+  return (
+    <section className="home-hero">
+      <img
+        className="home-hero-image"
+        src={heroImage}
+        alt=""
+        loading="eager"
+        fetchPriority="high"
+        aria-hidden="true"
+      />
+      <div className="home-hero-content">
+        <p className="eyebrow">OFFWARD</p>
+        <h1>Routes, places and stories from the road.</h1>
+        <div className="home-hero-actions">
+          <Link to="/explore?view=routes" className="primary-button">Explore routes</Link>
+          <Link to="/explore?view=places" className="secondary-button">Explore places</Link>
+        </div>
+      </div>
+    </section>
   )
 }
 
