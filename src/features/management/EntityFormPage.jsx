@@ -38,8 +38,11 @@ function getInitialValues(resourceKey, data = {}) {
     }))
   }
 
-  if (data.country && typeof data.country === 'object' && !base.country) {
-    base.country = data.country.id || ''
+  if (resourceKey === 'routes') {
+    const countryValue = data.country && typeof data.country === 'object'
+      ? data.country.id
+      : data.country || data.country_id || ''
+    base.country = countryValue || ''
   }
 
   return base
