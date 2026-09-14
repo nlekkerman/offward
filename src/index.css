@@ -675,33 +675,43 @@ nav a { color: #aaa99e; text-decoration: none; }
   gap: 0.75rem;
 }
 
-.explore-layer-toggle {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0;
-  padding: 0.75rem 0 0;
-  border: 0;
-  border-top: 1px solid #30362f;
-  color: #d8d1c3;
-  font: 0.85rem/1.2 sans-serif;
-}
-
-.explore-layer-toggle legend {
-  padding: 0;
-  color: #e1ddd1;
-  font: 600 0.78rem/1.2 sans-serif;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.explore-layer-toggle label {
+.explore-category-nav {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
-.explore-layer-toggle input {
-  accent-color: #4f8a3c;
+.explore-category-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid #30362f;
+  border-radius: 0.5rem;
+  background: #121510;
+  color: #aaa99e;
+  font: 600 0.85rem/1.2 sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.explore-category-button:hover {
+  border-color: #4a5048;
+  background: #181c16;
+  color: #f3efe6;
+}
+
+.explore-category-button:focus-visible {
+  outline: 2px solid #d8b47c;
+  outline-offset: 2px;
+}
+
+.explore-category-button.is-active {
+  border-color: #4f8a3c;
+  background: #182018;
+  color: #f3efe6;
+  font-weight: 700;
 }
 
 .explore-field {
