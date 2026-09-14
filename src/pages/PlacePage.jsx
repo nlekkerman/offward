@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderablePlace } from '../features/map/mapGeometry.js'
 import { getPublicPlaceBySlug } from '../services/placesApi.js'
-import NotFoundPage from './NotFoundPage.jsx'
 
 function formatCountrySlug(value) {
   if (!value || typeof value !== 'string') {
@@ -47,18 +46,27 @@ function PlacePage() {
   }
 
   if (placeStatus === 'not-found') {
-    return <NotFoundPage />
+    return (
+      <section className="place-detail-page">
+        <Link className="route-detail-back" to="/explore?view=places">Back to Explore</Link>
+        <div className="place-detail-error" role="alert">
+          <p className="eyebrow">PLACE NOT FOUND</p>
+          <h1>This Place could not be found</h1>
+          <p>The Place you are looking for may have been removed or is no longer published.</p>
+        </div>
+      </section>
+    )
   }
 
   if (placeStatus === 'error') {
-    return <section className="place-detail-page"><Link className="route-detail-back" to="/explore">Back to Explore</Link><div className="place-detail-error" role="alert"><p className="eyebrow">PLACE UNAVAILABLE</p><h1>Unable to load this Place</h1><p>There was a network or server problem loading the Place detail. Try again from Explore.</p></div></section>
+    return <section className="place-detail-page"><Link className="route-detail-back" to="/explore?view=places">Back to Explore</Link><div className="place-detail-error" role="alert"><p className="eyebrow">PLACE UNAVAILABLE</p><h1>Unable to load this Place</h1><p>There was a network or server problem loading the Place detail. Try again from Explore.</p></div></section>
   }
 
   const hasCoordinates = isRenderablePlace(place)
 
   return (
     <section className="place-detail-page">
-      <Link className="route-detail-back" to="/explore">Back to Explore</Link>
+      <Link className="route-detail-back" to="/explore?view=places">Back to Explore</Link>
       <header className="place-detail-header">
         <p className="eyebrow">PUBLIC PLACE</p>
         <h1>{place.name}</h1>
@@ -66,13 +74,18 @@ function PlacePage() {
         {place.summary && <p className="route-detail-summary">{place.summary}</p>}
       </header>
       <div className="place-detail-layout">
-        <article className="place-detail-copy">
-          {place.body && <div className="place-detail-body">{place.body}</div>}
-        </article>
+        {place.body && (
+          <article className="place-detail-copy">
+            <div className="place-detail-body">{place.body}</div>
+          </article>
+        )}
         <section className="place-detail-map-section" aria-labelledby="place-map-title">
           <div className="route-map-heading"><p className="eyebrow">MAP</p><h2 id="place-map-title">Place location</h2></div>
-          {!hasCoordinates && <p className="route-map-message" role="status">Map location is currently unavailable for this Place.</p>}
-          <MapView className="place-detail-map" places={hasCoordinates ? [place] : []} selectedPlaceId={hasCoordinates ? place.id : null} initialCenter={hasCoordinates ? [place.latitude, place.longitude] : [50, 10]} initialZoom={hasCoordinates ? 10 : 4} />
+          {hasCoordinates ? (
+            <MapView className="place-detail-map" places={[place]} selectedPlaceId={place.id} initialCenter={[place.latitude, place.longitude]} initialZoom={10} />
+          ) : (
+            <p className="route-map-message" role="status">Map location is unavailable for this Place.</p>
+          )}
         </section>
       </div>
     </section>
