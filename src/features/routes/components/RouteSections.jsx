@@ -1,4 +1,6 @@
-function getMeaningfulSegments(segments) {
+import { isRenderableRoute } from '../../map/mapGeometry.js'
+
+function getOrderedSegments(segments) {
   if (!Array.isArray(segments)) {
     return []
   }
@@ -11,30 +13,76 @@ function getMeaningfulSegments(segments) {
       title: typeof segment.title === 'string' ? segment.title.trim() : '',
       summary: typeof segment.summary === 'string' ? segment.summary.trim() : '',
     }))
-    .filter((segment) => segment.title || segment.summary)
     .sort((a, b) => a.order - b.order)
 }
 
-function RouteSections({ segments }) {
-  const meaningfulSegments = getMeaningfulSegments(segments)
+function getWaypointLabel(waypoint) {
+  const label = typeof waypoint?.label === 'string' ? waypoint.label.trim() : ''
+  if (label) return label
+  if (waypoint?.type && Number.isFinite(Number(waypoint.order))) {
+    return `${waypoint.type.charAt(0).toUpperCase()}${waypoint.type.slice(1)} waypoint ${waypoint.order}`
+  }
+  return Number.isFinite(Number(waypoint?.order)) ? `Waypoint ${waypoint.order}` : ''
+}
 
-  if (meaningfulSegments.length === 0) {
+function RouteSections({ segments, waypoints, selectedSegmentId, selectedSegment, onSegmentSelect, onDeselect }) {
+  const orderedSegments = getOrderedSegments(segments)
+
+  if (orderedSegments.length === 0) {
     return null
   }
+
+  const waypointById = new Map(waypoints.map((waypoint) => [waypoint.id, waypoint]))
+  const startWaypoint = selectedSegment?.start_waypoint_id ? waypointById.get(selectedSegment.start_waypoint_id) : null
+  const endWaypoint = selectedSegment?.end_waypoint_id ? waypointById.get(selectedSegment.end_waypoint_id) : null
+  const selectedTitle = selectedSegment?.title || (selectedSegment ? `Section ${selectedSegment.order}` : '')
 
   return (
     <section className="route-detail-panel route-sections-panel" aria-labelledby="route-sections-title">
       <p className="eyebrow">SECTIONS</p>
-      <h2 id="route-sections-title">Route sections</h2>
+      <h2 id="route-sections-title">Journey sections</h2>
       <ol className="route-sections-list">
-        {meaningfulSegments.map((segment) => (
+        {orderedSegments.map((segment) => {
+          const available = typeof segment.id === 'string' && isRenderableRoute(segment)
+          const selected = segment.id === selectedSegmentId
+          const title = segment.title || `Section ${segment.order}`
+          return (
           <li key={segment.id || `${segment.order}-${segment.title || segment.summary}`}>
-            <span className="route-section-order">Section {segment.order}</span>
-            {segment.title && <h3>{segment.title}</h3>}
-            {segment.summary && <p>{segment.summary}</p>}
+            <button
+              type="button"
+              className={selected ? 'route-section-item is-selected' : 'route-section-item'}
+              aria-pressed={selected}
+              aria-disabled={!available}
+              disabled={!available}
+              onClick={() => onSegmentSelect(segment.id)}
+            >
+              <span className="route-section-order">Section {segment.order}</span>
+              <span className="route-section-copy">
+                <strong>{title}</strong>
+                {segment.summary && <span>{segment.summary}</span>}
+                {!available && <span className="route-section-unavailable">Map geometry unavailable</span>}
+              </span>
+            </button>
           </li>
-        ))}
+          )
+        })}
       </ol>
+      {selectedSegment && (
+        <div className="route-segment-detail" aria-labelledby="route-segment-detail-title">
+          <div>
+            <span className="route-section-order">Section {selectedSegment.order}</span>
+            <h3 id="route-segment-detail-title">{selectedTitle}</h3>
+          </div>
+          {selectedSegment.summary && <p>{selectedSegment.summary}</p>}
+          {(startWaypoint || endWaypoint) && (
+            <dl className="route-segment-boundaries">
+              {startWaypoint && <div><dt>Start</dt><dd>{getWaypointLabel(startWaypoint)}</dd></div>}
+              {endWaypoint && <div><dt>End</dt><dd>{getWaypointLabel(endWaypoint)}</dd></div>}
+            </dl>
+          )}
+          <button type="button" className="secondary-button small-button route-segment-deselect" onClick={onDeselect}>Show full route</button>
+        </div>
+      )}
     </section>
   )
 }

@@ -4,10 +4,11 @@ import { getCombinedBounds, getCombinedMapBounds, getWaypointBounds } from '../m
 
 // Fits the viewport to Route/waypoint bounds on data change and focuses the
 // selected Route, without resetting the viewport during normal interaction.
-function MapViewportController({ validRoutes, validWaypoints, validPlaces, selectedRouteId, selectedPlaceId }) {
+function MapViewportController({ validRoutes, validSegments, validWaypoints, validPlaces, selectedRouteId, selectedSegmentId, selectedPlaceId }) {
   const map = useMap()
   const prevRouteSignatureRef = useRef(null)
   const prevSelectedRouteIdRef = useRef(null)
+  const prevSelectedSegmentIdRef = useRef(null)
   const prevSelectedPlaceIdRef = useRef(null)
 
   useEffect(() => {
@@ -39,7 +40,7 @@ function MapViewportController({ validRoutes, validWaypoints, validPlaces, selec
       return
     }
 
-    if (prevRouteSignatureRef.current !== contentSignature) {
+    if (prevRouteSignatureRef.current !== contentSignature && !selectedSegmentId) {
       prevRouteSignatureRef.current = contentSignature
       const bounds = getCombinedMapBounds(validRoutes, validPlaces)
       if (bounds) {
@@ -50,7 +51,34 @@ function MapViewportController({ validRoutes, validWaypoints, validPlaces, selec
         })
       }
     }
-  }, [map, validRoutes, validWaypoints, validPlaces])
+  }, [map, selectedSegmentId, validRoutes, validWaypoints, validPlaces])
+
+  useEffect(() => {
+    if (!selectedSegmentId) {
+      const hadSelectedSegment = prevSelectedSegmentIdRef.current
+      prevSelectedSegmentIdRef.current = null
+      if (hadSelectedSegment) {
+        const bounds = getCombinedMapBounds(validRoutes, validPlaces) || getWaypointBounds(validWaypoints)
+        if (bounds) {
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13, animate: false })
+        }
+      }
+      return
+    }
+
+    if (prevSelectedSegmentIdRef.current === selectedSegmentId) {
+      return
+    }
+
+    prevSelectedSegmentIdRef.current = selectedSegmentId
+    const selectedSegment = validSegments.find((segment) => segment.id === selectedSegmentId)
+    if (selectedSegment) {
+      const bounds = getCombinedBounds([selectedSegment])
+      if (bounds) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14, animate: false })
+      }
+    }
+  }, [map, selectedSegmentId, validSegments, validRoutes, validPlaces, validWaypoints])
 
   useEffect(() => {
     if (!selectedRouteId) {

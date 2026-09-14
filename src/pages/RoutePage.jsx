@@ -44,18 +44,20 @@ function RoutePage() {
   const [countries, setCountries] = useState([])
   const [countriesStatus, setCountriesStatus] = useState('loading')
   const [selectedWaypointId, setSelectedWaypointId] = useState(null)
+  const [selectedSegmentId, setSelectedSegmentId] = useState(null)
 
   useEffect(() => {
     let isCurrent = true
 
     async function loadRoute() {
+      setSelectedWaypointId(null)
+      setSelectedSegmentId(null)
       try {
         const data = await getPublicRouteBySlug(routeSlug)
         if (!isCurrent) {
           return
         }
 
-        setSelectedWaypointId(null)
         setRouteResult({ slug: routeSlug, status: data ? 'success' : 'not-found', route: data })
       } catch {
         if (isCurrent) {
@@ -100,6 +102,9 @@ function RoutePage() {
   const route = routeResult.slug === routeSlug ? routeResult.route : null
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
+  const segments = useMemo(() => (Array.isArray(route?.segments) ? route.segments : []), [route])
+  const selectedSegment = segments.find((segment) => segment?.id === selectedSegmentId) || null
+  const selectSegment = (segmentId) => setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
   const mapRoute = route && route.is_map_renderable === true && isRenderableRoute(route) ? route : null
   const hasMalformedGeometry = route?.geometry && route?.is_map_renderable === true && !mapRoute
   const countryLabel = countryNames.get(route?.country) || route?.country || 'Country pending'
@@ -157,12 +162,22 @@ function RoutePage() {
               waypoints={waypoints}
               selectedWaypointId={selectedWaypointId}
               onWaypointSelect={setSelectedWaypointId}
-              routeLineStyle={ROUTE_DETAIL_LINE_STYLE}
+              routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}
+              segments={segments}
+              selectedSegmentId={selectedSegmentId}
+              onSegmentSelect={selectSegment}
               initialCenter={[50, 10]}
               initialZoom={4}
             />
           </section>
-          <RouteSections segments={route.segments} />
+          <RouteSections
+            segments={segments}
+            waypoints={waypoints}
+            selectedSegmentId={selectedSegmentId}
+            selectedSegment={selectedSegment}
+            onSegmentSelect={selectSegment}
+            onDeselect={() => setSelectedSegmentId(null)}
+          />
         </div>
         <aside className="route-detail-side" aria-label="Route itinerary">
           <RouteItinerary waypoints={waypoints} selectedWaypointId={selectedWaypointId} onWaypointSelect={setSelectedWaypointId} />

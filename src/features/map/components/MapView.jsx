@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { MapContainer, TileLayer } from 'react-leaflet'
 import MapErrorBoundary from './MapErrorBoundary.jsx'
 import RouteLayer from './RouteLayer.jsx'
+import SegmentLayer from './SegmentLayer.jsx'
 import RouteEndpointLayer from './RouteEndpointLayer.jsx'
 import PlaceLayer from './PlaceLayer.jsx'
 import MapViewportController from './MapViewportController.jsx'
@@ -23,6 +24,9 @@ function MapViewContent({
   onWaypointSelect,
   onPlaceSelect,
   routeLineStyle,
+  segments = [],
+  selectedSegmentId = null,
+  onSegmentSelect,
 }) {
   const center = normalizeCenter(initialCenter)
   const zoom = typeof initialZoom === 'number' ? initialZoom : 4
@@ -36,6 +40,12 @@ function MapViewContent({
   }, [routes])
   const validWaypoints = useMemo(() => getValidWaypoints(waypoints), [waypoints])
   const validPlaces = useMemo(() => getRenderablePlaces(places), [places])
+  const validSegments = useMemo(() => {
+    if (!Array.isArray(segments)) {
+      return []
+    }
+    return segments.filter((segment) => typeof segment?.id === 'string' && isRenderableRoute(segment))
+  }, [segments])
 
   return (
     <div className={containerClassName}>
@@ -55,14 +65,19 @@ function MapViewContent({
           onRouteSelect={onRouteSelect}
           routeLineStyle={routeLineStyle}
         />
+        <SegmentLayer
+          segments={validSegments}
+          selectedSegmentId={selectedSegmentId}
+          onSegmentSelect={onSegmentSelect}
+        />
         <RouteEndpointLayer
           waypoints={validWaypoints}
           selectedWaypointId={selectedWaypointId}
           onWaypointSelect={onWaypointSelect}
         />
         <PlaceLayer places={validPlaces} selectedPlaceId={selectedPlaceId} onPlaceSelect={onPlaceSelect} />
-        {(validRoutes.length > 0 || validWaypoints.length > 0 || validPlaces.length > 0) && (
-          <MapViewportController validRoutes={validRoutes} validWaypoints={validWaypoints} validPlaces={validPlaces} selectedRouteId={selectedRouteId} selectedPlaceId={selectedPlaceId} />
+        {(validRoutes.length > 0 || validSegments.length > 0 || validWaypoints.length > 0 || validPlaces.length > 0) && (
+          <MapViewportController validRoutes={validRoutes} validSegments={validSegments} validWaypoints={validWaypoints} validPlaces={validPlaces} selectedRouteId={selectedRouteId} selectedSegmentId={selectedSegmentId} selectedPlaceId={selectedPlaceId} />
         )}
       </MapContainer>
     </div>
