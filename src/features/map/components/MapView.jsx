@@ -3,9 +3,10 @@ import { MapContainer, TileLayer } from 'react-leaflet'
 import MapErrorBoundary from './MapErrorBoundary.jsx'
 import RouteLayer from './RouteLayer.jsx'
 import RouteEndpointLayer from './RouteEndpointLayer.jsx'
+import PlaceLayer from './PlaceLayer.jsx'
 import MapViewportController from './MapViewportController.jsx'
 import { MAP_TILE_LAYER } from '../tileConfig.js'
-import { isRenderableRoute, getValidWaypoints, normalizeCenter } from '../mapGeometry.js'
+import { isRenderableRoute, getRenderablePlaces, getValidWaypoints, normalizeCenter } from '../mapGeometry.js'
 import '../map.css'
 
 function MapViewContent({
@@ -16,8 +17,11 @@ function MapViewContent({
   waypoints = [],
   selectedRouteId = null,
   selectedWaypointId = null,
+  places = [],
+  selectedPlaceId = null,
   onRouteSelect,
   onWaypointSelect,
+  onPlaceSelect,
   routeLineStyle,
 }) {
   const center = normalizeCenter(initialCenter)
@@ -31,6 +35,7 @@ function MapViewContent({
     return routes.filter(isRenderableRoute)
   }, [routes])
   const validWaypoints = useMemo(() => getValidWaypoints(waypoints), [waypoints])
+  const validPlaces = useMemo(() => getRenderablePlaces(places), [places])
 
   return (
     <div className={containerClassName}>
@@ -55,8 +60,9 @@ function MapViewContent({
           selectedWaypointId={selectedWaypointId}
           onWaypointSelect={onWaypointSelect}
         />
-        {(validRoutes.length > 0 || validWaypoints.length > 0) && (
-          <MapViewportController validRoutes={validRoutes} validWaypoints={validWaypoints} selectedRouteId={selectedRouteId} />
+        <PlaceLayer places={validPlaces} selectedPlaceId={selectedPlaceId} onPlaceSelect={onPlaceSelect} />
+        {(validRoutes.length > 0 || validWaypoints.length > 0 || validPlaces.length > 0) && (
+          <MapViewportController validRoutes={validRoutes} validWaypoints={validWaypoints} validPlaces={validPlaces} selectedRouteId={selectedRouteId} selectedPlaceId={selectedPlaceId} />
         )}
       </MapContainer>
     </div>

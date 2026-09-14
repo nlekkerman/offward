@@ -116,6 +116,55 @@ export function getWaypointBounds(validWaypoints) {
   return validWaypoints.map((waypoint) => [waypoint.coordinates.lat, waypoint.coordinates.lng])
 }
 
+export function isRenderablePlace(place) {
+  const { latitude, longitude } = place || {}
+  return (
+    typeof latitude === 'number' &&
+    Number.isFinite(latitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    typeof longitude === 'number' &&
+    Number.isFinite(longitude) &&
+    longitude >= -180 &&
+    longitude <= 180
+  )
+}
+
+export function getRenderablePlaces(places) {
+  if (!Array.isArray(places)) {
+    return []
+  }
+
+  return places.filter(isRenderablePlace)
+}
+
+export function getPlaceBounds(validPlaces) {
+  if (validPlaces.length < 1) {
+    return null
+  }
+
+  return validPlaces.map((place) => [place.latitude, place.longitude])
+}
+
+export function getCombinedMapBounds(validRoutes, validPlaces) {
+  const routeBounds = getCombinedBounds(validRoutes)
+  const placeBounds = getPlaceBounds(validPlaces)
+  const points = []
+
+  if (routeBounds) {
+    points.push(...routeBounds)
+  }
+  if (placeBounds) {
+    points.push(...placeBounds)
+  }
+
+  if (points.length === 0) {
+    return null
+  }
+
+  return points
+}
+
 export function normalizeCenter(center) {
   if (Array.isArray(center) && center.length >= 2) {
     const lat = Number(center[0])

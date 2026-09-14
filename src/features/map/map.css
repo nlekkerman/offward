@@ -41,6 +41,32 @@
   color: #f3efe6;
 }
 
+.public-place-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+}
+
+.public-place-marker span {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #f3efe6;
+  border-radius: 50%;
+  background: #b47a4c;
+  box-shadow: 0 1px 5px rgba(18, 19, 16, 0.8);
+}
+
+.public-place-marker.is-selected span {
+  width: 22px;
+  height: 22px;
+  border-width: 4px;
+  border-color: #f3efe6;
+  background: #4F8A3C;
+}
+
 .offward-map-fallback {
   display: flex;
   align-items: center;

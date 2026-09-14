@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
-import { getCombinedBounds, getWaypointBounds } from '../mapGeometry.js'
+import { getCombinedBounds, getCombinedMapBounds, getWaypointBounds } from '../mapGeometry.js'
 
 // Fits the viewport to Route/waypoint bounds on data change and focuses the
 // selected Route, without resetting the viewport during normal interaction.
-function MapViewportController({ validRoutes, validWaypoints, selectedRouteId }) {
+function MapViewportController({ validRoutes, validWaypoints, validPlaces, selectedRouteId, selectedPlaceId }) {
   const map = useMap()
   const prevRouteSignatureRef = useRef(null)
   const prevSelectedRouteIdRef = useRef(null)
+  const prevSelectedPlaceIdRef = useRef(null)
 
   useEffect(() => {
     const routeSignature = validRoutes
@@ -20,7 +21,12 @@ function MapViewportController({ validRoutes, validWaypoints, selectedRouteId })
       })
       .join('|')
 
-    if (!routeSignature) {
+    const placeSignature = validPlaces
+      .map((place) => `${place.id ?? place.slug}:${place.latitude},${place.longitude}`)
+      .join('|')
+    const contentSignature = `${routeSignature}|${placeSignature}`
+
+    if (!routeSignature && !placeSignature) {
       prevRouteSignatureRef.current = null
       const bounds = getWaypointBounds(validWaypoints)
       if (bounds) {
@@ -33,9 +39,9 @@ function MapViewportController({ validRoutes, validWaypoints, selectedRouteId })
       return
     }
 
-    if (prevRouteSignatureRef.current !== routeSignature) {
-      prevRouteSignatureRef.current = routeSignature
-      const bounds = getCombinedBounds(validRoutes)
+    if (prevRouteSignatureRef.current !== contentSignature) {
+      prevRouteSignatureRef.current = contentSignature
+      const bounds = getCombinedMapBounds(validRoutes, validPlaces)
       if (bounds) {
         map.fitBounds(bounds, {
           padding: [50, 50],
@@ -44,10 +50,15 @@ function MapViewportController({ validRoutes, validWaypoints, selectedRouteId })
         })
       }
     }
-  }, [map, validRoutes, validWaypoints])
+  }, [map, validRoutes, validWaypoints, validPlaces])
 
   useEffect(() => {
-    if (!selectedRouteId || prevSelectedRouteIdRef.current === selectedRouteId) {
+    if (!selectedRouteId) {
+      prevSelectedRouteIdRef.current = null
+      return
+    }
+
+    if (prevSelectedRouteIdRef.current === selectedRouteId) {
       return
     }
 
@@ -64,6 +75,23 @@ function MapViewportController({ validRoutes, validWaypoints, selectedRouteId })
       }
     }
   }, [map, selectedRouteId, validRoutes])
+
+  useEffect(() => {
+    if (!selectedPlaceId) {
+      prevSelectedPlaceIdRef.current = null
+      return
+    }
+
+    if (prevSelectedPlaceIdRef.current === selectedPlaceId) {
+      return
+    }
+
+    prevSelectedPlaceIdRef.current = selectedPlaceId
+    const selectedPlace = validPlaces.find((place) => place.id === selectedPlaceId)
+    if (selectedPlace) {
+      map.setView([selectedPlace.latitude, selectedPlace.longitude], Math.min(Math.max(map.getZoom(), 4), 11), { animate: false })
+    }
+  }, [map, selectedPlaceId, validPlaces])
 
   return null
 }
