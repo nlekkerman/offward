@@ -1,68 +1,9 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getCountries } from '../services/countriesApi.js'
 import heroImage from '../assets/images/home/off-hero.webp'
 
 function HomePage() {
-  const [countries, setCountries] = useState([])
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    let isCurrent = true
-
-    async function loadCountries() {
-      try {
-        const data = await getCountries()
-        if (isCurrent) {
-          setCountries(data)
-        }
-      } catch {
-        if (isCurrent) {
-          setError(true)
-        }
-      }
-    }
-
-    loadCountries()
-
-    return () => {
-      isCurrent = false
-    }
-  }, [])
-
-  if (error) {
-    return (
-      <>
-        <HomeHero />
-        <section className="page-placeholder">Unable to load countries.</section>
-      </>
-    )
-  }
-
-  if (!countries.length) {
-    return (
-      <>
-        <HomeHero />
-        <section className="page-placeholder">Loading countries...</section>
-      </>
-    )
-  }
-
   return (
-    <>
-      <HomeHero />
-      <section className="page-placeholder">
-        <h2>Explore by country</h2>
-        <ul>
-          {countries.map((country) => (
-            <li key={country.id}>
-              <Link to={`/countries/${country.slug}`}>{country.name}</Link>
-              {' '}({country.status})
-            </li>
-          ))}
-        </ul>
-      </section>
-    </>
+    <HomeHero />
   )
 }
 
