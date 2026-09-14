@@ -619,6 +619,177 @@ nav a { color: #aaa99e; text-decoration: none; }
   padding-top: 4rem;
 }
 
+.explore-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 3.5rem 2rem 5rem;
+}
+
+.explore-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.explore-heading h1 {
+  margin: 0.5rem 0 0;
+  color: #f3efe6;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 400;
+}
+
+.explore-count,
+.explore-status,
+.explore-route-item span,
+.explore-preview > p:not(.eyebrow) {
+  color: #aaa99e;
+  font-family: sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.explore-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.explore-panel {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #30362f;
+  border-radius: 0.75rem;
+  background: #171b18;
+}
+
+.explore-filters,
+.explore-route-list,
+.explore-preview {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.explore-field {
+  display: grid;
+  gap: 0.4rem;
+  color: #e1ddd1;
+  font: 600 0.78rem/1.2 sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.explore-field select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #3a413c;
+  border-radius: 0.5rem;
+  background: #0f110f;
+  color: #f6f1e7;
+  padding: 0.65rem 0.7rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.explore-clear {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: #d8b47c;
+  cursor: pointer;
+  font: 600 0.8rem/1.2 sans-serif;
+  padding: 0.2rem 0;
+}
+
+.explore-status {
+  margin: 0;
+}
+
+.explore-route-list {
+  max-height: 390px;
+  overflow-y: auto;
+}
+
+.explore-route-item {
+  display: grid;
+  gap: 0.35rem;
+  width: 100%;
+  border: 1px solid #2f3430;
+  border-radius: 0.5rem;
+  background: #121510;
+  color: #f2ece4;
+  padding: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.explore-route-item:hover,
+.explore-route-item:focus-visible,
+.explore-route-item.is-selected {
+  border-color: #4f8a3c;
+  background: #182018;
+}
+
+.explore-route-item strong {
+  font: 700 0.95rem/1.25 sans-serif;
+}
+
+.explore-preview {
+  border-top: 1px solid #30362f;
+  padding-top: 1rem;
+}
+
+.explore-preview h2 {
+  margin: 0;
+  color: #f2ece4;
+  font: 600 1.25rem/1.2 sans-serif;
+}
+
+.explore-preview p {
+  margin: 0;
+}
+
+.explore-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.explore-preview-actions .primary-button,
+.explore-preview-actions .secondary-button {
+  min-height: 38px;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.explore-map-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.explore-map {
+  height: min(72svh, 760px);
+  min-height: 520px;
+}
+
+.explore-map-notice {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  max-width: calc(100% - 2rem);
+  margin: 0;
+  border: 1px solid #4b493d;
+  border-radius: 0.5rem;
+  background: rgba(18, 19, 16, 0.92);
+  color: #d8d1c3;
+  font: 0.8rem/1.35 sans-serif;
+  padding: 0.65rem 0.8rem;
+}
+
 @media (max-width: 900px) {
   .management-layout {
     grid-template-columns: 1fr;
@@ -645,6 +816,27 @@ nav a { color: #aaa99e; text-decoration: none; }
   .route-map-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .explore-page {
+    padding-top: 2.5rem;
+  }
+
+  .explore-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .explore-panel {
+    order: 2;
+  }
+
+  .explore-map-wrap {
+    order: 1;
+  }
+
+  .explore-map {
+    height: 58svh;
+    min-height: 420px;
+  }
 }
 
 @media (max-width: 600px) {
@@ -657,4 +849,8 @@ nav a { color: #aaa99e; text-decoration: none; }
   .route-map-header-actions, .route-map-actions { width: 100%; flex-direction: column-reverse; }
   .route-map-header-actions a, .route-map-header-actions button, .route-map-actions button { width: 100%; }
   .route-map-form-grid, .route-map-summary-grid { grid-template-columns: 1fr; }
+
+  .explore-page { padding: 2rem 1.25rem 3rem; }
+  .explore-heading { align-items: flex-start; flex-direction: column; }
+  .explore-map { height: 52svh; min-height: 360px; }
 }

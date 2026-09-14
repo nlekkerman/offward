@@ -1,21 +1,28 @@
 import { apiClient } from './apiClient.js'
 
-export async function getPublicRoutes({ includeGeometry = false } = {}) {
+export async function getPublicRoutes({ country, status = 'active', activityType, includeGeometry = true } = {}) {
+  const params = {
+    status,
+    include_geometry: includeGeometry,
+  }
+
+  if (country) {
+    params.country = country
+  }
+
+  if (activityType) {
+    params.activity_type = activityType
+  }
+
   const { data } = await apiClient.get('/api/offward/routes/', {
-    params: {
-      include_geometry: includeGeometry,
-    },
+    params,
   })
 
-  if (Array.isArray(data)) {
-    return data
+  if (!Array.isArray(data)) {
+    throw new Error('Public routes response must be a bare array.')
   }
 
-  if (Array.isArray(data?.results)) {
-    return data.results
-  }
-
-  return []
+  return data
 }
 
 export async function getRoutes(options) {

@@ -65,9 +65,10 @@ function getCombinedBounds(validRoutes) {
   ]
 }
 
-function MapViewportController({ validRoutes }) {
+function MapViewportController({ validRoutes, selectedRouteId }) {
   const map = useMap()
   const prevRouteSignatureRef = useRef(null)
+  const prevSelectedRouteIdRef = useRef(null)
 
   useEffect(() => {
     const routeSignature = validRoutes
@@ -97,6 +98,25 @@ function MapViewportController({ validRoutes }) {
       }
     }
   }, [map, validRoutes])
+
+  useEffect(() => {
+    if (!selectedRouteId || prevSelectedRouteIdRef.current === selectedRouteId) {
+      return
+    }
+
+    prevSelectedRouteIdRef.current = selectedRouteId
+    const selectedRoute = validRoutes.find((route) => route.id === selectedRouteId)
+    if (selectedRoute) {
+      const bounds = getCombinedBounds([selectedRoute])
+      if (bounds) {
+        map.fitBounds(bounds, {
+          padding: [50, 50],
+          maxZoom: 14,
+          animate: false,
+        })
+      }
+    }
+  }, [map, selectedRouteId, validRoutes])
 
   return null
 }
@@ -128,11 +148,29 @@ const ROUTE_LINE_STYLE = {
   lineJoin: 'round',
 }
 
+const EXPLORE_ROUTE_STYLE = {
+  color: '#756B5A',
+  weight: 3,
+  opacity: 0.65,
+  lineCap: 'round',
+  lineJoin: 'round',
+}
+
+const EXPLORE_SELECTED_ROUTE_STYLE = {
+  color: '#4F8A3C',
+  weight: 7,
+  opacity: 0.95,
+  lineCap: 'round',
+  lineJoin: 'round',
+}
+
 function MapViewContent({
   className = '',
   initialCenter = [50.0, 10.0],
   initialZoom = 4,
   routes = [],
+  selectedRouteId = null,
+  onRouteSelect,
 }) {
   const center = normalizeCenter(initialCenter)
   const zoom = typeof initialZoom === 'number' ? initialZoom : 4
@@ -172,12 +210,13 @@ function MapViewContent({
             <GeoJSON
               key={key}
               data={geoJsonData}
-              style={ROUTE_LINE_STYLE}
+              style={onRouteSelect ? (route.id === selectedRouteId ? EXPLORE_SELECTED_ROUTE_STYLE : EXPLORE_ROUTE_STYLE) : ROUTE_LINE_STYLE}
+              eventHandlers={onRouteSelect ? { click: () => onRouteSelect(route.id) } : undefined}
             />
           )
         })}
         {validRoutes.length > 0 && (
-          <MapViewportController validRoutes={validRoutes} />
+          <MapViewportController validRoutes={validRoutes} selectedRouteId={selectedRouteId} />
         )}
       </MapContainer>
     </div>
