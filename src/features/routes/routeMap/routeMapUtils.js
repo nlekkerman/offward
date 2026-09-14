@@ -1,6 +1,13 @@
 export const WAYPOINT_TYPES = ['start', 'via', 'stop', 'finish']
 export const INTERMEDIATE_WAYPOINT_TYPES = ['via', 'stop']
 
+function createDraftSegmentId(order) {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `new-${crypto.randomUUID()}`
+  }
+  return `new-${Date.now()}-${order}`
+}
+
 function createDraftWaypointId(order) {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `new-${crypto.randomUUID()}`
@@ -189,5 +196,131 @@ export function buildWaypointPayload(waypoints) {
     },
     label: waypoint.label || '',
     place_id: waypoint.place_id || null,
+  }))
+}
+
+export function normalizeSegment(segment = {}, index = 0) {
+  return {
+    ...(segment.id ? { id: segment.id } : { id: createDraftSegmentId(index + 1) }),
+    route_id: segment.route_id || segment.routeId || '',
+    order: Number(segment.order ?? index + 1),
+    title: segment.title ?? '',
+    summary: segment.summary ?? '',
+    geometry: normalizeGeometry(segment.geometry),
+    start_waypoint_id: segment.start_waypoint_id || segment.startWaypointId || '',
+    end_waypoint_id: segment.end_waypoint_id || segment.endWaypointId || '',
+    needs_review: segment.needs_review === true,
+    story_ids: Array.isArray(segment.story_ids) ? [...segment.story_ids] : [],
+    media_ids: Array.isArray(segment.media_ids) ? [...segment.media_ids] : [],
+  }
+}
+
+export function normalizeSegments(segments) {
+  if (!Array.isArray(segments)) {
+    return []
+  }
+
+  return segments
+    .filter((segment) => segment && typeof segment === 'object')
+    .map(normalizeSegment)
+    .sort((a, b) => a.order - b.order)
+    .map((segment, index) => ({ ...segment, order: index + 1 }))
+}
+
+export function createEmptySegment(order, startWaypointId = '', endWaypointId = '', geometry = null) {
+  return {
+    id: createDraftSegmentId(order),
+    order,
+    title: '',
+    summary: '',
+    geometry,
+    start_waypoint_id: startWaypointId,
+    end_waypoint_id: endWaypointId,
+    needs_review: false,
+    story_ids: [],
+    media_ids: [],
+  }
+}
+
+export function deriveSegmentGeometry(acceptedGeometry, startWaypoint, endWaypoint) {
+  const geometry = normalizeGeometry(acceptedGeometry)
+  if (!geometry || !startWaypoint || !endWaypoint) {
+    return null
+  }
+
+  const startLatitude = Number(startWaypoint.latitude ?? startWaypoint.coordinates?.lat)
+  const startLongitude = Number(startWaypoint.longitude ?? startWaypoint.coordinates?.lng)
+  const endLatitude = Number(endWaypoint.latitude ?? endWaypoint.coordinates?.lat)
+  const endLongitude = Number(endWaypoint.longitude ?? endWaypoint.coordinates?.lng)
+  if (![startLatitude, startLongitude, endLatitude, endLongitude].every(Number.isFinite)) {
+    return null
+  }
+
+  const closestIndex = (latitude, longitude) => geometry.coordinates.reduce((closest, coordinate, index) => {
+    const [candidateLongitude, candidateLatitude] = coordinate
+    const distance = ((candidateLongitude - longitude) ** 2) + ((candidateLatitude - latitude) ** 2)
+    return distance < closest.distance ? { index, distance } : closest
+  }, { index: -1, distance: Number.POSITIVE_INFINITY }).index
+
+  const startIndex = closestIndex(startLatitude, startLongitude)
+  const endIndex = closestIndex(endLatitude, endLongitude)
+  if (startIndex < 0 || endIndex <= startIndex) {
+    return null
+  }
+
+  const coordinates = geometry.coordinates.slice(startIndex, endIndex + 1)
+  return coordinates.length >= 2 ? { type: 'LineString', coordinates } : null
+}
+
+function getWaypointById(waypoints, id) {
+  return waypoints.find((waypoint) => waypoint.id === id)
+}
+
+export function validateSegment(segment, waypoints) {
+  const startWaypoint = getWaypointById(waypoints, segment?.start_waypoint_id)
+  const endWaypoint = getWaypointById(waypoints, segment?.end_waypoint_id)
+  if (!startWaypoint || !endWaypoint) {
+    return { valid: false, message: 'Choose two saved Waypoints for this Segment.' }
+  }
+  if (startWaypoint.id === endWaypoint.id || startWaypoint.order >= endWaypoint.order) {
+    return { valid: false, message: 'Segment boundaries must be different and ordered along the Route.' }
+  }
+  if (!isValidLineString(segment.geometry)) {
+    return { valid: false, message: 'These boundaries cannot be matched to the accepted Route geometry.' }
+  }
+  if (!Array.isArray(segment.story_ids) || !Array.isArray(segment.media_ids)) {
+    return { valid: false, message: 'Segment relationships are not valid.' }
+  }
+  return { valid: true, message: '' }
+}
+
+export function validateSegments(segments, waypoints) {
+  if (!Array.isArray(segments)) {
+    return { valid: false, message: 'Segments are not valid.' }
+  }
+
+  const invalidOrder = segments.some((segment, index) => segment.order !== index + 1)
+  if (invalidOrder) {
+    return { valid: false, message: 'Segment order must be contiguous.' }
+  }
+
+  const invalidIndex = segments.findIndex((segment) => !validateSegment(segment, waypoints).valid)
+  if (invalidIndex >= 0) {
+    return { valid: false, message: `Segment ${invalidIndex + 1}: ${validateSegment(segments[invalidIndex], waypoints).message}` }
+  }
+  return { valid: true, message: '' }
+}
+
+export function buildSegmentPayload(segments) {
+  return segments.map((segment, index) => ({
+    ...(String(segment.id).startsWith('new-') ? {} : { id: segment.id }),
+    order: index + 1,
+    title: segment.title || '',
+    summary: segment.summary || '',
+    geometry: segment.geometry,
+    start_waypoint_id: segment.start_waypoint_id,
+    end_waypoint_id: segment.end_waypoint_id,
+    story_ids: [...segment.story_ids],
+    media_ids: [...segment.media_ids],
   }))
 }
