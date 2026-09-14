@@ -144,169 +144,173 @@ function ExplorePage() {
           {activeCount} mapped {activeCountLabel}
         </p>
       </div>
+
       <ExploreCategoryNav activeView={activeView} onViewChange={handleCategoryChange} />
-      <div className="explore-layout">
-        <aside className="explore-panel" aria-label="Explore filters and list">
-          <div className="explore-filters">
-            <label className="explore-field">
-              <span>Country</span>
-              <select
-                value={selectedCountry}
-                onChange={(event) => {
-                  setRoutesStatus('loading')
-                  setPlacesStatus('loading')
-                  setSelectedRouteId(null)
-                  setSelectedPlaceId(null)
-                  setSelectedCountry(event.target.value)
-                }}
-              >
-                <option value="">All countries</option>
-                {visibleCountryOptions.map((country) => (
-                  <option key={country.id} value={country.slug}>
-                    {country.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {activeView === 'routes' && (
-              <label className="explore-field">
-                <span>Activity</span>
-                <select
-                  value={selectedActivity}
-                  onChange={(event) => {
-                    setRoutesStatus('loading')
-                    setSelectedRouteId(null)
-                    setSelectedActivity(event.target.value)
-                  }}
-                >
-                  <option value="">All activities</option>
-                  {availableActivities.map((activity) => (
-                    <option key={activity} value={activity}>
-                      {activity}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {hasActiveFilterOrSelection && (
-              <button
-                type="button"
-                className="explore-clear"
-                onClick={() => {
-                  setRoutesStatus('loading')
-                  setPlacesStatus('loading')
-                  setSelectedCountry('')
-                  setSelectedActivity('')
-                  setSelectedRouteId(null)
-                  setSelectedPlaceId(null)
-                }}
-              >
-                Clear selection and filters
-              </button>
-            )}
-          </div>
-          {countriesStatus === 'loading' && <p className="explore-status" role="status">Loading countries...</p>}
-          {countriesStatus === 'error' && <p className="explore-status" role="status">Unable to load country filters.</p>}
-          {activeView === 'routes' && (
-            <>
-              {routesStatus === 'loading' && <p className="explore-status" role="status">Loading routes...</p>}
-              {routesStatus === 'error' && <p className="explore-status" role="status">Unable to load routes. The map remains available.</p>}
-              {routesStatus === 'success' && routes.length === 0 && <p className="explore-status" role="status">No routes match these filters.</p>}
-              {routes.length > 0 && (
-                <div className="explore-route-list" aria-label="Routes">
-                  {routes.map((route) => (
-                    <button
-                      key={route.id}
-                      type="button"
-                      className={route.id === activeSelectedRouteId ? 'explore-route-item is-selected' : 'explore-route-item'}
-                      onClick={() => {
-                        setSelectedRouteId(route.id)
-                        setSelectedPlaceId(null)
-                      }}
-                    >
-                      <strong>{route.title}</strong>
-                      <span>{countryNames.get(route.country) || route.country} · {route.activity_type}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {selectedRoute && (
-                <div className="explore-preview">
-                  <p className="eyebrow">SELECTED ROUTE</p>
-                  <h2>{selectedRoute.title}</h2>
-                  <p>{countryNames.get(selectedRoute.country) || selectedRoute.country} · {selectedRoute.activity_type}</p>
-                  {selectedRoute.summary && <p>{selectedRoute.summary}</p>}
-                  <div className="explore-preview-actions">
-                    <Link className="primary-button" to={`/routes/${selectedRoute.slug}`}>View Route</Link>
-                    <button type="button" className="secondary-button" onClick={() => setSelectedRouteId(null)}>Deselect</button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-          {activeView === 'places' && (
-            <>
-              {placesStatus === 'loading' && <p className="explore-status" role="status">Loading places...</p>}
-              {placesStatus === 'error' && <p className="explore-status" role="status">Unable to load places. The map remains available.</p>}
-              {placesStatus === 'success' && places.length === 0 && <p className="explore-status" role="status">No places match this country.</p>}
-              {places.length > 0 && (
-                <div className="explore-place-list" aria-label="Places">
-                  {places.map((place) => (
-                    <button
-                      key={place.id}
-                      type="button"
-                      className={place.id === activeSelectedPlaceId ? 'explore-route-item is-selected' : 'explore-route-item'}
-                      onClick={() => {
-                        setSelectedPlaceId(place.id)
-                        setSelectedRouteId(null)
-                      }}
-                    >
-                      <strong>{place.name}</strong>
-                      <span>{countryNames.get(place.country) || place.country}{!isRenderablePlace(place) && ' · Not mapped'}</span>
-                      {place.summary && <span>{place.summary}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {selectedPlace && (
-                <div className="explore-preview">
-                  <p className="eyebrow">SELECTED PLACE</p>
-                  <h2>{selectedPlace.name}</h2>
-                  <p>{countryNames.get(selectedPlace.country) || selectedPlace.country}</p>
-                  {selectedPlace.summary && <p>{selectedPlace.summary}</p>}
-                  <div className="explore-preview-actions">
-                    <Link className="primary-button" to={`/places/${selectedPlace.slug}`}>View Place</Link>
-                    <button type="button" className="secondary-button" onClick={() => setSelectedPlaceId(null)}>Deselect</button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </aside>
-        <div className="explore-map-wrap">
-          <MapView
-            className="explore-map"
-            routes={visibleRoutes}
-            places={visiblePlaces}
-            selectedRouteId={activeSelectedRouteId}
-            selectedPlaceId={activeSelectedPlaceId}
-            onRouteSelect={(routeId) => {
-              setSelectedRouteId(routeId)
+
+      <div className="explore-toolbar" aria-label="Explore filters">
+        <label className="explore-field">
+          <span>Country</span>
+          <select
+            value={selectedCountry}
+            onChange={(event) => {
+              setRoutesStatus('loading')
+              setPlacesStatus('loading')
+              setSelectedRouteId(null)
+              setSelectedPlaceId(null)
+              setSelectedCountry(event.target.value)
+            }}
+          >
+            <option value="">All countries</option>
+            {visibleCountryOptions.map((country) => (
+              <option key={country.id} value={country.slug}>
+                {country.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {activeView === 'routes' && (
+          <label className="explore-field">
+            <span>Activity</span>
+            <select
+              value={selectedActivity}
+              onChange={(event) => {
+                setRoutesStatus('loading')
+                setSelectedRouteId(null)
+                setSelectedActivity(event.target.value)
+              }}
+            >
+              <option value="">All activities</option>
+              {availableActivities.map((activity) => (
+                <option key={activity} value={activity}>
+                  {activity}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {hasActiveFilterOrSelection && (
+          <button
+            type="button"
+            className="explore-clear"
+            onClick={() => {
+              setRoutesStatus('loading')
+              setPlacesStatus('loading')
+              setSelectedCountry('')
+              setSelectedActivity('')
+              setSelectedRouteId(null)
               setSelectedPlaceId(null)
             }}
-            onPlaceSelect={(placeId) => {
-              setSelectedPlaceId(placeId)
-              setSelectedRouteId(null)
-            }}
-            initialCenter={[50, 10]}
-            initialZoom={4}
-          />
-          {activeView === 'routes' && routesStatus === 'success' && routes.length > 0 && renderableRouteCount === 0 && (
-            <p className="explore-map-notice" role="status">
-              Published routes are not currently map-renderable.
-            </p>
-          )}
+          >
+            Clear selection and filters
+          </button>
+        )}
+      </div>
+
+      <div className="explore-map-wrap">
+        <MapView
+          className="explore-map"
+          routes={visibleRoutes}
+          places={visiblePlaces}
+          selectedRouteId={activeSelectedRouteId}
+          selectedPlaceId={activeSelectedPlaceId}
+          onRouteSelect={(routeId) => {
+            setSelectedRouteId(routeId)
+            setSelectedPlaceId(null)
+          }}
+          onPlaceSelect={(placeId) => {
+            setSelectedPlaceId(placeId)
+            setSelectedRouteId(null)
+          }}
+          initialCenter={[50, 10]}
+          initialZoom={4}
+        />
+        {activeView === 'routes' && routesStatus === 'success' && routes.length > 0 && renderableRouteCount === 0 && (
+          <p className="explore-map-notice" role="status">
+            Published routes are not currently map-renderable.
+          </p>
+        )}
+      </div>
+
+      {selectedRoute && (
+        <div className="explore-preview">
+          <p className="eyebrow">SELECTED ROUTE</p>
+          <h2>{selectedRoute.title}</h2>
+          <p>{countryNames.get(selectedRoute.country) || selectedRoute.country} · {selectedRoute.activity_type}</p>
+          {selectedRoute.summary && <p>{selectedRoute.summary}</p>}
+          <div className="explore-preview-actions">
+            <Link className="primary-button" to={`/routes/${selectedRoute.slug}`}>View Route</Link>
+            <button type="button" className="secondary-button" onClick={() => setSelectedRouteId(null)}>Deselect</button>
+          </div>
         </div>
+      )}
+
+      {selectedPlace && (
+        <div className="explore-preview">
+          <p className="eyebrow">SELECTED PLACE</p>
+          <h2>{selectedPlace.name}</h2>
+          <p>{countryNames.get(selectedPlace.country) || selectedPlace.country}</p>
+          {selectedPlace.summary && <p>{selectedPlace.summary}</p>}
+          <div className="explore-preview-actions">
+            <Link className="primary-button" to={`/places/${selectedPlace.slug}`}>View Place</Link>
+            <button type="button" className="secondary-button" onClick={() => setSelectedPlaceId(null)}>Deselect</button>
+          </div>
+        </div>
+      )}
+
+      <div className="explore-results">
+        {countriesStatus === 'loading' && <p className="explore-status" role="status">Loading countries...</p>}
+        {countriesStatus === 'error' && <p className="explore-status" role="status">Unable to load country filters.</p>}
+        {activeView === 'routes' && (
+          <>
+            {routesStatus === 'loading' && <p className="explore-status" role="status">Loading routes...</p>}
+            {routesStatus === 'error' && <p className="explore-status" role="status">Unable to load routes. The map remains available.</p>}
+            {routesStatus === 'success' && routes.length === 0 && <p className="explore-status" role="status">No routes match these filters.</p>}
+            {routes.length > 0 && (
+              <div className="explore-route-list" aria-label="Routes">
+                {routes.map((route) => (
+                  <button
+                    key={route.id}
+                    type="button"
+                    className={route.id === activeSelectedRouteId ? 'explore-route-item is-selected' : 'explore-route-item'}
+                    onClick={() => {
+                      setSelectedRouteId(route.id)
+                      setSelectedPlaceId(null)
+                    }}
+                  >
+                    <strong>{route.title}</strong>
+                    <span>{countryNames.get(route.country) || route.country} · {route.activity_type}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        {activeView === 'places' && (
+          <>
+            {placesStatus === 'loading' && <p className="explore-status" role="status">Loading places...</p>}
+            {placesStatus === 'error' && <p className="explore-status" role="status">Unable to load places. The map remains available.</p>}
+            {placesStatus === 'success' && places.length === 0 && <p className="explore-status" role="status">No places match this country.</p>}
+            {places.length > 0 && (
+              <div className="explore-place-list" aria-label="Places">
+                {places.map((place) => (
+                  <button
+                    key={place.id}
+                    type="button"
+                    className={place.id === activeSelectedPlaceId ? 'explore-route-item is-selected' : 'explore-route-item'}
+                    onClick={() => {
+                      setSelectedPlaceId(place.id)
+                      setSelectedRouteId(null)
+                    }}
+                  >
+                    <strong>{place.name}</strong>
+                    <span>{countryNames.get(place.country) || place.country}{!isRenderablePlace(place) && ' · Not mapped'}</span>
+                    {place.summary && <span>{place.summary}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </section>
   )
