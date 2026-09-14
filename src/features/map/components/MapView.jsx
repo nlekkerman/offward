@@ -1,41 +1,58 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import { MapContainer, TileLayer, GeoJSON, Marker, useMap } from 'react-leaflet'
 import MapErrorBoundary from './MapErrorBoundary.jsx'
 import { MAP_TILE_LAYER } from '../tileConfig.js'
+import { isRenderableRoute } from '../mapGeometry.js'
 import '../map.css'
 
-function isValidCoordinate(pt) {
-  if (!Array.isArray(pt) || pt.length < 2) {
-    return false
-  }
-  const [lng, lat] = pt
+function isValidWaypoint(waypoint) {
+  const lat = waypoint?.coordinates?.lat
+  const lng = waypoint?.coordinates?.lng
+
   return (
-    typeof lng === 'number' &&
-    Number.isFinite(lng) &&
-    lng >= -180 &&
-    lng <= 180 &&
+    typeof waypoint?.id === 'string' &&
+    waypoint.id.length > 0 &&
     typeof lat === 'number' &&
     Number.isFinite(lat) &&
     lat >= -90 &&
-    lat <= 90
+    lat <= 90 &&
+    typeof lng === 'number' &&
+    Number.isFinite(lng) &&
+    lng >= -180 &&
+    lng <= 180
   )
 }
 
-function isRenderableRoute(route) {
-  if (!route || typeof route !== 'object') {
-    return false
+function getWaypointType(waypoint, index, length) {
+  if (waypoint.type === 'start' || index === 0) {
+    return 'start'
   }
-  const { geometry } = route
-  if (!geometry || typeof geometry !== 'object') {
-    return false
+  if (waypoint.type === 'finish' || index === length - 1) {
+    return 'finish'
   }
-  if (geometry.type !== 'LineString') {
-    return false
+  if (waypoint.type === 'stop') {
+    return 'stop'
   }
-  if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length < 2) {
-    return false
+  return 'via'
+}
+
+function getValidWaypoints(waypoints) {
+  if (!Array.isArray(waypoints)) {
+    return []
   }
-  return geometry.coordinates.every(isValidCoordinate)
+
+  const sortedWaypoints = waypoints
+    .filter((waypoint) => waypoint && typeof waypoint === 'object')
+    .sort((a, b) => Number(a.order) - Number(b.order))
+
+  return sortedWaypoints
+    .map((waypoint, index, array) => ({
+      ...waypoint,
+      order: Number.isFinite(Number(waypoint.order)) ? Number(waypoint.order) : index + 1,
+      markerType: getWaypointType(waypoint, index, array.length),
+    }))
+    .filter(isValidWaypoint)
 }
 
 function getCombinedBounds(validRoutes) {
@@ -65,7 +82,15 @@ function getCombinedBounds(validRoutes) {
   ]
 }
 
-function MapViewportController({ validRoutes, selectedRouteId }) {
+function getWaypointBounds(validWaypoints) {
+  if (validWaypoints.length < 1) {
+    return null
+  }
+
+  return validWaypoints.map((waypoint) => [waypoint.coordinates.lat, waypoint.coordinates.lng])
+}
+
+function MapViewportController({ validRoutes, validWaypoints, selectedRouteId }) {
   const map = useMap()
   const prevRouteSignatureRef = useRef(null)
   const prevSelectedRouteIdRef = useRef(null)
@@ -83,6 +108,14 @@ function MapViewportController({ validRoutes, selectedRouteId }) {
 
     if (!routeSignature) {
       prevRouteSignatureRef.current = null
+      const bounds = getWaypointBounds(validWaypoints)
+      if (bounds) {
+        map.fitBounds(bounds, {
+          padding: [50, 50],
+          maxZoom: 13,
+          animate: false,
+        })
+      }
       return
     }
 
@@ -97,7 +130,7 @@ function MapViewportController({ validRoutes, selectedRouteId }) {
         })
       }
     }
-  }, [map, validRoutes])
+  }, [map, validRoutes, validWaypoints])
 
   useEffect(() => {
     if (!selectedRouteId || prevSelectedRouteIdRef.current === selectedRouteId) {
@@ -119,6 +152,22 @@ function MapViewportController({ validRoutes, selectedRouteId }) {
   }, [map, selectedRouteId, validRoutes])
 
   return null
+}
+
+function createWaypointIcon(waypoint, selected) {
+  const markerClass = [
+    'route-waypoint-marker',
+    'public-route-waypoint-marker',
+    `is-${waypoint.markerType}`,
+    selected ? 'is-selected' : '',
+  ].filter(Boolean).join(' ')
+
+  return L.divIcon({
+    className: markerClass,
+    html: `<span>${waypoint.order}</span>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  })
 }
 
 function normalizeCenter(center) {
@@ -169,8 +218,12 @@ function MapViewContent({
   initialCenter = [50.0, 10.0],
   initialZoom = 4,
   routes = [],
+  waypoints = [],
   selectedRouteId = null,
+  selectedWaypointId = null,
   onRouteSelect,
+  onWaypointSelect,
+  routeLineStyle,
 }) {
   const center = normalizeCenter(initialCenter)
   const zoom = typeof initialZoom === 'number' ? initialZoom : 4
@@ -182,6 +235,7 @@ function MapViewContent({
     }
     return routes.filter(isRenderableRoute)
   }, [routes])
+  const validWaypoints = useMemo(() => getValidWaypoints(waypoints), [waypoints])
 
   return (
     <div className={containerClassName}>
@@ -210,13 +264,25 @@ function MapViewContent({
             <GeoJSON
               key={key}
               data={geoJsonData}
-              style={onRouteSelect ? (route.id === selectedRouteId ? EXPLORE_SELECTED_ROUTE_STYLE : EXPLORE_ROUTE_STYLE) : ROUTE_LINE_STYLE}
+              style={onRouteSelect ? (route.id === selectedRouteId ? EXPLORE_SELECTED_ROUTE_STYLE : EXPLORE_ROUTE_STYLE) : routeLineStyle || ROUTE_LINE_STYLE}
               eventHandlers={onRouteSelect ? { click: () => onRouteSelect(route.id) } : undefined}
             />
           )
         })}
-        {validRoutes.length > 0 && (
-          <MapViewportController validRoutes={validRoutes} selectedRouteId={selectedRouteId} />
+        {validWaypoints.map((waypoint) => {
+          const selected = waypoint.id === selectedWaypointId
+          return (
+            <Marker
+              key={waypoint.id}
+              position={[waypoint.coordinates.lat, waypoint.coordinates.lng]}
+              icon={createWaypointIcon(waypoint, selected)}
+              title={`Waypoint ${waypoint.order}`}
+              eventHandlers={onWaypointSelect ? { click: () => onWaypointSelect(waypoint.id) } : undefined}
+            />
+          )
+        })}
+        {(validRoutes.length > 0 || validWaypoints.length > 0) && (
+          <MapViewportController validRoutes={validRoutes} validWaypoints={validWaypoints} selectedRouteId={selectedRouteId} />
         )}
       </MapContainer>
     </div>

@@ -28,3 +28,21 @@ export async function getPublicRoutes({ country, status = 'active', activityType
 export async function getRoutes(options) {
   return getPublicRoutes(options)
 }
+
+export async function getPublicRouteBySlug(slug) {
+  try {
+    const { data } = await apiClient.get(`/api/offward/routes/${encodeURIComponent(slug)}/`)
+
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Public route detail response must be an object.')
+    }
+
+    return data
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return null
+    }
+
+    throw error
+  }
+}

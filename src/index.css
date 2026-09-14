@@ -790,6 +790,188 @@ nav a { color: #aaa99e; text-decoration: none; }
   padding: 0.65rem 0.8rem;
 }
 
+.route-detail-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 3.5rem 2rem 5rem;
+}
+
+.route-detail-back {
+  display: inline-flex;
+  margin-bottom: 1.5rem;
+  color: #d8b47c;
+  font: 600 0.85rem/1.2 sans-serif;
+  text-decoration: none;
+}
+
+.route-detail-header {
+  display: grid;
+  gap: 1rem;
+  max-width: 880px;
+  margin-bottom: 2rem;
+}
+
+.route-detail-header h1,
+.route-detail-error h1 {
+  margin: 0.45rem 0 0;
+  color: #f3efe6;
+  font-size: clamp(2.75rem, 6vw, 5.25rem);
+  font-weight: 400;
+  line-height: 0.98;
+}
+
+.route-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.route-detail-meta span {
+  border: 1px solid #3d443a;
+  border-radius: 999px;
+  background: #171b18;
+  color: #e8e4db;
+  font: 600 0.82rem/1 sans-serif;
+  padding: 0.55rem 0.75rem;
+}
+
+.route-detail-summary {
+  max-width: 760px;
+  margin: 0;
+  color: #d8d1c3;
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
+  line-height: 1.45;
+}
+
+.route-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 1rem;
+  align-items: start;
+}
+
+.route-detail-main,
+.route-detail-side {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.route-map-section,
+.route-detail-panel,
+.route-detail-error,
+.route-detail-status {
+  border: 1px solid #30362f;
+  border-radius: 0.75rem;
+  background: #171b18;
+}
+
+.route-map-section {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.route-map-heading h2,
+.route-detail-panel h2 {
+  margin: 0.35rem 0 0;
+  color: #f2ece4;
+  font: 600 1.25rem/1.2 sans-serif;
+}
+
+.route-detail-map {
+  height: min(68svh, 680px);
+  min-height: 500px;
+}
+
+.route-map-message,
+.route-detail-muted,
+.route-detail-status,
+.route-detail-error p,
+.route-sections-list p {
+  margin: 0;
+  color: #aaa99e;
+  font: 0.9rem/1.5 sans-serif;
+}
+
+.route-map-message {
+  color: #d8d1c3;
+}
+
+.route-detail-panel,
+.route-detail-error,
+.route-detail-status {
+  padding: 1rem;
+}
+
+.route-itinerary-list,
+.route-sections-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route-itinerary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  border: 1px solid #2f3430;
+  border-radius: 0.65rem;
+  background: #121510;
+  color: inherit;
+  padding: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.route-itinerary-item:hover,
+.route-itinerary-item:focus-visible,
+.route-itinerary-item.is-selected {
+  border-color: #4f8a3c;
+  background: #182018;
+}
+
+.route-itinerary-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.route-itinerary-copy span,
+.route-section-order {
+  color: #aaa99e;
+  font: 700 0.72rem/1.2 sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.route-itinerary-copy strong {
+  color: #f2ece4;
+  font: 700 0.95rem/1.25 sans-serif;
+}
+
+.route-sections-list li {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.9rem;
+  border: 1px solid #2f3430;
+  border-radius: 0.65rem;
+  background: #121510;
+}
+
+.route-sections-list h3 {
+  margin: 0;
+  color: #f2ece4;
+  font: 700 1rem/1.25 sans-serif;
+}
+
+.route-detail-error {
+  max-width: 760px;
+}
+
 @media (max-width: 900px) {
   .management-layout {
     grid-template-columns: 1fr;
@@ -837,6 +1019,23 @@ nav a { color: #aaa99e; text-decoration: none; }
     height: 58svh;
     min-height: 420px;
   }
+
+  .route-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .route-detail-side {
+    order: 2;
+  }
+
+  .route-detail-main {
+    order: 1;
+  }
+
+  .route-detail-map {
+    height: 56svh;
+    min-height: 420px;
+  }
 }
 
 @media (max-width: 600px) {
@@ -853,4 +1052,8 @@ nav a { color: #aaa99e; text-decoration: none; }
   .explore-page { padding: 2rem 1.25rem 3rem; }
   .explore-heading { align-items: flex-start; flex-direction: column; }
   .explore-map { height: 52svh; min-height: 360px; }
+  .route-detail-page { padding: 2rem 1.25rem 3rem; }
+  .route-detail-header h1, .route-detail-error h1 { font-size: clamp(2.4rem, 15vw, 3.4rem); }
+  .route-detail-map { height: 50svh; min-height: 340px; }
+  .route-itinerary-item { align-items: flex-start; }
 }
