@@ -3,15 +3,29 @@ import { Link } from 'react-router-dom'
 import { managementApis } from '../../services/management/index.js'
 import { getEntityConfig, normalizeDisplayValue } from './entityConfig.js'
 
-function getSummaryValue(item, fieldName) {
-  const value = item?.[fieldName]
-
-  if (fieldName === 'country' && item?.country_name) {
+function getCountryLabel(item, countryRecords) {
+  if (item?.country_name) {
     return item.country_name
   }
 
-  if (fieldName === 'country' && typeof item?.country === 'object') {
+  if (item?.country && typeof item.country === 'object') {
     return item.country.name || item.country.title || '—'
+  }
+
+  const countryId = item?.country
+  if (countryId !== null && countryId !== undefined && countryId !== '') {
+    const country = countryRecords.find((record) => String(record?.id) === String(countryId))
+    return country?.name || '—'
+  }
+
+  return '—'
+}
+
+function getSummaryValue(item, fieldName, countryRecords = []) {
+  const value = item?.[fieldName]
+
+  if (fieldName === 'country') {
+    return getCountryLabel(item, countryRecords)
   }
 
   if (fieldName === 'status' || fieldName === 'lifecycle_status' || fieldName === 'activity_type') {
@@ -29,6 +43,7 @@ function EntityListPage({ resourceKey, title }) {
   const config = getEntityConfig(resourceKey)
   const api = managementApis[resourceKey]
   const [items, setItems] = useState([])
+  const [countryRecords, setCountryRecords] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -73,6 +88,33 @@ function EntityListPage({ resourceKey, title }) {
       active = false
     }
   }, [api, resourceKey])
+
+  useEffect(() => {
+    if (resourceKey !== 'routes') {
+      return undefined
+    }
+
+    let active = true
+
+    async function fetchCountries() {
+      try {
+        const data = await managementApis.countries.list()
+        if (active) {
+          setCountryRecords(data)
+        }
+      } catch {
+        if (active) {
+          setCountryRecords([])
+        }
+      }
+    }
+
+    fetchCountries()
+
+    return () => {
+      active = false
+    }
+  }, [resourceKey])
 
   const handleDelete = async (item) => {
     const id = item?.id
@@ -138,7 +180,7 @@ function EntityListPage({ resourceKey, title }) {
               {items.map((item) => (
                 <tr key={item.id}>
                   {tableHeaders.map((field) => (
-                    <td key={`${item.id}-${field}`}>{getSummaryValue(item, field)}</td>
+                    <td key={`${item.id}-${field}`}>{getSummaryValue(item, field, resourceKey === 'routes' ? countryRecords : [])}</td>
                   ))}
                   <td>
                     <div className="table-actions">
