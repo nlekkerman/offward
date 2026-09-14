@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiClient } from '../../services/apiClient.js'
 import { managementApis } from '../../services/management/index.js'
 import { getEntityConfig, slugify } from './entityConfig.js'
+import PlaceCoordinatePicker from '../map/components/PlaceCoordinatePicker.jsx'
+import { isValidLatitude, isValidLongitude } from '../map/mapGeometry.js'
 
 const relationshipFields = {
   country: 'country',
@@ -221,6 +223,22 @@ function EntityFormPage({ resourceKey, title }) {
     })
   }
 
+  const handleCoordinatesChange = ({ latitude, longitude }) => {
+    setFormData((current) => ({
+      ...current,
+      latitude: latitude ?? '',
+      longitude: longitude ?? '',
+    }))
+
+    setFieldErrors((current) => {
+      if (!current.latitude && !current.longitude) return current
+      const next = { ...current }
+      if (isValidLatitude(latitude)) delete next.latitude
+      if (isValidLongitude(longitude)) delete next.longitude
+      return next
+    })
+  }
+
   const buildPayload = () => {
     const payload = { ...formData }
 
@@ -229,8 +247,22 @@ function EntityFormPage({ resourceKey, title }) {
     }
 
     if (resourceKey === 'places') {
-      if (payload.latitude !== '' && payload.latitude !== null) payload.latitude = Number(payload.latitude)
-      if (payload.longitude !== '' && payload.longitude !== null) payload.longitude = Number(payload.longitude)
+      if (payload.latitude !== '' && payload.latitude !== null && payload.latitude !== undefined) {
+        const latNum = Number(payload.latitude)
+        if (Number.isFinite(latNum)) {
+          payload.latitude = latNum
+        } else {
+          delete payload.latitude
+        }
+      }
+      if (payload.longitude !== '' && payload.longitude !== null && payload.longitude !== undefined) {
+        const lngNum = Number(payload.longitude)
+        if (Number.isFinite(lngNum)) {
+          payload.longitude = lngNum
+        } else {
+          delete payload.longitude
+        }
+      }
       if (!payload.visited_at) delete payload.visited_at
       if (!payload.country) delete payload.country
     }
@@ -281,6 +313,28 @@ function EntityFormPage({ resourceKey, title }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+
+    if (resourceKey === 'places') {
+      const nextErrors = {}
+      if (formData.latitude !== '' && formData.latitude !== null && formData.latitude !== undefined) {
+        const lat = Number(formData.latitude)
+        if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+          nextErrors.latitude = 'Latitude must be a valid number between -90 and 90.'
+        }
+      }
+      if (formData.longitude !== '' && formData.longitude !== null && formData.longitude !== undefined) {
+        const lng = Number(formData.longitude)
+        if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+          nextErrors.longitude = 'Longitude must be a valid number between -180 and 180.'
+        }
+      }
+      if (Object.keys(nextErrors).length > 0) {
+        setFieldErrors(nextErrors)
+        setError('Please fix validation errors before saving.')
+        return
+      }
+    }
+
     setSubmitting(true)
     setError('')
     setFieldErrors({})
@@ -493,6 +547,13 @@ function EntityFormPage({ resourceKey, title }) {
           renderField('slug'),
           renderField('summary', 'textarea'),
           renderField('body', 'textarea'),
+          <PlaceCoordinatePicker
+            key="place-coordinate-picker"
+            latitude={formData.latitude}
+            longitude={formData.longitude}
+            onChange={handleCoordinatesChange}
+            disabled={submitting}
+          />,
           renderField('latitude', 'number'),
           renderField('longitude', 'number'),
           renderField('visited_at', 'text'),

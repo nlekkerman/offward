@@ -16,6 +16,9 @@ class MapErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback
+      }
       return (
         <div className="offward-map-container">
           <div className="offward-map-fallback">

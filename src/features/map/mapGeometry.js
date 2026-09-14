@@ -116,18 +116,32 @@ export function getWaypointBounds(validWaypoints) {
   return validWaypoints.map((waypoint) => [waypoint.coordinates.lat, waypoint.coordinates.lng])
 }
 
+export function isValidLatitude(lat) {
+  if (lat === '' || lat === null || lat === undefined || typeof lat === 'boolean') {
+    return false
+  }
+  const num = Number(lat)
+  return Number.isFinite(num) && num >= -90 && num <= 90
+}
+
+export function isValidLongitude(lng) {
+  if (lng === '' || lng === null || lng === undefined || typeof lng === 'boolean') {
+    return false
+  }
+  const num = Number(lng)
+  return Number.isFinite(num) && num >= -180 && num <= 180
+}
+
+export function parseValidCoordinates(lat, lng) {
+  if (!isValidLatitude(lat) || !isValidLongitude(lng)) {
+    return null
+  }
+  return [Number(lat), Number(lng)]
+}
+
 export function isRenderablePlace(place) {
   const { latitude, longitude } = place || {}
-  return (
-    typeof latitude === 'number' &&
-    Number.isFinite(latitude) &&
-    latitude >= -90 &&
-    latitude <= 90 &&
-    typeof longitude === 'number' &&
-    Number.isFinite(longitude) &&
-    longitude >= -180 &&
-    longitude <= 180
-  )
+  return isValidLatitude(latitude) && isValidLongitude(longitude)
 }
 
 export function getRenderablePlaces(places) {

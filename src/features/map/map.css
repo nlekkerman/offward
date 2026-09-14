@@ -67,6 +67,41 @@
   background: #4F8A3C;
 }
 
+.management-place-picker-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+}
+
+.management-place-picker-marker span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #f3efe6;
+  border-radius: 50%;
+  background: #4F8A3C;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.place-coordinate-picker-container {
+  height: 340px;
+}
+
+@media (max-width: 767px) {
+  .place-coordinate-picker-container {
+    height: 280px;
+  }
+}
+
+.place-coordinate-picker-help {
+  color: #aaa99e;
+  font-family: sans-serif;
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0;
+}
+
 .offward-map-fallback {
   display: flex;
   align-items: center;
