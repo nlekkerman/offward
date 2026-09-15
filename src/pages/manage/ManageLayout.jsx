@@ -1,5 +1,4 @@
 import { Outlet, useNavigate } from 'react-router-dom'
-import ManagementSidebar from '../../shared/components/ManagementSidebar.jsx'
 import { logoutSession } from '../../services/authApi.js'
 
 function ManageLayout() {
@@ -15,10 +14,9 @@ function ManageLayout() {
   }
 
   return (
-    <div className="management-layout">
-      <ManagementSidebar onLogout={handleLogout} />
+    <div className="management-shell">
       <main className="management-content">
-        <Outlet />
+        <Outlet context={{ onLogout: handleLogout }} />
       </main>
     </div>
   )

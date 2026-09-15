@@ -24,6 +24,7 @@ export function createEmptyWaypoint(order = 1, values = {}) {
     place_id: values.place_id || '',
     latitude: values.latitude === undefined || values.latitude === null ? '' : String(values.latitude),
     longitude: values.longitude === undefined || values.longitude === null ? '' : String(values.longitude),
+    media_ids: Array.isArray(values.media_ids) ? [...values.media_ids] : [],
   }
 }
 
@@ -54,6 +55,7 @@ export function normalizeWaypoint(waypoint = {}, index = 0) {
     place_id: waypoint.place_id || waypoint.placeId || place?.id || '',
     latitude: latitude === null || latitude === undefined ? '' : String(latitude),
     longitude: longitude === null || longitude === undefined ? '' : String(longitude),
+    media_ids: Array.isArray(waypoint.media_ids) ? [...waypoint.media_ids] : Array.isArray(waypoint.mediaIds) ? [...waypoint.mediaIds] : [],
   }
 }
 
@@ -185,6 +187,8 @@ export function normalizeCandidate(data = {}) {
   } : null
 }
 
+// media_ids is always sent explicitly so unrelated Waypoint edits preserve current attachments
+// and an explicit detach-all is distinguishable from omission.
 export function buildWaypointPayload(waypoints) {
   return normalizeWaypoints(waypoints).map((waypoint, index) => ({
     ...(String(waypoint.id).startsWith('new-') ? {} : { id: waypoint.id }),
@@ -196,6 +200,7 @@ export function buildWaypointPayload(waypoints) {
     },
     label: waypoint.label || '',
     place_id: waypoint.place_id || null,
+    media_ids: Array.isArray(waypoint.media_ids) ? [...waypoint.media_ids] : [],
   }))
 }
 

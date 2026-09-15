@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 
 const cards = [
   { label: 'Countries', href: '/manage/countries' },
@@ -12,10 +12,17 @@ const cards = [
 ]
 
 function ManageDashboardPage() {
+  const { onLogout } = useOutletContext()
+
   return (
     <section className="management-page">
-      <p className="eyebrow">Dashboard</p>
-      <h1>Offward management</h1>
+      <div className="management-page-header">
+        <div>
+          <p className="eyebrow">Dashboard</p>
+          <h1>Management</h1>
+        </div>
+        <button type="button" className="secondary-button" onClick={onLogout}>Logout</button>
+      </div>
       <div className="management-dashboard-grid">
         {cards.map((item) => (
           <Link key={item.href} to={item.href} className="management-dashboard-card">

@@ -1,6 +1,6 @@
 import { getPlaceCoordinates } from '../routeMapUtils.js'
 
-function WaypointList({ waypoints, places, selectedWaypointId, addMode, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onMove, onRemove }) {
+function WaypointList({ waypoints, places, selectedWaypointId, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onMove, onRemove }) {
   return (
     <section className="route-map-panel">
       <div className="route-map-panel-header">
@@ -9,22 +9,25 @@ function WaypointList({ waypoints, places, selectedWaypointId, addMode, onAddBla
           <h2>Route order</h2>
         </div>
         <div className="waypoint-add-actions">
-          <button type="button" className="secondary-button small-button" onClick={onAddBlank}>Add blank</button>
+          <button type="button" className="secondary-button small-button" onClick={onAddBlank}>+ Blank</button>
           <button type="button" className={addMode ? 'primary-button small-button' : 'secondary-button small-button'} onClick={() => onAddModeChange(!addMode)} aria-pressed={addMode}>
-            {addMode ? 'Click map...' : 'Add by map click'}
+            {addMode ? 'Map-click active' : '+ By map click'}
           </button>
         </div>
       </div>
 
       <div className="form-field waypoint-place-add-field">
         <label htmlFor="add-waypoint-place">Add Waypoint from Place</label>
-        <select id="add-waypoint-place" value="" onChange={(event) => onAddFromPlace(event.target.value)} className="form-input">
-          <option value="">Select Place with coordinates</option>
-          {places.map((place) => {
-            const hasCoordinates = Boolean(getPlaceCoordinates(place))
-            return <option key={place.id} value={place.id} disabled={!hasCoordinates}>{place.name || place.title || place.slug || place.id}</option>
-          })}
-        </select>
+        <div className="route-map-inline-select-row">
+          <select id="add-waypoint-place" value={selectedPlaceId} onChange={(event) => onPlaceIdChange(event.target.value)} className="form-input">
+            <option value="">Select Place with coordinates</option>
+            {places.map((place) => {
+              const hasCoordinates = Boolean(getPlaceCoordinates(place))
+              return <option key={place.id} value={place.id} disabled={!hasCoordinates}>{place.name || place.title || place.slug || place.id}</option>
+            })}
+          </select>
+          <button type="button" className="secondary-button small-button" onClick={() => onAddFromPlace(selectedPlaceId)} disabled={!selectedPlaceId}>Use Place</button>
+        </div>
       </div>
 
       {!waypoints.length ? (

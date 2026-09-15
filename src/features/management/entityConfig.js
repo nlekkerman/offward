@@ -26,6 +26,7 @@ export const entityConfig = {
       longitude: '',
       visited_at: '',
       status: 'active',
+      video_ids: [],
     },
   },
   routes: {
@@ -41,6 +42,7 @@ export const entityConfig = {
       status: 'active',
       path: '',
       places: [],
+      video_ids: [],
     },
   },
   stories: {
@@ -60,6 +62,7 @@ export const entityConfig = {
       events: [],
       tours: [],
       videos: [],
+      video_ids: [],
     },
   },
   videos: {
@@ -99,6 +102,7 @@ export const entityConfig = {
       routes: [],
       places: [],
       videos: [],
+      video_ids: [],
     },
   },
   events: {
@@ -119,6 +123,7 @@ export const entityConfig = {
       places: [],
       partners: [],
       videos: [],
+      video_ids: [],
     },
   },
   partners: {

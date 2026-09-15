@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import RouteAuthoringMap from '../../../features/map/components/RouteAuthoringMap.jsx'
 import RouteCandidateSummary from '../../../features/routes/routeMap/components/RouteCandidateSummary.jsx'
 import RouteGeometryLegend from '../../../features/routes/routeMap/components/RouteGeometryLegend.jsx'
 import RouteMapActions from '../../../features/routes/routeMap/components/RouteMapActions.jsx'
-import SegmentActions from '../../../features/routes/routeMap/components/SegmentActions.jsx'
 import SegmentEditor from '../../../features/routes/routeMap/components/SegmentEditor.jsx'
 import SegmentList from '../../../features/routes/routeMap/components/SegmentList.jsx'
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
+import ContentVideoManager from '../../../features/video/ContentVideoManager.jsx'
 import { buildWaypointPayload, createEmptySegment, createEmptyWaypoint, deriveSegmentGeometry, getPlaceCoordinates, normalizeGeometry, normalizeRouteMap, normalizeSegments, normalizeWaypoints, validateSegment, validateSegments, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
 import { managementApis } from '../../../services/management/index.js'
 import { routeMapApi } from '../../../services/management/routeMapApi.js'
@@ -51,7 +51,6 @@ function getSegmentSignature(segments) {
 
 function RouteMapEditorPage() {
   const { routeId } = useParams()
-  const navigate = useNavigate()
   const [route, setRoute] = useState(null)
   const [places, setPlaces] = useState([])
   const [waypoints, setWaypoints] = useState([])
@@ -69,6 +68,8 @@ function RouteMapEditorPage() {
   const [segmentsError, setSegmentsError] = useState('')
   const [segmentsSaving, setSegmentsSaving] = useState(false)
   const [addMode, setAddMode] = useState(false)
+  const [activePanel, setActivePanel] = useState('waypoints')
+  const [quickAddPlaceId, setQuickAddPlaceId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -151,10 +152,24 @@ function RouteMapEditorPage() {
   const canCalculate = waypointValidation.valid && !hasUnsavedChanges
   const canAccept = Boolean(candidate?.geometry && mapRevision && !hasUnsavedChanges)
   const selectedSegment = useMemo(() => segments.find((segment) => segment.id === selectedSegmentId), [segments, selectedSegmentId])
+  const editingContextLabel = useMemo(() => {
+    const parts = []
+    if (selectedWaypoint) parts.push(`Waypoint ${selectedWaypoint.order}`)
+    if (selectedSegment) parts.push(`Segment ${selectedSegment.order}`)
+    return parts.length ? parts.join(' · ') : 'No selection'
+  }, [selectedSegment, selectedWaypoint])
   const selectedSegmentValidation = selectedSegment ? validateSegment(selectedSegment, savedWaypoints) : { valid: false, message: '' }
   const segmentValidation = validateSegments(segments, savedWaypoints)
   const canAddSegment = waypointValidation.valid && !hasUnsavedChanges && Boolean(acceptedGeometry)
   const canEditSegments = !hasUnsavedChanges
+
+  const togglePanel = (panel) => {
+    setActivePanel((current) => current === panel ? '' : panel)
+  }
+
+  const cancelMapClickMode = () => {
+    setAddMode(false)
+  }
 
   const applyRouteMap = (routeMapData, { updateWaypoints = true } = {}) => {
     const normalizedMap = normalizeRouteMap(routeMapData)
@@ -187,6 +202,7 @@ function RouteMapEditorPage() {
   }
 
   const addBlankWaypoint = () => {
+    setActivePanel('waypoints')
     changeWaypoints((current) => {
       const nextWaypoint = createEmptyWaypoint(current.length + 1)
       setSelectedWaypointId(nextWaypoint.id)
@@ -207,6 +223,7 @@ function RouteMapEditorPage() {
     }
 
     setError('')
+    setActivePanel('waypoints')
     changeWaypoints((current) => {
       const nextWaypoint = createEmptyWaypoint(current.length + 1, {
         place_id: place.id,
@@ -220,6 +237,7 @@ function RouteMapEditorPage() {
   }
 
   const addWaypointFromMap = (coordinates) => {
+    setActivePanel('waypoints')
     changeWaypoints((current) => {
       const nextWaypoint = createEmptyWaypoint(current.length + 1, coordinates)
       setSelectedWaypointId(nextWaypoint.id)
@@ -371,6 +389,57 @@ function RouteMapEditorPage() {
     }
   }
 
+  const saveActiveWaypoint = async () => {
+    if (!selectedWaypoint) {
+      return
+    }
+
+    const validation = validateWaypoints(waypoints)
+    if (!validation.valid) {
+      setError(validation.message)
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError('')
+      setNotice('')
+      const routeMapData = await routeMapApi.updateWaypoints(routeId, waypoints)
+      applyRouteMap(routeMapData)
+      setNotice(String(selectedWaypoint.id).startsWith('new-') ? 'Waypoint added.' : 'Waypoint saved.')
+      setQuickAddPlaceId('')
+      setAddMode(false)
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to save this waypoint.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const cancelActiveWaypoint = () => {
+    if (!selectedWaypoint) {
+      return
+    }
+
+    setWaypoints((current) => {
+      const currentSelection = current.find((waypoint) => waypoint.id === selectedWaypoint.id)
+      if (!currentSelection) {
+        return current
+      }
+
+      if (String(selectedWaypoint.id).startsWith('new-')) {
+        const nextWaypoints = current.filter((waypoint) => waypoint.id !== selectedWaypoint.id)
+        setSelectedWaypointId(nextWaypoints[0]?.id || '')
+        return nextWaypoints
+      }
+
+      return current
+    })
+
+    setQuickAddPlaceId('')
+    setAddMode(false)
+  }
+
   const calculateCandidate = async () => {
     if (!canCalculate) {
       setError(hasUnsavedChanges ? 'Save valid waypoints before calculating a candidate.' : waypointValidation.message)
@@ -455,7 +524,7 @@ function RouteMapEditorPage() {
         </div>
         <div className="route-map-header-actions">
           <Link to={`/manage/routes/${routeId}/edit`} className="secondary-button">Back to route details</Link>
-          <button type="button" className="secondary-button" onClick={() => navigate('/manage/routes')}>Routes</button>
+          <Link to="/manage" className="secondary-button">Management</Link>
         </div>
       </div>
 
@@ -465,30 +534,30 @@ function RouteMapEditorPage() {
       {hasUnsavedSegmentChanges && <div className="management-empty route-map-notice" role="status">Segment changes are not saved.</div>}
       {addMode && <div className="management-empty route-map-notice" role="status">Map click mode is active. Click the map to add the next waypoint.</div>}
 
-      <div className="route-map-editor-layout">
-        <div className="route-map-main-column">
-          <RouteAuthoringMap
-            waypoints={waypoints}
-            acceptedGeometry={acceptedGeometry}
-            candidateGeometry={candidate?.geometry}
-            segments={segments}
-            selectedSegmentId={selectedSegmentId}
-            selectedWaypointId={selectedWaypointId}
-            addMode={addMode}
-            onWaypointSelect={setSelectedWaypointId}
-            onSegmentSelect={setSelectedSegmentId}
-            onMapAddWaypoint={addWaypointFromMap}
-          />
-          <RouteGeometryLegend />
-          <RouteCandidateSummary acceptedGeometry={acceptedGeometry} candidate={candidate} mapRevision={mapRevision} updatedAt={updatedAt} />
-        </div>
+      <div className="route-map-toolbar" role="toolbar" aria-label="Route map editor tools">
+        <button type="button" className={activePanel === 'waypoints' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('waypoints')} aria-expanded={activePanel === 'waypoints'}>
+          Waypoints <span>{waypoints.length}</span>
+        </button>
+        <button type="button" className={activePanel === 'segments' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('segments')} aria-expanded={activePanel === 'segments'}>
+          Segments <span>{segments.length}</span>
+        </button>
+        <button type="button" className={activePanel === 'videos' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('videos')} aria-expanded={activePanel === 'videos'}>
+          + Add video
+        </button>
+        <button type="button" className={activePanel === 'status' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('status')} aria-expanded={activePanel === 'status'}>Route status</button>
+        <span className="route-map-context-indicator" role="status">{editingContextLabel}</span>
+        {activePanel && <button type="button" className="route-map-close-tool" onClick={() => setActivePanel('')} aria-label="Close editor panel">Close panel</button>}
+      </div>
 
-        <div className="route-map-side-column">
+      {activePanel === 'waypoints' && (
+        <section className="route-map-editor-panel route-map-panel-stack">
           <WaypointList
             waypoints={waypoints}
             places={places}
             selectedWaypointId={selectedWaypointId}
             addMode={addMode}
+            selectedPlaceId={quickAddPlaceId}
+            onPlaceIdChange={setQuickAddPlaceId}
             onAddBlank={addBlankWaypoint}
             onAddModeChange={setAddMode}
             onAddFromPlace={addWaypointFromPlace}
@@ -496,44 +565,87 @@ function RouteMapEditorPage() {
             onMove={moveWaypoint}
             onRemove={removeWaypoint}
           />
-          <WaypointEditor waypoint={selectedWaypoint} places={places} onChange={updateWaypoint} />
-          <RouteMapActions
-            calculating={calculating}
-            saving={saving}
-            accepting={accepting}
-            canCalculate={canCalculate}
-            canAccept={canAccept}
-            hasUnsavedChanges={hasUnsavedChanges}
-            onSave={saveRouteMap}
-            onCalculate={calculateCandidate}
-            onAccept={acceptCandidate}
+          {addMode && (
+            <div className="route-map-notice route-map-inline-message" role="status">
+              <strong>Map-click mode active</strong>
+              <span>Click the map to choose the waypoint location.</span>
+              <button type="button" className="secondary-button small-button" onClick={cancelMapClickMode}>Cancel map-click mode</button>
+            </div>
+          )}
+          <WaypointEditor
+            waypoint={selectedWaypoint}
+            places={places}
+            routeId={routeId}
+            onChange={updateWaypoint}
+            onSave={saveActiveWaypoint}
+            onCancel={cancelActiveWaypoint}
           />
-          <section className="route-map-segments-section">
-            {segmentsLoading && <div className="management-empty route-map-notice">Loading Segments...</div>}
-            {segmentsError && <div className="management-error" role="alert">{segmentsError}</div>}
-            {!segmentsLoading && <>
-              <SegmentList
-                segments={segments}
-                waypoints={savedWaypoints}
-                selectedSegmentId={selectedSegmentId}
-                canAdd={canAddSegment}
-                onAdd={addSegment}
-                onSelect={setSelectedSegmentId}
-                onMove={moveSegment}
-                onRemove={removeSegment}
-              />
+        </section>
+      )}
+
+      {activePanel === 'segments' && (
+        <section className="route-map-editor-panel route-map-segments-section">
+          {segmentsLoading && <div className="management-empty route-map-notice">Loading Segments...</div>}
+          {segmentsError && <div className="management-error" role="alert">{segmentsError}</div>}
+          {!segmentsLoading && (
+            <>
+              <SegmentList segments={segments} waypoints={savedWaypoints} selectedSegmentId={selectedSegmentId} canAdd={canAddSegment} onAdd={addSegment} onSelect={setSelectedSegmentId} onMove={moveSegment} onRemove={removeSegment} />
               <SegmentEditor
                 segment={selectedSegment}
+                routeId={routeId}
                 waypoints={savedWaypoints}
                 validation={selectedSegmentValidation}
                 canRegenerate={canEditSegments && Boolean(acceptedGeometry) && Boolean(selectedSegment)}
                 onChange={updateSegment}
                 onRegenerate={regenerateSegment}
+                onSave={saveSegments}
+                saving={segmentsSaving}
               />
-              <SegmentActions saving={segmentsSaving} disabled={!canEditSegments || !segmentValidation.valid || !hasUnsavedSegmentChanges} dirty={hasUnsavedSegmentChanges} onSave={saveSegments} />
-            </>}
-          </section>
-        </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {activePanel === 'videos' && (
+        <section className="route-map-editor-panel">
+          <div className="route-map-panel-header">
+            <div>
+              <p className="eyebrow">Videos</p>
+              <h2>Videos for this Route</h2>
+            </div>
+          </div>
+          <ContentVideoManager
+            resourceKey="route"
+            resourceId={routeId}
+            routeId={routeId}
+            attachedVideoIds={route?.video_ids || []}
+            onAttachmentsChange={(nextIds) => setRoute((current) => ({ ...current, video_ids: nextIds }))}
+          />
+        </section>
+      )}
+
+      {activePanel === 'status' && (
+        <section className="route-map-editor-panel">
+          <div className="route-map-panel-header"><div><p className="eyebrow">Route status</p><h2>Route geometry</h2></div></div>
+          <RouteCandidateSummary acceptedGeometry={acceptedGeometry} candidate={candidate} mapRevision={mapRevision} updatedAt={updatedAt} />
+          <RouteMapActions calculating={calculating} saving={saving} accepting={accepting} canCalculate={canCalculate} canAccept={canAccept} hasUnsavedChanges={hasUnsavedChanges} onSave={saveRouteMap} onCalculate={calculateCandidate} onAccept={acceptCandidate} showSave={false} />
+        </section>
+      )}
+
+      <div className="route-map-main-column">
+        <RouteAuthoringMap
+          waypoints={waypoints}
+          acceptedGeometry={acceptedGeometry}
+          candidateGeometry={candidate?.geometry}
+          segments={segments}
+          selectedSegmentId={selectedSegmentId}
+          selectedWaypointId={selectedWaypointId}
+          addMode={addMode}
+          onWaypointSelect={setSelectedWaypointId}
+          onSegmentSelect={setSelectedSegmentId}
+          onMapAddWaypoint={addWaypointFromMap}
+        />
+        <RouteGeometryLegend />
       </div>
     </section>
   )

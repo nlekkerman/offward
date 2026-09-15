@@ -1,9 +1,11 @@
+import ContentVideoManager from '../../../video/ContentVideoManager.jsx'
+
 function getWaypointLabel(waypoint) {
   if (!waypoint) return 'Select a saved Waypoint'
   return `${waypoint.order} · ${waypoint.type === 'start' ? 'Start' : waypoint.type === 'finish' ? 'Finish' : 'Via'} · ${waypoint.label || `${waypoint.latitude}, ${waypoint.longitude}`}`
 }
 
-function SegmentEditor({ segment, waypoints, validation, canRegenerate, onChange, onRegenerate }) {
+function SegmentEditor({ segment, routeId, waypoints, validation, canRegenerate, onChange, onRegenerate, onSave, saving = false }) {
   if (!segment) {
     return (
       <section className="route-map-panel">
@@ -13,6 +15,7 @@ function SegmentEditor({ segment, waypoints, validation, canRegenerate, onChange
     )
   }
 
+  const isNewSegment = String(segment.id).startsWith('new-')
   const update = (name, value) => onChange({ ...segment, [name]: value })
   const startWaypoint = waypoints.find((waypoint) => waypoint.id === segment.start_waypoint_id)
   const endWaypoint = waypoints.find((waypoint) => waypoint.id === segment.end_waypoint_id)
@@ -22,7 +25,7 @@ function SegmentEditor({ segment, waypoints, validation, canRegenerate, onChange
       <div className="route-map-panel-header">
         <div>
           <p className="eyebrow">Segment editor</p>
-          <h2>Segment {segment.order}</h2>
+          <h2>{isNewSegment ? 'New Segment' : `Editing Segment ${segment.order}`}</h2>
         </div>
         {segment.needs_review && <span className="segment-review-badge">Needs geometry review</span>}
       </div>
@@ -56,6 +59,20 @@ function SegmentEditor({ segment, waypoints, validation, canRegenerate, onChange
         <button type="button" className="secondary-button small-button" onClick={onRegenerate} disabled={!canRegenerate}>Regenerate geometry from accepted Route</button>
       </div>
       {startWaypoint && endWaypoint && validation.valid && <p className="route-map-muted">Geometry follows the accepted Route between the selected boundaries.</p>}
+      <div className="route-map-edit-actions">
+        <button type="button" className="secondary-button small-button" onClick={() => onChange({ ...segment, id: segment.id })}>Cancel</button>
+        <button type="button" className="primary-button small-button" onClick={onSave} disabled={saving}>
+          {saving ? (isNewSegment ? 'Adding Segment...' : 'Saving Segment...') : isNewSegment ? 'Add Segment' : 'Save Segment'}
+        </button>
+      </div>
+      <ContentVideoManager
+        resourceKey="segment"
+        resourceId={segment.id}
+        routeId={routeId}
+        segmentId={segment.id}
+        attachedVideoIds={segment.media_ids || []}
+        onAttachmentsChange={(nextIds) => onChange({ ...segment, media_ids: nextIds })}
+      />
     </section>
   )
 }

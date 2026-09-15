@@ -1,6 +1,7 @@
 import { INTERMEDIATE_WAYPOINT_TYPES, getPlaceCoordinates, getWaypointErrors } from '../routeMapUtils.js'
+import ContentVideoManager from '../../../video/ContentVideoManager.jsx'
 
-function WaypointEditor({ waypoint, places, onChange }) {
+function WaypointEditor({ waypoint, places, routeId, onChange, onSave, onCancel }) {
   if (!waypoint) {
     return (
       <section className="route-map-panel">
@@ -10,6 +11,7 @@ function WaypointEditor({ waypoint, places, onChange }) {
     )
   }
 
+  const isNewWaypoint = String(waypoint.id).startsWith('new-')
   const fieldErrors = getWaypointErrors(waypoint)
 
   const handleChange = (event) => {
@@ -36,7 +38,7 @@ function WaypointEditor({ waypoint, places, onChange }) {
       <div className="route-map-panel-header">
         <div>
           <p className="eyebrow">Waypoint editor</p>
-          <h2>Waypoint {waypoint.order}</h2>
+          <h2>{isNewWaypoint ? 'New Waypoint' : `Editing Waypoint ${waypoint.order}`}</h2>
         </div>
       </div>
 
@@ -56,7 +58,7 @@ function WaypointEditor({ waypoint, places, onChange }) {
 
         <div className="form-field route-map-wide-field">
           <label htmlFor="waypoint-place">Linked Place</label>
-          <select id="waypoint-place" name="place_id" value={waypoint.place_id} onChange={handleChange} className="form-input">
+          <select id="waypoint-place" name="place_id" value={waypoint.place_id || ''} onChange={handleChange} className="form-input">
             <option value="">No linked Place</option>
             {places.map((place) => (
               <option key={place.id} value={place.id}>{place.name || place.title || place.slug || place.id}</option>
@@ -75,8 +77,27 @@ function WaypointEditor({ waypoint, places, onChange }) {
           <input id="waypoint-longitude" name="longitude" type="number" step="any" value={waypoint.longitude} onChange={handleChange} className={fieldErrors.longitude ? 'form-input field-error' : 'form-input'} />
           {fieldErrors.longitude && <span className="field-error-text">{fieldErrors.longitude}</span>}
         </div>
-
       </div>
+
+      <div className="route-map-edit-actions">
+        <button type="button" className="secondary-button small-button" onClick={onCancel}>Cancel</button>
+        <button type="button" className="primary-button small-button" onClick={onSave} disabled={Boolean(fieldErrors.latitude || fieldErrors.longitude)}>
+          {isNewWaypoint ? 'Add Waypoint' : 'Save Waypoint'}
+        </button>
+      </div>
+
+      {isNewWaypoint ? (
+        <p className="route-map-muted">Save this Waypoint before attaching videos.</p>
+      ) : (
+        <ContentVideoManager
+          resourceKey="waypoint"
+          resourceId={waypoint.id}
+          routeId={routeId}
+          waypointId={waypoint.id}
+          attachedVideoIds={waypoint.media_ids || []}
+          onAttachmentsChange={(nextIds) => onChange({ ...waypoint, media_ids: nextIds })}
+        />
+      )}
     </section>
   )
 }

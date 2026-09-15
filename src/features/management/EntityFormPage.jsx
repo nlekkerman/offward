@@ -5,6 +5,7 @@ import { managementApis } from '../../services/management/index.js'
 import { routeMapApi } from '../../services/management/routeMapApi.js'
 import { getEntityConfig, slugify } from './entityConfig.js'
 import VideoUploadField from './VideoUploadField.jsx'
+import ContentVideoManager from '../video/ContentVideoManager.jsx'
 import VideoPlayer from '../video/VideoPlayer.jsx'
 import PlaceCoordinatePicker from '../map/components/PlaceCoordinatePicker.jsx'
 import { isValidLatitude, isValidLongitude } from '../map/mapGeometry.js'
@@ -915,6 +916,13 @@ function EntityFormPage({ resourceKey, title }) {
           renderField('longitude', 'number'),
           renderField('visited_at', 'text'),
           renderField('status', 'select'),
+          <ContentVideoManager
+            key="place-video-manager"
+            resourceKey="place"
+            resourceId={id}
+            attachedVideoIds={formData.video_ids || []}
+            onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, video_ids: nextIds }))}
+          />,
         ]
       case 'routes':
         return [
@@ -957,6 +965,13 @@ function EntityFormPage({ resourceKey, title }) {
             </div>
             <button type="button" className="secondary-button small-button" onClick={addRouteStop}>Add stop</button>
           </div>,
+          <ContentVideoManager
+            key="route-video-manager"
+            resourceKey="route"
+            resourceId={id}
+            attachedVideoIds={formData.video_ids || []}
+            onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, video_ids: nextIds }))}
+          />,
         ]
       case 'stories':
         return [
@@ -972,6 +987,13 @@ function EntityFormPage({ resourceKey, title }) {
           renderField('events', 'multi-select'),
           renderField('tours', 'multi-select'),
           renderField('videos', 'multi-select'),
+          <ContentVideoManager
+            key="story-video-manager"
+            resourceKey="story"
+            resourceId={id}
+            attachedVideoIds={formData.video_ids || []}
+            onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, video_ids: nextIds }))}
+          />,
         ]
       case 'videos':
         return [
@@ -1004,6 +1026,13 @@ function EntityFormPage({ resourceKey, title }) {
           renderField('routes', 'multi-select'),
           renderField('places', 'multi-select'),
           renderField('videos', 'multi-select'),
+          <ContentVideoManager
+            key="tour-video-manager"
+            resourceKey="tour"
+            resourceId={id}
+            attachedVideoIds={formData.video_ids || []}
+            onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, video_ids: nextIds }))}
+          />,
         ]
       case 'events':
         return [
@@ -1020,6 +1049,13 @@ function EntityFormPage({ resourceKey, title }) {
           renderField('places', 'multi-select'),
           renderField('partners', 'multi-select'),
           renderField('videos', 'multi-select'),
+          <ContentVideoManager
+            key="event-video-manager"
+            resourceKey="event"
+            resourceId={id}
+            attachedVideoIds={formData.video_ids || []}
+            onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, video_ids: nextIds }))}
+          />,
         ]
       case 'partners':
         return [
@@ -1042,9 +1078,14 @@ function EntityFormPage({ resourceKey, title }) {
           <p className="eyebrow">Management</p>
           <h1>{title}</h1>
         </div>
-        <Link to={`/manage/${resourceKey}`} className="secondary-button">
-          Back to list
-        </Link>
+        <div className="management-page-actions">
+          <Link to={`/manage/${resourceKey}`} className="secondary-button">
+            Back to list
+          </Link>
+          <Link to="/manage" className="secondary-button">
+            Management
+          </Link>
+        </div>
       </div>
       {resourceKey === 'routes' && isEdit && (
         <div className="management-related-actions">
