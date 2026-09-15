@@ -17,3 +17,21 @@ export async function getLatestPublicStory() {
   const stories = await getPublicStories()
   return stories[0] || null
 }
+
+export async function getPublicStoryBySlug(slug) {
+  try {
+    const { data } = await apiClient.get(`/api/offward/stories/${encodeURIComponent(slug)}/`)
+
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Public story detail response must be an object.')
+    }
+
+    return data
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return null
+    }
+
+    throw error
+  }
+}
