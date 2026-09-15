@@ -250,8 +250,10 @@ function StoryPage() {
             <div className={attachedVideos.length === 1 ? 'story-detail-video-list story-detail-video-list-single' : 'story-detail-video-list'}>
               {attachedVideos.map((video) => (
                 <div className="story-detail-video-item" key={video.id}>
-                  <VideoPlayer playbackUrl={video.playback_url} thumbnailUrl={video.thumbnail_url} title={video.title} />
-                  {video.title && <p className="story-detail-video-caption">{video.title}</p>}
+                  <div className="story-media-video">
+                    <VideoPlayer playbackUrl={video.playback_url} thumbnailUrl={video.thumbnail_url} title={video.title} />
+                    {video.title && <p className="story-detail-video-caption">{video.title}</p>}
+                  </div>
                 </div>
               ))}
             </div>

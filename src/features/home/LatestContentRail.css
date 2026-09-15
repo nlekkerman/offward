@@ -1,0 +1,139 @@
+.latest-content-rail {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+.latest-content-rail-header {
+  margin-bottom: 1.5rem;
+}
+
+.latest-content-rail-title {
+  margin: 0;
+  color: #d8b47c;
+  font: 700 0.85rem/1 sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.latest-content-rail-track {
+  display: flex;
+  gap: 1.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.5rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: #4a4c41 transparent;
+}
+
+.latest-content-rail-track::-webkit-scrollbar {
+  height: 8px;
+}
+
+.latest-content-rail-track::-webkit-scrollbar-thumb {
+  background: #393b31;
+  border-radius: 999px;
+}
+
+.latest-rail-item {
+  flex: 0 0 auto;
+  width: min(340px, 82vw);
+  scroll-snap-align: start;
+}
+
+.latest-rail-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid #393b31;
+  background: #1a1c17;
+}
+
+.latest-rail-card-video {
+  padding: 0.9rem;
+}
+
+.latest-rail-type {
+  margin: 0;
+  color: #d8b47c;
+  font: 700 0.7rem/1 sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.latest-rail-card-video .latest-rail-type {
+  padding: 0 0.35rem;
+}
+
+.latest-rail-title {
+  margin: 0;
+  color: #f3efe6;
+  font-size: 1.1rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.latest-rail-card-video .latest-rail-title {
+  padding: 0 0.35rem;
+}
+
+.latest-rail-excerpt {
+  margin: 0;
+  color: #aaa99e;
+  font: 0.92rem/1.55 Georgia, serif;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.latest-rail-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+  color: #7d7c72;
+  font: 0.78rem/1 sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.latest-rail-meta-row span + span::before {
+  content: '·';
+  margin-right: 0.85rem;
+  color: #4a4c41;
+}
+
+.latest-rail-cta {
+  margin-top: auto;
+  color: #d8b47c;
+  font: 600 0.82rem/1.2 sans-serif;
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.latest-rail-card-video .video-player {
+  max-width: none;
+}
+
+.latest-rail-skeleton {
+  flex: 0 0 auto;
+  width: min(340px, 82vw);
+  height: 260px;
+  border: 1px solid #393b31;
+  background: #1a1c17;
+}
+
+@media (max-width: 640px) {
+  .latest-content-rail {
+    padding: 2rem 1.25rem 3rem;
+  }
+
+  .latest-rail-item,
+  .latest-rail-skeleton {
+    width: 86vw;
+  }
+}

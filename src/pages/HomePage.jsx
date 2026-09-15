@@ -1,14 +1,12 @@
 import { Link } from 'react-router-dom'
 import heroImage from '../assets/images/home/off-hero.webp'
-import LatestStoryFeature from '../features/stories/LatestStoryFeature.jsx'
+import LatestContentRail from '../features/home/LatestContentRail.jsx'
 
 function HomePage() {
   return (
     <>
       <HomeHero />
-      <section className="home-main">
-        <LatestStoryFeature />
-      </section>
+      <LatestContentRail />
     </>
   )
 }
