@@ -50,6 +50,13 @@ function toBackendDateTime(value) {
   return Number.isNaN(date.getTime()) ? value : date.toISOString()
 }
 
+function formatPublishedAtDisplay(value) {
+  if (!value) return 'Not yet published'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
 function hasVideoLocationValue(location) {
   return Object.values(location || {}).some((value) => value !== '' && value !== null && value !== undefined)
 }
@@ -71,7 +78,7 @@ function getInitialValues(resourceKey, data = {}) {
     }))
   }
 
-  if (resourceKey === 'routes') {
+  if (Object.prototype.hasOwnProperty.call(base, 'country')) {
     const countryValue = data.country && typeof data.country === 'object'
       ? data.country.id
       : data.country || data.country_id || ''
@@ -413,6 +420,11 @@ function EntityFormPage({ resourceKey, title }) {
 
   const buildPayload = () => {
     const payload = { ...formData }
+
+    // The backend owns first-publish timestamp assignment; never submit a frontend value.
+    if (Object.prototype.hasOwnProperty.call(payload, 'published_at')) {
+      delete payload.published_at
+    }
 
     if (resourceKey === 'videos') {
       delete payload.location
@@ -862,6 +874,13 @@ function EntityFormPage({ resourceKey, title }) {
     )
   }
 
+  const renderPublishedAt = () => (
+    <div key="published_at" className="form-field">
+      <label>Published</label>
+      <p className="form-static-value">{formatPublishedAtDisplay(formData.published_at)}</p>
+    </div>
+  )
+
   const renderVideoProviderFields = () => {
     if (isEdit) {
       return [renderField('provider'), renderField('provider_id')]
@@ -980,7 +999,7 @@ function EntityFormPage({ resourceKey, title }) {
           renderField('slug'),
           renderField('excerpt', 'textarea'),
           renderField('body', 'textarea'),
-          renderField('published_at', 'text'),
+          renderPublishedAt(),
           renderField('status', 'select'),
           renderField('places', 'multi-select'),
           renderField('routes', 'multi-select'),
@@ -1010,7 +1029,7 @@ function EntityFormPage({ resourceKey, title }) {
           ...renderVideoProviderFields(),
           renderField('thumbnail'),
           renderField('duration'),
-          renderField('published_at', 'text'),
+          renderPublishedAt(),
           renderField('status', 'select'),
           renderVideoLocation(),
           renderVideoAttachments(),

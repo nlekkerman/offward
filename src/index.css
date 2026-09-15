@@ -637,6 +637,15 @@ nav a { color: #aaa99e; text-decoration: none; }
   resize: vertical;
 }
 
+.form-static-value {
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #3a413c;
+  border-radius: 0.75rem;
+  background: #171a17;
+  color: #d8d4c8;
+}
+
 .management-form-actions {
   display: flex;
   justify-content: flex-end;
