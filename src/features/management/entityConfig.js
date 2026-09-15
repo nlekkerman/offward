@@ -65,7 +65,7 @@ export const entityConfig = {
   videos: {
     label: 'Video',
     singular: 'video',
-    listFields: ['title', 'provider', 'duration', 'status'],
+    listFields: ['title', 'provider', 'duration', 'published_at', 'status'],
     defaultValues: {
       title: '',
       slug: '',
@@ -75,8 +75,14 @@ export const entityConfig = {
       duration: '',
       published_at: '',
       status: 'draft',
-      playback_url: '',
-      thumbnail_url: '',
+      location: {
+        latitude: '',
+        longitude: '',
+        place_id: '',
+        route_id: '',
+        segment_id: '',
+        captured_at: '',
+      },
     },
   },
   tours: {

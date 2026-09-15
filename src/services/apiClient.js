@@ -1,7 +1,5 @@
 import axios from 'axios'
 
-let csrfToken = ''
-
 function getCookie(name) {
   if (typeof document === 'undefined') {
     return ''
@@ -16,16 +14,8 @@ export const apiClient = axios.create({
   withCredentials: true,
 })
 
-export function setCsrfToken(token) {
-  csrfToken = token || ''
-}
-
-export function clearCsrfToken() {
-  csrfToken = ''
-}
-
 export function getCsrfToken() {
-  return csrfToken || getCookie('csrftoken')
+  return getCookie('csrftoken')
 }
 
 export async function ensureCsrfToken() {
@@ -35,9 +25,7 @@ export async function ensureCsrfToken() {
   }
 
   const { data } = await apiClient.get('/api/auth/csrf/')
-  const nextToken = data?.csrfToken || getCookie('csrftoken')
-  setCsrfToken(nextToken)
-  return nextToken
+  return getCookie('csrftoken') || data?.csrfToken || ''
 }
 
 apiClient.interceptors.request.use(async (config) => {

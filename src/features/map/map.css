@@ -102,6 +102,16 @@
   margin: 0.25rem 0 0;
 }
 
+.video-location-section .place-coordinate-picker-container {
+  height: 420px;
+}
+
+@media (max-width: 767px) {
+  .video-location-section .place-coordinate-picker-container {
+    height: 320px;
+  }
+}
+
 .offward-map-fallback {
   display: flex;
   align-items: center;

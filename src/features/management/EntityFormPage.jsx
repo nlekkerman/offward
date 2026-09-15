@@ -2,9 +2,22 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiClient } from '../../services/apiClient.js'
 import { managementApis } from '../../services/management/index.js'
+import { routeMapApi } from '../../services/management/routeMapApi.js'
 import { getEntityConfig, slugify } from './entityConfig.js'
+import VideoUploadField from './VideoUploadField.jsx'
 import PlaceCoordinatePicker from '../map/components/PlaceCoordinatePicker.jsx'
 import { isValidLatitude, isValidLongitude } from '../map/mapGeometry.js'
+
+const EMPTY_VIDEO_LOCATION = {
+  latitude: '',
+  longitude: '',
+  place_id: '',
+  route_id: '',
+  segment_id: '',
+  captured_at: '',
+}
+
+const VIDEO_ATTACHMENT_FIELDS = ['place_ids', 'route_ids', 'segment_ids', 'story_ids', 'tour_ids', 'event_ids']
 
 const relationshipFields = {
   country: 'country',
@@ -19,6 +32,24 @@ const relationshipFields = {
 
 function fieldLabel(name) {
   return name.replace(/_/g, ' ')
+}
+
+function toDateTimeLocalValue(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 16)
+  const offset = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+}
+
+function toBackendDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toISOString()
+}
+
+function hasVideoLocationValue(location) {
+  return Object.values(location || {}).some((value) => value !== '' && value !== null && value !== undefined)
 }
 
 function getInitialValues(resourceKey, data = {}) {
@@ -45,6 +76,12 @@ function getInitialValues(resourceKey, data = {}) {
     base.country = countryValue || ''
   }
 
+  if (resourceKey === 'videos') {
+    base.location = data.location && typeof data.location === 'object'
+      ? { ...EMPTY_VIDEO_LOCATION, ...data.location, captured_at: toDateTimeLocalValue(data.location.captured_at) }
+      : { ...EMPTY_VIDEO_LOCATION }
+  }
+
   return base
 }
 
@@ -61,6 +98,11 @@ function EntityFormPage({ resourceKey, title }) {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
   const [slugLocked, setSlugLocked] = useState(false)
+  const [videoLocationIntent, setVideoLocationIntent] = useState('omit')
+  const [videoAttachments, setVideoAttachments] = useState({})
+  const [videoSegments, setVideoSegments] = useState([])
+  const [videoSegmentsLoading, setVideoSegmentsLoading] = useState(false)
+  const [videoUploadStatus, setVideoUploadStatus] = useState('idle')
 
   const relationshipNames = useMemo(() => {
     const names = []
@@ -131,11 +173,20 @@ function EntityFormPage({ resourceKey, title }) {
           const item = await api.getById(id)
           if (!active) return
           setFormData(getInitialValues(resourceKey, item))
+          if (resourceKey === 'videos') {
+            setVideoAttachments(item)
+            setVideoLocationIntent('omit')
+            setVideoSegmentsLoading(Boolean(item.location?.route_id))
+          }
           if (item.slug) {
             setSlugLocked(Boolean(item.slug))
           }
         } else {
           setFormData(config.defaultValues)
+          if (resourceKey === 'videos') {
+            setVideoAttachments({})
+            setVideoLocationIntent('omit')
+          }
         }
       } catch (err) {
         if (!active) return
@@ -153,6 +204,42 @@ function EntityFormPage({ resourceKey, title }) {
       active = false
     }
   }, [api, config.defaultValues, id, isEdit, relationshipNames, resourceKey])
+
+  const videoRouteId = resourceKey === 'videos' ? formData.location?.route_id : ''
+
+  useEffect(() => {
+    if (resourceKey !== 'videos' || !videoRouteId) {
+      return undefined
+    }
+
+    let active = true
+
+    routeMapApi.getSegments(videoRouteId)
+      .then((segments) => {
+        if (!active) return
+        setVideoSegments(segments)
+        setFormData((current) => {
+          const segmentId = current.location?.segment_id
+          if (!segmentId || segments.some((segment) => String(segment.id) === String(segmentId))) {
+            return current
+          }
+          return { ...current, location: { ...current.location, segment_id: '' } }
+        })
+      })
+      .catch(() => {
+        if (active) {
+          setVideoSegments([])
+          setFormData((current) => ({ ...current, location: { ...current.location, segment_id: '' } }))
+        }
+      })
+      .finally(() => {
+        if (active) setVideoSegmentsLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [resourceKey, videoRouteId])
 
   const handleTextChange = (event) => {
     const { name, value } = event.target
@@ -242,8 +329,95 @@ function EntityFormPage({ resourceKey, title }) {
     })
   }
 
+  const handleVideoLocationChange = (field, value) => {
+    setVideoLocationIntent('set')
+    setFormData((current) => ({
+      ...current,
+      location: { ...EMPTY_VIDEO_LOCATION, ...(current.location || {}), [field]: value },
+    }))
+  }
+
+  const handleVideoRouteChange = (event) => {
+    const { value } = event.target
+    setVideoLocationIntent('set')
+    setVideoSegmentsLoading(Boolean(value))
+    setFormData((current) => ({
+      ...current,
+      location: { ...EMPTY_VIDEO_LOCATION, ...(current.location || {}), route_id: value, segment_id: '' },
+    }))
+  }
+
+  const handleVideoCoordinatesChange = ({ latitude, longitude }) => {
+    setVideoLocationIntent('set')
+    setFormData((current) => ({
+      ...current,
+      location: { ...EMPTY_VIDEO_LOCATION, ...(current.location || {}), latitude: latitude ?? '', longitude: longitude ?? '' },
+    }))
+  }
+
+  const handleVideoUploadSuccess = (session) => {
+    if (!session) {
+      setFormData((current) => ({ ...current, provider: 'cloudflare', provider_id: '' }))
+      return
+    }
+
+    setFormData((current) => ({
+      ...current,
+      provider: session.provider,
+      provider_id: session.provider_id,
+    }))
+  }
+
+  const getVideoSubmitBlockReason = () => {
+    if (isEdit || resourceKey !== 'videos') return ''
+    if (videoUploadStatus === 'requesting') return 'Preparing the video upload. Please wait.'
+    if (videoUploadStatus === 'uploading') return 'The video is still uploading. Please wait for it to finish.'
+    if (videoUploadStatus === 'error') return 'The video upload failed. Retry the upload before creating this Video.'
+    if (videoUploadStatus !== 'success') return 'Upload the video first.'
+    if (formData.provider !== 'cloudflare') return 'The uploaded video provider must be Cloudflare.'
+    if (!formData.provider_id) return 'Provider ID is missing. Upload the video again.'
+    if (!formData.title?.trim()) return 'Title is required.'
+    return ''
+  }
+
+  const clearVideoLocation = () => {
+    setVideoLocationIntent('clear')
+    setFormData((current) => ({ ...current, location: { ...EMPTY_VIDEO_LOCATION } }))
+    setFieldErrors((current) => {
+      const next = { ...current }
+      delete next['location.latitude']
+      delete next['location.longitude']
+      return next
+    })
+  }
+
+  const buildVideoLocation = () => {
+    const location = formData.location || EMPTY_VIDEO_LOCATION
+    const payload = {}
+
+    if (location.latitude !== '' && location.latitude !== null && location.latitude !== undefined) {
+      payload.latitude = Number(location.latitude)
+    }
+    if (location.longitude !== '' && location.longitude !== null && location.longitude !== undefined) {
+      payload.longitude = Number(location.longitude)
+    }
+    if (location.place_id) payload.place_id = location.place_id
+    if (location.route_id) payload.route_id = location.route_id
+    if (location.segment_id) payload.segment_id = location.segment_id
+    if (location.captured_at) payload.captured_at = toBackendDateTime(location.captured_at)
+
+    return payload
+  }
+
   const buildPayload = () => {
     const payload = { ...formData }
+
+    if (resourceKey === 'videos') {
+      delete payload.location
+      delete payload.playback_url
+      delete payload.thumbnail_url
+      VIDEO_ATTACHMENT_FIELDS.forEach((field) => delete payload[field])
+    }
 
     if (resourceKey === 'countries') {
       if (!payload.hero_media_id) delete payload.hero_media_id
@@ -311,24 +485,44 @@ function EntityFormPage({ resourceKey, title }) {
       delete payload.slug
     }
 
+    if (resourceKey === 'videos') {
+      if (videoLocationIntent === 'clear') {
+        payload.location = null
+      } else if (videoLocationIntent === 'set') {
+        const location = buildVideoLocation()
+        if (hasVideoLocationValue(location)) {
+          payload.location = location
+        } else if (!isEdit) {
+          delete payload.location
+        }
+      }
+    }
+
     return payload
   }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
 
-    if (resourceKey === 'places') {
+    const videoSubmitBlockReason = getVideoSubmitBlockReason()
+    if (videoSubmitBlockReason) {
+      setError(videoSubmitBlockReason)
+      return
+    }
+
+    if (resourceKey === 'places' || resourceKey === 'videos') {
       const nextErrors = {}
-      if (formData.latitude !== '' && formData.latitude !== null && formData.latitude !== undefined) {
-        const lat = Number(formData.latitude)
+      const location = resourceKey === 'videos' ? formData.location || EMPTY_VIDEO_LOCATION : formData
+      if (location.latitude !== '' && location.latitude !== null && location.latitude !== undefined) {
+        const lat = Number(location.latitude)
         if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-          nextErrors.latitude = 'Latitude must be a valid number between -90 and 90.'
+          nextErrors[resourceKey === 'videos' ? 'location.latitude' : 'latitude'] = 'Latitude must be a valid number between -90 and 90.'
         }
       }
-      if (formData.longitude !== '' && formData.longitude !== null && formData.longitude !== undefined) {
-        const lng = Number(formData.longitude)
+      if (location.longitude !== '' && location.longitude !== null && location.longitude !== undefined) {
+        const lng = Number(location.longitude)
         if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
-          nextErrors.longitude = 'Longitude must be a valid number between -180 and 180.'
+          nextErrors[resourceKey === 'videos' ? 'location.longitude' : 'longitude'] = 'Longitude must be a valid number between -180 and 180.'
         }
       }
       if (Object.keys(nextErrors).length > 0) {
@@ -352,7 +546,8 @@ function EntityFormPage({ resourceKey, title }) {
       navigate(`/manage/${resourceKey}`)
     } catch (err) {
       const responseData = err?.response?.data || {}
-      setError(responseData.detail || 'Unable to save this record.')
+      const responseMessage = typeof responseData === 'string' ? responseData : responseData.detail
+      setError(responseMessage || err?.message || 'Unable to save this record.')
 
       if (responseData && typeof responseData === 'object') {
         const nextErrors = {}
@@ -532,6 +727,135 @@ function EntityFormPage({ resourceKey, title }) {
     )
   }
 
+  const renderVideoLocation = () => {
+    const location = formData.location || EMPTY_VIDEO_LOCATION
+    const latitudeError = fieldErrors['location.latitude']
+    const longitudeError = fieldErrors['location.longitude']
+    const selectClass = (field) => fieldErrors[`location.${field}`] ? 'form-input field-error' : 'form-input'
+    const renderLocationSelect = (field, label, options, onChange = (event) => handleVideoLocationChange(field, event.target.value), disabled = false) => (
+      <div key={field} className="form-field">
+        <label htmlFor={`video-location-${field}`}>{label}</label>
+        <select
+          id={`video-location-${field}`}
+          value={location[field] || ''}
+          onChange={onChange}
+          className={selectClass(field)}
+          disabled={disabled}
+        >
+          <option value="">Select {label.toLowerCase()}</option>
+          {options.map((item) => (
+            <option key={item.id} value={item.id}>{item.name || item.title || item.slug || item.id}</option>
+          ))}
+        </select>
+        {fieldErrors[`location.${field}`] && <span className="field-error-text">{fieldErrors[`location.${field}`]}</span>}
+      </div>
+    )
+
+    return (
+      <div key="video-location" className="management-related-actions video-location-section">
+        <div>
+          <p className="eyebrow">Location</p>
+          <strong>Optional capture location</strong>
+        </div>
+        <PlaceCoordinatePicker
+          latitude={location.latitude}
+          longitude={location.longitude}
+          onChange={handleVideoCoordinatesChange}
+          disabled={submitting}
+        />
+        <div className="video-location-fields">
+          <div className="form-field">
+            <label htmlFor="video-location-latitude">Latitude</label>
+            <input
+              id="video-location-latitude"
+              type="number"
+              step="any"
+              value={location.latitude}
+              onChange={(event) => handleVideoLocationChange('latitude', event.target.value)}
+              className={latitudeError ? 'form-input field-error' : 'form-input'}
+            />
+            {latitudeError && <span className="field-error-text">{latitudeError}</span>}
+          </div>
+          <div className="form-field">
+            <label htmlFor="video-location-longitude">Longitude</label>
+            <input
+              id="video-location-longitude"
+              type="number"
+              step="any"
+              value={location.longitude}
+              onChange={(event) => handleVideoLocationChange('longitude', event.target.value)}
+              className={longitudeError ? 'form-input field-error' : 'form-input'}
+            />
+            {longitudeError && <span className="field-error-text">{longitudeError}</span>}
+          </div>
+          {renderLocationSelect('place_id', 'Place', relationshipOptions.places || [])}
+          {renderLocationSelect('route_id', 'Route', relationshipOptions.routes || [], handleVideoRouteChange)}
+          {renderLocationSelect('segment_id', 'Segment', videoSegments, (event) => handleVideoLocationChange('segment_id', event.target.value), !location.route_id || videoSegmentsLoading)}
+          <div className="form-field">
+            <label htmlFor="video-location-captured-at">Captured at</label>
+            <input
+              id="video-location-captured-at"
+              type="datetime-local"
+              value={location.captured_at || ''}
+              onChange={(event) => handleVideoLocationChange('captured_at', event.target.value)}
+              className={selectClass('captured_at')}
+            />
+            {fieldErrors['location.captured_at'] && <span className="field-error-text">{fieldErrors['location.captured_at']}</span>}
+          </div>
+          <button type="button" className="danger-button small-button video-location-clear" onClick={clearVideoLocation} disabled={submitting}>
+            Clear location
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const renderVideoAttachments = () => {
+    if (resourceKey !== 'videos' || !isEdit) {
+      return null
+    }
+
+    return (
+      <div className="management-related-actions">
+        <div>
+          <p className="eyebrow">Attachments</p>
+          <strong>Read-only relationship context</strong>
+        </div>
+        {VIDEO_ATTACHMENT_FIELDS.map((field) => (
+          <div key={field} className="form-field">
+            <label>{fieldLabel(field)}</label>
+            <div className="form-input">{Array.isArray(videoAttachments[field]) && videoAttachments[field].length ? videoAttachments[field].join(', ') : 'None'}</div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  const renderVideoProviderFields = () => {
+    if (isEdit) {
+      return [renderField('provider'), renderField('provider_id')]
+    }
+
+    return [
+      <div key="video-provider-fields" className="video-provider-fields">
+        <div className="form-field">
+          <label htmlFor="video-provider">Provider</label>
+          <input id="video-provider" className="form-input" value={formData.provider || 'cloudflare'} readOnly />
+        </div>
+        <div className="form-field">
+          <label htmlFor="video-provider-id">Provider ID</label>
+          <input
+            id="video-provider-id"
+            className="form-input"
+            value={formData.provider_id || ''}
+            placeholder="Populated after upload"
+            readOnly
+          />
+        </div>
+      </div>,
+    ]
+  }
+
   const renderFormFields = () => {
     switch (resourceKey) {
       case 'countries':
@@ -621,14 +945,22 @@ function EntityFormPage({ resourceKey, title }) {
         ]
       case 'videos':
         return [
+          !isEdit && (
+            <VideoUploadField
+              key="video-upload"
+              onUploadSuccess={handleVideoUploadSuccess}
+              onUploadStateChange={setVideoUploadStatus}
+            />
+          ),
           renderField('title'),
           renderField('slug'),
-          renderField('provider'),
-          renderField('provider_id'),
+          ...renderVideoProviderFields(),
           renderField('thumbnail'),
           renderField('duration'),
           renderField('published_at', 'text'),
           renderField('status', 'select'),
+          renderVideoLocation(),
+          renderVideoAttachments(),
         ]
       case 'tours':
         return [
@@ -708,6 +1040,9 @@ function EntityFormPage({ resourceKey, title }) {
             {submitting ? 'Saving...' : isEdit ? 'Save changes' : 'Create'}
           </button>
         </div>
+        {!submitting && getVideoSubmitBlockReason() && (
+          <div className="management-error" role="status">{getVideoSubmitBlockReason()}</div>
+        )}
       </form>
     </section>
   )

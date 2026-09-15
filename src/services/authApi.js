@@ -1,4 +1,4 @@
-import { apiClient, clearCsrfToken, ensureCsrfToken, setCsrfToken } from './apiClient.js'
+import { apiClient, ensureCsrfToken } from './apiClient.js'
 
 const UNAUTHENTICATED_SESSION = Object.freeze({
   isAuthenticated: false,
@@ -61,7 +61,6 @@ function getReadableAuthError(error) {
 
 export async function getCsrf() {
   const { data } = await apiClient.get('/api/auth/csrf/')
-  setCsrfToken(data?.csrfToken || '')
   return data?.csrfToken || ''
 }
 
@@ -99,6 +98,5 @@ export async function loginWithSession({ username, password }) {
 export async function logoutSession() {
   await ensureCsrfToken()
   await apiClient.post('/api/auth/logout/', {})
-  clearCsrfToken()
   return true
 }
