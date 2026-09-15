@@ -12,7 +12,7 @@ function getCountryLabel(item, countryRecords) {
     return item.country.name || item.country.title || '—'
   }
 
-  const countryId = item?.country
+  const countryId = item?.country || item?.country_id
   if (countryId !== null && countryId !== undefined && countryId !== '') {
     const country = countryRecords.find((record) => String(record?.id) === String(countryId))
     return country?.name || '—'
@@ -90,7 +90,7 @@ function EntityListPage({ resourceKey, title }) {
   }, [api, resourceKey])
 
   useEffect(() => {
-    if (resourceKey !== 'routes') {
+    if (!config.listFields.includes('country')) {
       return undefined
     }
 
@@ -114,7 +114,7 @@ function EntityListPage({ resourceKey, title }) {
     return () => {
       active = false
     }
-  }, [resourceKey])
+  }, [config.listFields, resourceKey])
 
   const handleDelete = async (item) => {
     const id = item?.id
@@ -180,7 +180,7 @@ function EntityListPage({ resourceKey, title }) {
               {items.map((item) => (
                 <tr key={item.id}>
                   {tableHeaders.map((field) => (
-                    <td key={`${item.id}-${field}`}>{getSummaryValue(item, field, resourceKey === 'routes' ? countryRecords : [])}</td>
+                    <td key={`${item.id}-${field}`}>{getSummaryValue(item, field, countryRecords)}</td>
                   ))}
                   <td>
                     <div className="table-actions">
