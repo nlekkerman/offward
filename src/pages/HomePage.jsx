@@ -1,9 +1,15 @@
 import { Link } from 'react-router-dom'
 import heroImage from '../assets/images/home/off-hero.webp'
+import LatestStoryFeature from '../features/stories/LatestStoryFeature.jsx'
 
 function HomePage() {
   return (
-    <HomeHero />
+    <>
+      <HomeHero />
+      <section className="home-main">
+        <LatestStoryFeature />
+      </section>
+    </>
   )
 }
 
