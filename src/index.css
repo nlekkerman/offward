@@ -429,6 +429,21 @@ nav a { color: #aaa99e; text-decoration: none; }
   gap: 1rem;
 }
 
+.video-preview-section {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: #171a17;
+  border: 1px solid #30362f;
+  border-radius: 1rem;
+}
+
+.video-preview-state {
+  margin: 0;
+  color: #aaa99e;
+  font: 600 0.9rem/1.4 sans-serif;
+}
+
 .form-field textarea {
   min-height: 120px;
   resize: vertical;

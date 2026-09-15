@@ -5,6 +5,7 @@ import { managementApis } from '../../services/management/index.js'
 import { routeMapApi } from '../../services/management/routeMapApi.js'
 import { getEntityConfig, slugify } from './entityConfig.js'
 import VideoUploadField from './VideoUploadField.jsx'
+import VideoPlayer from '../video/VideoPlayer.jsx'
 import PlaceCoordinatePicker from '../map/components/PlaceCoordinatePicker.jsx'
 import { isValidLatitude, isValidLongitude } from '../map/mapGeometry.js'
 
@@ -831,6 +832,35 @@ function EntityFormPage({ resourceKey, title }) {
     )
   }
 
+  const renderVideoPreview = () => {
+    if (resourceKey !== 'videos') {
+      return null
+    }
+
+    const playbackUrl = videoAttachments.playback_url || ''
+    const thumbnailUrl = videoAttachments.thumbnail_url || ''
+    const hasProviderId = Boolean(formData.provider_id)
+
+    let body
+    if (playbackUrl) {
+      body = <VideoPlayer playbackUrl={playbackUrl} thumbnailUrl={thumbnailUrl} title={formData.title} />
+    } else if (hasProviderId) {
+      body = <p className="video-preview-state">Video uploaded. Cloudflare is processing the video.</p>
+    } else {
+      body = <p className="video-preview-state">No video uploaded</p>
+    }
+
+    return (
+      <div key="video-preview" className="video-preview-section">
+        <div>
+          <p className="eyebrow">Preview</p>
+          <strong>Video preview</strong>
+        </div>
+        {body}
+      </div>
+    )
+  }
+
   const renderVideoProviderFields = () => {
     if (isEdit) {
       return [renderField('provider'), renderField('provider_id')]
@@ -945,6 +975,7 @@ function EntityFormPage({ resourceKey, title }) {
         ]
       case 'videos':
         return [
+          renderVideoPreview(),
           !isEdit && (
             <VideoUploadField
               key="video-upload"
