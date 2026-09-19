@@ -6,7 +6,7 @@ function getList(data) {
 
 export async function uploadImage(file) {
   const formData = new FormData()
-  formData.append('image', file)
+  formData.append('file', file)
   const { data } = await apiClient.post('/api/offward/manage/images/', formData)
   return data
 }
