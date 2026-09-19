@@ -8,14 +8,8 @@ import {
   imageCaption,
   imageId,
   imageUrl,
+  toImageMembershipPayload,
 } from '../../../features/management/imageCollectionUtils.js'
-
-function toMembershipPayload(images) {
-  return images.map((image) => ({
-    image_id: imageId(image),
-    caption: imageCaption(image),
-  }))
-}
 
 function GalleryEditPage() {
   const { id } = useParams()
@@ -58,7 +52,7 @@ function GalleryEditPage() {
     setError('')
     setNotice('')
     try {
-      const saved = await imageCollectionsApi.replaceImages(id, toMembershipPayload(nextImages))
+      const saved = await imageCollectionsApi.replaceImages(id, toImageMembershipPayload(nextImages))
       const savedImages = Array.isArray(saved?.images) ? saved.images : nextImages
       setImages(savedImages)
       setCollection((current) => ({ ...current, ...saved, images: savedImages }))

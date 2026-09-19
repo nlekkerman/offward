@@ -30,6 +30,16 @@ export function imageCaption(image) {
   return image?.caption || ''
 }
 
+// Canonical membership payload shape for PUT .../image-collections/:id/images/,
+// shared by upload, reorder, caption update, and remove so the field names never drift again.
+export function toImageMembershipPayload(images) {
+  return images.map((image, index) => ({
+    image_asset_id: imageId(image),
+    order: index,
+    caption: imageCaption(image),
+  }))
+}
+
 export function collectionPreview(collection) {
   return collection?.preview_image?.url || collection?.preview_image?.image_url || collection?.preview_image_url || imageUrl(collection?.images?.[0])
 }
