@@ -58,6 +58,14 @@
   padding: 0.9rem;
 }
 
+.latest-rail-story-image {
+  display: block;
+  width: calc(100% + 2.5rem);
+  height: 150px;
+  margin: -1.25rem -1.25rem 0;
+  object-fit: cover;
+}
+
 .latest-rail-type {
   margin: 0;
   color: #d8b47c;

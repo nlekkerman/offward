@@ -70,6 +70,14 @@ function useResolvedRelations(items, fetchBySlug) {
   return list.length === 0 ? [] : resolved
 }
 
+function getImageUrl(image) {
+  return image?.url || image?.image_url || image?.image?.url || image?.image?.image_url || ''
+}
+
+function getCollectionImages(collection) {
+  return Array.isArray(collection?.images) ? collection.images : []
+}
+
 function StoryPage() {
   const { storySlug } = useParams()
   const [storyResult, setStoryResult] = useState({ slug: null, status: 'loading', story: null })
@@ -209,36 +217,13 @@ function StoryPage() {
         {story.excerpt && <p className="story-detail-excerpt">{story.excerpt}</p>}
       </header>
 
-      {story.body && <div className="story-detail-body">{story.body}</div>}
-
-      {(relatedRoutes.length > 0 || relatedPlaces.length > 0) && (
-        <div className="story-detail-related">
-          {relatedRoutes.length > 0 && (
-            <section className="story-detail-related-group" aria-label="Related routes">
-              <p className="eyebrow">{relatedRoutes.length > 1 ? 'Related Routes' : 'Related Route'}</p>
-              <ul>
-                {relatedRoutes.map((route) => (
-                  <li key={route.slug || route.id}>
-                    {route.slug ? <Link to={`/routes/${route.slug}`}>{route.title || route.slug}</Link> : (route.title || 'Untitled route')}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {relatedPlaces.length > 0 && (
-            <section className="story-detail-related-group" aria-label="Related places">
-              <p className="eyebrow">Places</p>
-              <ul>
-                {relatedPlaces.map((place) => (
-                  <li key={place.slug || place.id}>
-                    {place.slug ? <Link to={`/places/${place.slug}`}>{place.name || place.slug}</Link> : (place.name || 'Untitled place')}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
+      {getImageUrl(story.hero_image) && (
+        <figure className="story-detail-hero">
+          <img src={getImageUrl(story.hero_image)} alt={story.hero_image.alt_text || story.title} />
+        </figure>
       )}
+
+      {story.body && <div className="story-detail-body">{story.body}</div>}
 
       {showVideosSection && (
         <section className="story-detail-videos" aria-label="Story videos">
@@ -259,6 +244,43 @@ function StoryPage() {
             </div>
           )}
         </section>
+      )}
+
+      {Array.isArray(story.image_collections) && story.image_collections.length > 0 && (
+        <section className="story-detail-galleries" aria-label="Story image galleries">
+          <p className="eyebrow">Images</p>
+          {story.image_collections.map((collection) => (
+            <section className="story-detail-gallery" key={collection.id || collection.title}>
+              {collection.title && <h2>{collection.title}</h2>}
+              {collection.description && <p className="story-detail-gallery-description">{collection.description}</p>}
+              <div className="story-detail-image-grid">
+                {getCollectionImages(collection).map((image, index) => (
+                  <figure key={image.id || image.image_id || `${collection.id}-${index}`}>
+                    {getImageUrl(image) && <img src={getImageUrl(image)} alt={image.alt_text || image.caption || `${collection.title || 'Gallery'} image ${index + 1}`} loading="lazy" />}
+                    <figcaption>{image.caption || `Image ${index + 1}`}</figcaption>
+                  </figure>
+                ))}
+              </div>
+            </section>
+          ))}
+        </section>
+      )}
+
+      {(relatedRoutes.length > 0 || relatedPlaces.length > 0) && (
+        <div className="story-detail-related">
+          {relatedRoutes.length > 0 && (
+            <section className="story-detail-related-group" aria-label="Related routes">
+              <p className="eyebrow">{relatedRoutes.length > 1 ? 'Related Routes' : 'Related Route'}</p>
+              <ul>{relatedRoutes.map((route) => <li key={route.slug || route.id}>{route.slug ? <Link to={`/routes/${route.slug}`}>{route.title || route.slug}</Link> : (route.title || 'Untitled route')}</li>)}</ul>
+            </section>
+          )}
+          {relatedPlaces.length > 0 && (
+            <section className="story-detail-related-group" aria-label="Related places">
+              <p className="eyebrow">Places</p>
+              <ul>{relatedPlaces.map((place) => <li key={place.slug || place.id}>{place.slug ? <Link to={`/places/${place.slug}`}>{place.name || place.slug}</Link> : (place.name || 'Untitled place')}</li>)}</ul>
+            </section>
+          )}
+        </div>
       )}
     </section>
   )

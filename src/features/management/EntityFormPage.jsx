@@ -6,6 +6,7 @@ import { routeMapApi } from '../../services/management/routeMapApi.js'
 import { getEntityConfig, slugify } from './entityConfig.js'
 import VideoUploadField from './VideoUploadField.jsx'
 import ContentVideoManager from '../video/ContentVideoManager.jsx'
+import ContentImageCollectionManager from './ContentImageCollectionManager.jsx'
 import VideoPlayer from '../video/VideoPlayer.jsx'
 import PlaceCoordinatePicker from '../map/components/PlaceCoordinatePicker.jsx'
 import { isValidLatitude, isValidLongitude } from '../map/mapGeometry.js'
@@ -481,6 +482,12 @@ function EntityFormPage({ resourceKey, title }) {
       }
       if (Array.isArray(payload.routes)) {
         payload.routes = payload.routes.map((value) => value)
+      }
+      if (!Array.isArray(payload.image_collection_ids)) {
+        payload.image_collection_ids = []
+      }
+      if (!payload.hero_image_id) {
+        payload.hero_image_id = null
       }
     }
 
@@ -1012,6 +1019,13 @@ function EntityFormPage({ resourceKey, title }) {
             resourceId={id}
             attachedVideoIds={formData.video_ids || []}
             onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, video_ids: nextIds }))}
+          />,
+          <ContentImageCollectionManager
+            key="story-image-collection-manager"
+            attachedCollectionIds={formData.image_collection_ids || []}
+            heroImageId={formData.hero_image_id}
+            onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, image_collection_ids: nextIds }))}
+            onHeroImageChange={(nextId) => setFormData((current) => ({ ...current, hero_image_id: nextId }))}
           />,
         ]
       case 'videos':

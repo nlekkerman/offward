@@ -63,6 +63,8 @@ export const entityConfig = {
       tours: [],
       videos: [],
       video_ids: [],
+      image_collection_ids: [],
+      hero_image_id: null,
     },
   },
   videos: {
