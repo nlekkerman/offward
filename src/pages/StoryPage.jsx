@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import VideoPlayer from '../features/video/VideoPlayer.jsx'
+import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicPlaceBySlug } from '../services/placesApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
@@ -83,6 +84,8 @@ function StoryPage() {
   const [storyResult, setStoryResult] = useState({ slug: null, status: 'loading', story: null })
   const [countries, setCountries] = useState([])
   const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
+  // Lightbox state is scoped to a single collection key so previous/next never crosses collections.
+  const [lightbox, setLightbox] = useState({ collectionKey: null, index: -1 })
 
   useEffect(() => {
     let isCurrent = true
@@ -254,13 +257,42 @@ function StoryPage() {
               {collection.title && <h2>{collection.title}</h2>}
               {collection.description && <p className="story-detail-gallery-description">{collection.description}</p>}
               <div className="story-detail-image-grid">
-                {getCollectionImages(collection).map((image, index) => (
-                  <figure key={image.id || image.image_id || `${collection.id}-${index}`}>
-                    {getImageUrl(image) && <img src={getImageUrl(image)} alt={image.alt_text || image.caption || `${collection.title || 'Gallery'} image ${index + 1}`} loading="lazy" />}
-                    <figcaption>{image.caption || `Image ${index + 1}`}</figcaption>
-                  </figure>
-                ))}
+                {getCollectionImages(collection).map((image, index) => {
+                  const collectionKey = collection.id || collection.title
+                  return (
+                    <figure key={image.id || image.image_id || `${collection.id}-${index}`}>
+                      {getImageUrl(image) ? (
+                        <button
+                          type="button"
+                          className="story-detail-image-button"
+                          onClick={() => setLightbox({ collectionKey, index })}
+                          aria-label={`Open image ${index + 1} of ${getCollectionImages(collection).length}${collection.title ? ` from ${collection.title}` : ''}`}
+                        >
+                          <img src={getImageUrl(image)} alt={image.alt_text || image.caption || `${collection.title || 'Gallery'} image ${index + 1}`} loading="lazy" />
+                          <span className="story-detail-image-index">{index + 1}</span>
+                        </button>
+                      ) : null}
+                      <figcaption>{image.caption || `Image ${index + 1}`}</figcaption>
+                    </figure>
+                  )
+                })}
               </div>
+              {lightbox.collectionKey === (collection.id || collection.title) && (
+                <ImageLightbox
+                  images={getCollectionImages(collection)}
+                  activeIndex={lightbox.index}
+                  isOpen={lightbox.index >= 0}
+                  onClose={() => setLightbox({ collectionKey: null, index: -1 })}
+                  onPrevious={() => setLightbox((current) => {
+                    const images = getCollectionImages(collection)
+                    return { ...current, index: (current.index - 1 + images.length) % images.length }
+                  })}
+                  onNext={() => setLightbox((current) => {
+                    const images = getCollectionImages(collection)
+                    return { ...current, index: (current.index + 1) % images.length }
+                  })}
+                />
+              )}
             </section>
           ))}
         </section>
