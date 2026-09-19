@@ -4,8 +4,21 @@ import { imageCollectionsApi, uploadImage } from '../../services/management/imag
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
+function flattenErrorMessages(value) {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (Array.isArray(value)) return value.map(flattenErrorMessages).filter(Boolean).join(' ')
+  if (typeof value === 'object') {
+    return Object.entries(value).map(([field, message]) => {
+      const text = flattenErrorMessages(message)
+      return text ? `${field}: ${text}` : ''
+    }).filter(Boolean).join(' ')
+  }
+  return ''
+}
+
 function errorMessage(error, fallback) {
-  return error?.response?.data?.detail || error?.message || fallback
+  return flattenErrorMessages(error?.response?.data?.detail) || flattenErrorMessages(error?.response?.data) || error?.message || fallback
 }
 
 function imageId(image) {
@@ -218,9 +231,19 @@ function ContentImageCollectionManager({ attachedCollectionIds = [], heroImageId
   const createCollection = async (event) => {
     event.preventDefault()
     setCreateError('')
+    const title = newTitle.trim()
+    if (!title) {
+      setCreateError('Enter a gallery title.')
+      return
+    }
     try {
-      const created = await imageCollectionsApi.create({ title: newTitle, description: newDescription })
+      const created = await imageCollectionsApi.create({ title, description: newDescription })
+      const createdId = String(created?.id || '')
       setCollections((current) => [created, ...current])
+      if (createdId && !selectedIds.has(createdId)) {
+        const currentIds = Array.isArray(attachedCollectionIds) ? attachedCollectionIds.map(String) : []
+        onAttachmentsChange([...currentIds, createdId])
+      }
       setCreating(false)
       setNewTitle('')
       setNewDescription('')
