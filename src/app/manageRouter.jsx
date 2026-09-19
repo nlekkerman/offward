@@ -5,6 +5,9 @@ import ManageLayout from '../pages/manage/ManageLayout.jsx'
 import ManageLoginPage from '../pages/manage/ManageLoginPage.jsx'
 import AccessDeniedPage from '../pages/manage/AccessDeniedPage.jsx'
 import RouteMapEditorPage from '../pages/manage/routes/RouteMapEditorPage.jsx'
+import GalleryCreatePage from '../pages/manage/galleries/GalleryCreatePage.jsx'
+import GalleryEditPage from '../pages/manage/galleries/GalleryEditPage.jsx'
+import GalleryListPage from '../pages/manage/galleries/GalleryListPage.jsx'
 
 import EntityListPage from '../features/management/EntityListPage.jsx'
 import EntityFormPage from '../features/management/EntityFormPage.jsx'
@@ -34,6 +37,10 @@ function ManageRouter() {
           <Route path="stories" element={<EntityListPage resourceKey="stories" title="Stories" />} />
           <Route path="stories/new" element={<EntityFormPage resourceKey="stories" title="Create Story" />} />
           <Route path="stories/:id/edit" element={<EntityFormPage resourceKey="stories" title="Edit Story" />} />
+
+          <Route path="galleries" element={<GalleryListPage />} />
+          <Route path="galleries/new" element={<GalleryCreatePage />} />
+          <Route path="galleries/:id/edit" element={<GalleryEditPage />} />
 
           <Route path="videos" element={<EntityListPage resourceKey="videos" title="Videos" />} />
           <Route path="videos/new" element={<EntityFormPage resourceKey="videos" title="Create Video" />} />

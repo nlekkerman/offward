@@ -5,6 +5,7 @@ const cards = [
   { label: 'Places', href: '/manage/places' },
   { label: 'Routes', href: '/manage/routes' },
   { label: 'Stories', href: '/manage/stories' },
+  { label: 'Galleries', href: '/manage/galleries' },
   { label: 'Videos', href: '/manage/videos' },
   { label: 'Tours', href: '/manage/tours' },
   { label: 'Events', href: '/manage/events' },
