@@ -35,9 +35,11 @@ button, input, select, textarea { font: inherit; }
   text-decoration: none;
 }
 
-nav { display: flex; gap: 1.25rem; font: 0.85rem/1 sans-serif; }
+nav { display: flex; flex-wrap: wrap; gap: 1.25rem; font: 0.85rem/1 sans-serif; }
 
 nav a { color: #aaa99e; text-decoration: none; }
+
+nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .page-placeholder {
   max-width: 1180px;
