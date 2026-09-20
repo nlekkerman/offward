@@ -45,6 +45,7 @@ function RoutePage() {
   const [countriesStatus, setCountriesStatus] = useState('loading')
   const [selectedWaypointId, setSelectedWaypointId] = useState(null)
   const [selectedSegmentId, setSelectedSegmentId] = useState(null)
+  const [openPanel, setOpenPanel] = useState(null)
 
   useEffect(() => {
     let isCurrent = true
@@ -52,6 +53,7 @@ function RoutePage() {
     async function loadRoute() {
       setSelectedWaypointId(null)
       setSelectedSegmentId(null)
+      setOpenPanel(null)
       try {
         const data = await getPublicRouteBySlug(routeSlug)
         if (!isCurrent) {
@@ -104,6 +106,9 @@ function RoutePage() {
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
   const segments = useMemo(() => (Array.isArray(route?.segments) ? route.segments : []), [route])
   const selectSegment = (segmentId) => setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
+  // Accordion: opening one panel closes the other to keep page height minimal.
+  const toggleWaypointsPanel = () => setOpenPanel((current) => (current === 'waypoints' ? null : 'waypoints'))
+  const toggleSectionsPanel = () => setOpenPanel((current) => (current === 'sections' ? null : 'sections'))
   const mapRoute = route && route.is_map_renderable === true && isRenderableRoute(route) ? route : null
   const hasMalformedGeometry = route?.geometry && route?.is_map_renderable === true && !mapRoute
   const countryLabel = countryNames.get(route?.country) || route?.country || 'Country pending'
@@ -146,29 +151,39 @@ function RoutePage() {
         {countriesStatus === 'error' && <p className="route-detail-muted" role="status">Country details are unavailable, so the canonical country slug is shown.</p>}
       </header>
 
-      <div className="route-detail-layout">
-        <div className="route-detail-main">
-          <section className="route-map-section" aria-labelledby="route-map-title">
-            <div className="route-map-heading">
-              <p className="eyebrow">MAP</p>
-              <h2 id="route-map-title">Published path</h2>
-            </div>
-            {(!route.geometry || route.is_map_renderable === false) && <p className="route-map-message">This Route does not yet have a published map path.</p>}
-            {hasMalformedGeometry && <p className="route-map-message" role="status">The published map path could not be displayed.</p>}
-            <MapView
-              className="route-detail-map"
-              routes={mapRoute ? [mapRoute] : []}
-              waypoints={waypoints}
-              selectedWaypointId={selectedWaypointId}
-              onWaypointSelect={setSelectedWaypointId}
-              routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}
-              segments={segments}
-              selectedSegmentId={selectedSegmentId}
-              onSegmentSelect={selectSegment}
-              initialCenter={[50, 10]}
-              initialZoom={4}
-            />
-          </section>
+      <div className="route-detail-toggles" role="group" aria-label="Route detail panels">
+        <button
+          type="button"
+          id="route-waypoints-toggle"
+          className={openPanel === 'waypoints' ? 'route-panel-toggle is-open' : 'route-panel-toggle'}
+          aria-expanded={openPanel === 'waypoints'}
+          aria-controls="route-waypoints-panel"
+          onClick={toggleWaypointsPanel}
+          disabled={waypoints.length === 0}
+        >
+          Waypoints {waypoints.length}{openPanel === 'waypoints' && <span aria-hidden="true"> ▲</span>}
+        </button>
+        <button
+          type="button"
+          id="route-sections-toggle"
+          className={openPanel === 'sections' ? 'route-panel-toggle is-open' : 'route-panel-toggle'}
+          aria-expanded={openPanel === 'sections'}
+          aria-controls="route-sections-panel"
+          onClick={toggleSectionsPanel}
+          disabled={segments.length === 0}
+        >
+          Sections {segments.length}{openPanel === 'sections' && <span aria-hidden="true"> ▲</span>}
+        </button>
+      </div>
+
+      {openPanel === 'waypoints' && (
+        <section id="route-waypoints-panel" className="route-panel-revealed" aria-labelledby="route-waypoints-toggle">
+          <RouteItinerary waypoints={waypoints} selectedWaypointId={selectedWaypointId} onWaypointSelect={setSelectedWaypointId} />
+        </section>
+      )}
+
+      {openPanel === 'sections' && (
+        <section id="route-sections-panel" className="route-panel-revealed" aria-labelledby="route-sections-toggle">
           <RouteSections
             segments={segments}
             waypoints={waypoints}
@@ -176,11 +191,30 @@ function RoutePage() {
             onSegmentSelect={selectSegment}
             onDeselect={() => setSelectedSegmentId(null)}
           />
+        </section>
+      )}
+
+      <section className="route-map-section" aria-labelledby="route-map-title">
+        <div className="route-map-heading">
+          <p className="eyebrow">MAP</p>
+          <h2 id="route-map-title">Published path</h2>
         </div>
-        <aside className="route-detail-side" aria-label="Route itinerary">
-          <RouteItinerary waypoints={waypoints} selectedWaypointId={selectedWaypointId} onWaypointSelect={setSelectedWaypointId} />
-        </aside>
-      </div>
+        {(!route.geometry || route.is_map_renderable === false) && <p className="route-map-message">This Route does not yet have a published map path.</p>}
+        {hasMalformedGeometry && <p className="route-map-message" role="status">The published map path could not be displayed.</p>}
+        <MapView
+          className="route-detail-map"
+          routes={mapRoute ? [mapRoute] : []}
+          waypoints={waypoints}
+          selectedWaypointId={selectedWaypointId}
+          onWaypointSelect={setSelectedWaypointId}
+          routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}
+          segments={segments}
+          selectedSegmentId={selectedSegmentId}
+          onSegmentSelect={selectSegment}
+          initialCenter={[50, 10]}
+          initialZoom={4}
+        />
+      </section>
     </section>
   )
 }

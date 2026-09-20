@@ -17,41 +17,30 @@ function getWaypointLabel(waypoint) {
 
 function RouteItinerary({ waypoints, selectedWaypointId, onWaypointSelect }) {
   if (waypoints.length === 0) {
-    return (
-      <section className="route-detail-panel" aria-labelledby="route-itinerary-title">
-        <p className="eyebrow">ITINERARY</p>
-        <h2 id="route-itinerary-title">Waypoints</h2>
-        <p className="route-detail-muted">Published waypoints will appear here when they are available.</p>
-      </section>
-    )
+    return <p className="route-detail-muted">Published waypoints will appear here when they are available.</p>
   }
 
   return (
-    <section className="route-detail-panel" aria-labelledby="route-itinerary-title">
-      <p className="eyebrow">ITINERARY</p>
-      <h2 id="route-itinerary-title">Waypoints</h2>
-      <ol className="route-itinerary-list">
-        {waypoints.map((waypoint) => {
-          const selected = waypoint.id === selectedWaypointId
-          return (
-            <li key={waypoint.id}>
-              <button
-                type="button"
-                className={selected ? 'route-itinerary-item is-selected' : 'route-itinerary-item'}
-                aria-pressed={selected}
-                onClick={() => onWaypointSelect(waypoint.id)}
-              >
-                <span className="waypoint-order">{waypoint.order}</span>
-                <span className="route-itinerary-copy">
-                  <span>{getWaypointTypeLabel(waypoint.type)}</span>
-                  <strong>{getWaypointLabel(waypoint)}</strong>
-                </span>
-              </button>
-            </li>
-          )
-        })}
-      </ol>
-    </section>
+    <ol className="route-waypoint-chip-list">
+      {waypoints.map((waypoint) => {
+        const selected = waypoint.id === selectedWaypointId
+        const showType = waypoint.type === 'start' || waypoint.type === 'finish'
+        return (
+          <li key={waypoint.id}>
+            <button
+              type="button"
+              className={selected ? 'route-waypoint-chip is-selected' : 'route-waypoint-chip'}
+              aria-pressed={selected}
+              onClick={() => onWaypointSelect(waypoint.id)}
+            >
+              <span className="route-waypoint-chip-order">{waypoint.order}</span>
+              <span className="route-waypoint-chip-name">{getWaypointLabel(waypoint)}</span>
+              {showType && <span className="route-waypoint-chip-type">{getWaypointTypeLabel(waypoint.type)}</span>}
+            </button>
+          </li>
+        )
+      })}
+    </ol>
   )
 }
 

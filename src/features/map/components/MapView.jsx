@@ -6,6 +6,7 @@ import SegmentLayer from './SegmentLayer.jsx'
 import RouteEndpointLayer from './RouteEndpointLayer.jsx'
 import PlaceLayer from './PlaceLayer.jsx'
 import MapViewportController from './MapViewportController.jsx'
+import MapResizeController from './MapResizeController.jsx'
 import { MAP_TILE_LAYER } from '../tileConfig.js'
 import { isRenderableRoute, getRenderablePlaces, getValidWaypoints, normalizeCenter } from '../mapGeometry.js'
 import { WaypointMarkerZoomController } from '../waypointMarkerIcon.js'
@@ -61,6 +62,7 @@ function MapViewContent({
           url={MAP_TILE_LAYER.url}
         />
         <WaypointMarkerZoomController />
+        <MapResizeController />
         <RouteLayer
           routes={validRoutes}
           selectedRouteId={selectedRouteId}
