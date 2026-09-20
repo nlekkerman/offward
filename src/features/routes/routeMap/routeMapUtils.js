@@ -20,7 +20,9 @@ export function createEmptyWaypoint(order = 1, values = {}) {
     id: createDraftWaypointId(order),
     order,
     type: order === 1 ? 'start' : 'finish',
+    name: values.name || '',
     label: values.label || '',
+    place_name: values.place_name || '',
     place_id: values.place_id || '',
     latitude: values.latitude === undefined || values.latitude === null ? '' : String(values.latitude),
     longitude: values.longitude === undefined || values.longitude === null ? '' : String(values.longitude),
@@ -51,12 +53,28 @@ export function normalizeWaypoint(waypoint = {}, index = 0) {
     id: waypoint.id || `waypoint-${index + 1}`,
     order: Number(waypoint.order ?? waypoint.position ?? index + 1),
     type: WAYPOINT_TYPES.includes(waypoint.type) ? waypoint.type : index === 0 ? 'start' : 'via',
-    label: waypoint.label || waypoint.name || place?.name || '',
+    name: typeof waypoint.name === 'string' ? waypoint.name : '',
+    label: waypoint.label || place?.name || '',
+    place_name: place?.name || place?.title || '',
     place_id: waypoint.place_id || waypoint.placeId || place?.id || '',
     latitude: latitude === null || latitude === undefined ? '' : String(latitude),
     longitude: longitude === null || longitude === undefined ? '' : String(longitude),
     media_ids: Array.isArray(waypoint.media_ids) ? [...waypoint.media_ids] : Array.isArray(waypoint.mediaIds) ? [...waypoint.mediaIds] : [],
   }
+}
+
+export function getWaypointDisplayName(waypoint) {
+  const name = typeof waypoint?.name === 'string' ? waypoint.name.trim() : ''
+  if (name) return name
+
+  const label = typeof waypoint?.label === 'string' ? waypoint.label.trim() : ''
+  if (label) return label
+
+  const placeName = waypoint?.place_name || waypoint?.place?.name || waypoint?.place?.title
+  if (typeof placeName === 'string' && placeName.trim()) return placeName.trim()
+
+  if (Number.isFinite(Number(waypoint?.order))) return `Waypoint ${waypoint.order}`
+  return 'Waypoint'
 }
 
 export function normalizeWaypoints(waypoints) {
@@ -198,6 +216,7 @@ export function buildWaypointPayload(waypoints) {
       lat: Number(waypoint.latitude),
       lng: Number(waypoint.longitude),
     },
+    name: waypoint.name || '',
     label: waypoint.label || '',
     place_id: waypoint.place_id || null,
     media_ids: Array.isArray(waypoint.media_ids) ? [...waypoint.media_ids] : [],

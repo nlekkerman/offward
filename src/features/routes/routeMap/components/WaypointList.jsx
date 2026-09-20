@@ -1,4 +1,4 @@
-import { getPlaceCoordinates } from '../routeMapUtils.js'
+import { getPlaceCoordinates, getWaypointDisplayName } from '../routeMapUtils.js'
 
 function WaypointList({ waypoints, places, selectedWaypointId, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onMove, onRemove }) {
   return (
@@ -42,7 +42,7 @@ function WaypointList({ waypoints, places, selectedWaypointId, addMode, selected
               <button type="button" className="waypoint-select-button" onClick={() => onSelect(waypoint.id)}>
                 <span className="waypoint-order">{index + 1}</span>
                 <span className="waypoint-list-copy">
-                  <strong>{waypoint.label || waypoint.type}</strong>
+                  <strong>{getWaypointDisplayName(waypoint)}</strong>
                   <span>{waypoint.type} · {waypoint.latitude || 'lat'} / {waypoint.longitude || 'lng'}</span>
                 </span>
               </button>

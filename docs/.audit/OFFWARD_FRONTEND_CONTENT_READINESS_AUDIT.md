@@ -1,249 +1,295 @@
 # Offward Frontend Content Readiness Audit
 
-## Executive Verdict
+**Scope:** frontend only, read-only audit of the current workspace. No backend files, application code, routes, API contracts, tests, or behavior were changed.
 
-The Offward frontend currently possesses a functioning management surface for entity metadata and public rendering for countries, but **is NOT yet ready to display a saved Route on the Home map** nor complete the full content lifecycle end-to-end.
+## Executive Summary
 
-Specifically:
-- **Public Route integration is completely disconnected**: [src/services/routesApi.js](src/services/routesApi.js#L1-L5) returns a static empty array and does not invoke `GET /api/offward/routes/?include_geometry=true`.
-- **Map rendering is isolated to base tiles**: [src/features/map/components/MapView.jsx](src/features/map/components/MapView.jsx#L1-L50) encapsulates Leaflet cleanly with OpenStreetMap tiles and error handling, but exposes no props or layers to render GeoJSON route polylines or place markers.
-- **Public detail pages are placeholders**: Pages for Places, Routes, Stories, Videos, Tours, and Events render [src/shared/components/RoutePlaceholder.jsx](src/shared/components/RoutePlaceholder.jsx#L1-L10).
-- **Management UI supports metadata CRUD but lacks interactive geometry authoring**: Basic CRUD forms exist under `/manage`, but route waypoint editing, candidate calculation, and geometry acceptance remain backend-only capabilities.
+The frontend is materially further along than the previous audit indicated. It has live public Stories, Places/Routes discovery, Country pages, Place details, Route details with map/waypoint/segment presentation, a generic management CRUD surface, dedicated Gallery management, reusable video authoring, and a real Route Map Editor.
 
----
+The largest current gaps are public presentation for Country/Tour/Event/Video detail, absence of public image/video rendering for most content types, no public Partners surface, and incomplete waypoint authoring around a canonical human-readable `name`. The existing waypoint editor already supports selection, coordinates, order, Place association, `label`, video attachments, delete, and save; `name` is the only requested waypoint field missing from the current UI and payload.
 
-## 1. Repository State Evidence
+## 1. Public Route Inventory
 
-- **Current Branch & Commit**: Branch `main`, HEAD commit `66dcc00` (`feat: Add Offward map documentation and implementation plan`).
-- **HEAD vs origin/main**: Up to date (`HEAD` matches `origin/main`).
-- **Working-Tree Status**: Clean (`nothing to commit, working tree clean`).
-- **Existing Modified, Deleted, and Untracked Files**: None.
-- **Deployed Home-Map Commit Local Presence**: Present (`66dcc00` includes [src/features/map/components/HomeMapSection.jsx](src/features/map/components/HomeMapSection.jsx#L1-L15) and [src/features/map/components/MapView.jsx](src/features/map/components/MapView.jsx#L1-L50)).
-- **Documentation Deletions & Duplicate `(1)` Files**: Present in workspace ([docs/OFFWARD_API_CONTRACT_PLAN(1).md](docs/OFFWARD_API_CONTRACT_PLAN(1).md), [docs/OFFWARD_MAP_CANON(1).md](docs/OFFWARD_MAP_CANON(1).md), etc.).
-- **Deployment Evidence**: SPA static routing is configured via [public/_redirects](public/_redirects#L1) (`/* /index.html 200`). No automated CI/CD pipeline workflows (`.github/workflows/`) exist in the repository.
-
----
-
-## 2. Frontend Architecture
-
-- **Framework**: React `19.2.8` with `react-dom` `19.2.8`, bundled with Vite `8.3.0` ([package.json](package.json#L12-L23)).
-- **Router**: `react-router-dom` `7.9.6`. Main router defined in [src/app/router.jsx](src/app/router.jsx#L1-L32) wrapped in `AppShell` ([src/shared/layout/AppShell.jsx](src/shared/layout/AppShell.jsx#L1-L18)), with management sub-router in [src/app/manageRouter.jsx](src/app/manageRouter.jsx#L1-L55).
-- **Package Manager**: `npm`.
-- **Styling System**: Plain CSS with global styles in [src/index.css](src/index.css#L1-L120) and feature styles in [src/features/map/map.css](src/features/map/map.css#L1-L55).
-- **Feature & Page Organization**:
-  - Pages: [src/pages/](src/pages/HomePage.jsx) and [src/pages/manage/](src/pages/manage/ManageDashboardPage.jsx).
-  - Features: [src/features/map/](src/features/map/index.js) and [src/features/management/](src/features/management/entityConfig.js).
-  - Services: [src/services/](src/services/apiClient.js).
-- **API-Client Architecture**: Central Axios client in [src/services/apiClient.js](src/services/apiClient.js#L1-L47) configured with `withCredentials: true`, `baseURL: import.meta.env.VITE_API_BASE_URL`, and automatic CSRF header injection for state-mutating requests (`POST`, `PATCH`, `DELETE`).
-- **Environment Variables**: Uses `VITE_API_BASE_URL` in [src/services/apiClient.js](src/services/apiClient.js#L15).
-- **Authentication & Session Handling**:
-  - Basic session via `/api/auth/session/` in [src/services/authApi.js](src/services/authApi.js#L62-L70).
-  - Authoritative management access check via `/api/offward/manage/access/` in [src/services/authApi.js](src/services/authApi.js#L72-L80) (`canManageOffward`).
-  - Guarded routes via [src/pages/manage/ManagementGuard.jsx](src/pages/manage/ManagementGuard.jsx#L1-L30).
-- **Error Normalization & States**:
-  - Auth error parsing in [src/services/authApi.js](src/services/authApi.js#L38-L49).
-  - Management API error parsing in [src/features/management/EntityFormPage.jsx](src/features/management/EntityFormPage.jsx#L280-L300).
-  - Public pages use boolean placeholders (`Loading...`, `Unable to load...`, `NotFoundPage`).
-
----
-
-## 3. Public Page Inventory
-
-| Experience | URL Route | File Path | Status | Data Source | Service Location | 404 / Error State | Dynamic DB Update |
-|---|---|---|---|---|---|---|---|
-| **Home** | `/` | [src/pages/HomePage.jsx](src/pages/HomePage.jsx#L1-L52) | Active | Backend API (Countries) / Mock Map | [src/services/countriesApi.js](src/services/countriesApi.js#L3-L11) | Error section | Countries: YES; Map: NO |
-| **Explore** | `/explore` | [src/pages/ExplorePage.jsx](src/pages/ExplorePage.jsx#L1-L53) | Active | Backend API (Countries) | [src/services/countriesApi.js](src/services/countriesApi.js#L3-L11) | Error section | YES (Countries) |
-| **Country Detail** | `/countries/:countrySlug` | [src/pages/CountryPage.jsx](src/pages/CountryPage.jsx#L1-L50) | Active | Backend API | [src/services/countriesApi.js](src/services/countriesApi.js#L13-L23) | Renders `NotFoundPage` on 404 | YES |
-| **Place Detail** | `/places/:placeSlug` | [src/pages/PlacePage.jsx](src/pages/PlacePage.jsx#L1-L8) | Placeholder | Hard-coded static component | None | Shows placeholder | NO |
-| **Route Detail** | `/routes/:routeSlug` | [src/pages/RoutePage.jsx](src/pages/RoutePage.jsx#L1-L8) | Placeholder | Hard-coded static component | None | Shows placeholder | NO |
-| **Story Detail** | `/stories/:storySlug` | [src/pages/StoryPage.jsx](src/pages/StoryPage.jsx#L1-L8) | Placeholder | Hard-coded static component | None | Shows placeholder | NO |
-| **Video Detail** | `/videos/:videoSlug` | [src/pages/VideoPage.jsx](src/pages/VideoPage.jsx#L1-L8) | Placeholder | Hard-coded static component | None | Shows placeholder | NO |
-| **Tour Detail** | `/tours/:tourSlug` | [src/pages/TourPage.jsx](src/pages/TourPage.jsx#L1-L8) | Placeholder | Hard-coded static component | None | Shows placeholder | NO |
-| **Event Detail** | `/events/:eventSlug` | [src/pages/EventPage.jsx](src/pages/EventPage.jsx#L1-L8) | Placeholder | Hard-coded static component | None | Shows placeholder | NO |
-| **Partner Display** | N/A | None | Missing | None | None | N/A | NO |
-
----
-
-## 4. API Integration Inventory
-
-| Endpoint | Frontend Service Path | HTTP Method | Params | Used By Public Page? | Contract Alignment / Mismatch |
-|---|---|---|---|---|---|
-| `/api/offward/countries/` | [src/services/countriesApi.js](src/services/countriesApi.js#L3) | GET | None | YES ([HomePage.jsx](src/pages/HomePage.jsx#L14), [ExplorePage.jsx](src/pages/ExplorePage.jsx#L14)) | Aligned. Normalizes list response. |
-| `/api/offward/countries/<slug>/` | [src/services/countriesApi.js](src/services/countriesApi.js#L15) | GET | None | YES ([CountryPage.jsx](src/pages/CountryPage.jsx#L17)) | Aligned. Handles 404 gracefully. |
-| `/api/offward/places/` | [src/services/placesApi.js](src/services/placesApi.js#L3) | Stub | None | NO | **Mismatch**: Service returns static local file [src/data/places.js](src/data/places.js#L1). No HTTP call. |
-| `/api/offward/routes/` | [src/services/routesApi.js](src/services/routesApi.js#L3) | Stub | None | NO | **Mismatch**: Service returns static local file [src/data/routes.js](src/data/routes.js#L1). Missing `?include_geometry=true` param support. |
-| `/api/offward/stories/` | [src/services/storiesApi.js](src/services/storiesApi.js#L3) | Stub | None | NO | **Mismatch**: Service returns static local file [src/data/stories.js](src/data/stories.js#L1). No HTTP call. |
-| `/api/offward/videos/` | [src/services/videosApi.js](src/services/videosApi.js#L3) | Stub | None | NO | **Mismatch**: Service returns static local file [src/data/videos.js](src/data/videos.js#L1). No HTTP call. |
-| `/api/offward/tours/` | [src/services/toursApi.js](src/services/toursApi.js#L3) | Stub | None | NO | **Mismatch**: Service returns static local file [src/data/tours.js](src/data/tours.js#L1). No HTTP call. |
-| `/api/offward/events/` | [src/services/eventsApi.js](src/services/eventsApi.js#L3) | Stub | None | NO | **Mismatch**: Service returns static local file [src/data/events.js](src/data/events.js#L1). No HTTP call. |
-| `/api/offward/partners/` | None | None | None | NO | **Missing**: No public API service module exists. |
-
----
-
-## 5. Map Foundation Findings
-
-- **Component Locations**:
-  - `MapView`: [src/features/map/components/MapView.jsx](src/features/map/components/MapView.jsx#L22-L50)
-  - `HomeMapSection`: [src/features/map/components/HomeMapSection.jsx](src/features/map/components/HomeMapSection.jsx#L3-L15)
-  - `MapErrorBoundary`: [src/features/map/components/MapErrorBoundary.jsx](src/features/map/components/MapErrorBoundary.jsx#L3-L28)
-- **Leaflet & React-Leaflet Encapsulation**:
-  - React-Leaflet components (`MapContainer`, `TileLayer`) are completely isolated inside `MapViewContent` ([src/features/map/components/MapView.jsx](src/features/map/components/MapView.jsx#L30-L40)).
-  - CSS import `@import 'leaflet/dist/leaflet.css';` is present at line 1 of [src/features/map/map.css](src/features/map/map.css#L1).
-  - Map container is responsive (`height: 320px` mobile, `480px` desktop).
-- **Basemap & Initial State**:
-  - Tile Provider: OpenStreetMap (`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`).
-  - Default Center: `[50.0, 10.0]` (Europe). Default Zoom: `4`.
-- **Current Map Capabilities**:
-  - Renders **base tile layer ONLY**.
-  - **0 Routes, Places, Waypoints, or Segments** rendered.
-  - **No HTTP request** is made.
-  - No fake map markers or lines exist.
-  - Does NOT leak Leaflet implementation objects outside `src/features/map/`.
-  - The clean props interface can be extended directly to accept `routes` and `places` data.
-
-**Files requiring modification to render public saved Routes on the Home map**:
-1. [src/services/routesApi.js](src/services/routesApi.js) (replace static stub with HTTP `apiClient.get('/api/offward/routes/?include_geometry=true')`).
-2. [src/features/map/components/MapView.jsx](src/features/map/components/MapView.jsx) (add `routes` prop and render `<GeoJSON>` / polyline layers).
-3. [src/features/map/components/HomeMapSection.jsx](src/features/map/components/HomeMapSection.jsx) (fetch public routes with geometry on mount and pass to `MapView`).
-
----
-
-## 6. First Home Route Integration Readiness
-
-To consume `GET /api/offward/routes/?include_geometry=true` and render public routes on the Home map:
-
-1. **Route API Service**: `getPublicRoutes({ includeGeometry = true })` must be implemented in [src/services/routesApi.js](src/services/routesApi.js) using `apiClient`.
-2. **Response Normalizer**: Must accept both direct array responses and DRF paginated objects (`data.results || data`).
-3. **GeoJSON LineString Layer**: Inside [src/features/map/components/MapView.jsx](src/features/map/components/MapView.jsx), `react-leaflet`'s `<GeoJSON>` component should be used inside `<MapContainer>`. `<GeoJSON>` automatically parses standard GeoJSON `[longitude, latitude]` arrays.
-4. **Keying & Null Geometry Protection**:
-   - Each route feature mapped with `key={route.id || route.slug}`.
-   - Filter out items where `!route.geometry` or invalid GeoJSON types to prevent map rendering errors.
-5. **Map Error Isolation**: Keep route fetch failures non-fatal so base tiles render cleanly if route API fails or returns empty.
-6. **Viewport & Bounds**: Default center `[50.0, 10.0]` zoom `4` remains intact if no renderable routes exist. Optional `fitBounds` when routes are present.
-7. **Credentials & CORS**: `apiClient` uses `withCredentials: true` and `VITE_API_BASE_URL`, compatible with public CORS rules.
-
----
-
-## 7. Place-Marker Readiness
-
-Requirements for `GET /api/offward/places/`:
-
-1. **Service Implementation**: `getPlaces()` in [src/services/placesApi.js](src/services/placesApi.js) must be updated from static `[]` stub to HTTP `apiClient.get('/api/offward/places/')`.
-2. **Coordinates & Icons**:
-   - `latitude` and `longitude` must be parsed as numbers and validated.
-   - Leaflet default marker icons (`marker-icon.png`, `marker-shadow.png`) require explicit asset resolution in Vite or custom Leaflet `L.divIcon` / SVG markers to prevent broken image references.
-3. **Interactivity**: Clicking a marker can open a popup showing place details or link to `/places/${place.slug}`.
-4. **Phase Strategy**: Place markers should be implemented as a **subsequent phase** after completing initial Home Route geometry integration.
-
----
-
-## 8. Contextual Map Readiness
-
-| Entity Detail Page | Page Status | Map Component Status | Classification |
+| Requested experience | Actual frontend route | Classification | Evidence |
 |---|---|---|---|
-| **Route Detail** (`/routes/:routeSlug`) | Placeholder | Missing | Page exists but map missing; API not connected |
-| **Country Detail** (`/countries/:countrySlug`) | Functional | Missing | Page exists but map missing |
-| **Place Detail** (`/places/:placeSlug`) | Placeholder | Missing | Page exists but map missing; API not connected |
-| **Story Detail** (`/stories/:storySlug`) | Placeholder | Missing | Page exists but map missing; API not connected |
-| **Video Detail** (`/videos/:videoSlug`) | Placeholder | Missing | Page exists but map missing; API not connected |
-| **Tour Detail** (`/tours/:tourSlug`) | Placeholder | Missing | Page exists but map missing; API not connected |
-| **Event Detail** (`/events/:eventSlug`) | Placeholder | Missing | Page exists but map missing; API not connected |
+| Home | `/` | **Real** | `src/pages/HomePage.jsx` renders hero and Home Latest rail. |
+| Stories list | `/stories` | **Real** | `src/pages/StoriesListPage.jsx` loads and links public Stories. |
+| Story detail | `/stories/:storySlug` | **Real** | `src/pages/StoryPage.jsx` loads full detail, media, galleries, and relations. |
+| Countries list | `/countries` | **Real** | `src/pages/CountriesListPage.jsx` loads and links Countries. |
+| Country detail | `/countries/:countrySlug` | **Partial** | `src/pages/CountryPage.jsx` loads name/code/summary/status but is still a minimal placeholder and has no related content/media/map presentation. |
+| Places discovery/list | `/explore?view=places` | **Real** | `src/pages/ExplorePage.jsx` loads, filters, maps, lists, selects, and links Places. |
+| Place detail | `/places/:placeSlug` | **Partial** | `src/pages/PlacePage.jsx` loads body/summary and a map, but has no public video, gallery, hero, Story, or Route presentation. |
+| Routes discovery/list | `/explore?view=routes` | **Real** | `src/pages/ExplorePage.jsx` loads, filters, maps, lists, selects, and links Routes. |
+| Route detail | `/routes/:routeSlug` | **Real** | `src/pages/RoutePage.jsx` loads route metadata, accepted geometry, waypoint itinerary, and selectable Segments. |
+| Tours | `/tours/:tourSlug` only | **Placeholder** | `src/pages/TourPage.jsx` renders `RoutePlaceholder`; there is no public Tours list route. |
+| Events | `/events/:eventSlug` only | **Placeholder** | `src/pages/EventPage.jsx` renders `RoutePlaceholder`; there is no public Events list route. |
+| Videos | `/videos/:videoSlug` only | **Placeholder** | `src/pages/VideoPage.jsx` renders `RoutePlaceholder`; no public Videos list route exists. |
+| Partners | None | **Absent** | No public Partner route/page/navigation entry. |
+| About | `/about` | **Placeholder** | `src/pages/AboutPage.jsx` renders `RoutePlaceholder`. |
+| Contact | `/contact` | **Placeholder** | `src/pages/ContactPage.jsx` renders `RoutePlaceholder`. |
 
----
+## 2. Public Navigation
 
-## 9. Management Frontend Readiness
+`src/shared/layout/AppShell.jsx` defines the current primary links: Stories, Places, Routes, Countries, About, and Contact. Places and Routes both target `/explore` with `view=places` or `view=routes`; Explore remains the underlying discovery page rather than separate `/places` and `/routes` list routes.
 
-| Capability | Frontend UI Status | API Helper Status | Backend Capability Status | Overall Classification |
-|---|---|---|---|---|
-| **Country CRUD** | Implemented ([EntityListPage](src/features/management/EntityListPage.jsx), [EntityFormPage](src/features/management/EntityFormPage.jsx)) | Implemented | Implemented | **Implemented Frontend UI** |
-| **Place CRUD & Coordinates** | Implemented (Text form inputs for lat/lng) | Implemented | Implemented | **Implemented Frontend UI** |
-| **Route CRUD** | Implemented (Metadata fields) | Implemented | Implemented | **Implemented Frontend UI** |
-| **RoutePlace Selection** | Implemented (Dynamic stop list add/remove/reorder) | Implemented | Implemented | **Implemented Frontend UI** |
-| **Waypoint Placement & Reordering** | Missing | Missing | Implemented | **Backend Capability Only** |
-| **Candidate Calculation** | Missing | Missing | Implemented | **Backend Capability Only** |
-| **Candidate vs Accepted Comparison** | Missing | Missing | Implemented | **Backend Capability Only** |
-| **Explicit Geometry Acceptance** | Missing | Missing | Implemented | **Backend Capability Only** |
-| **Segment Creation & Reordering** | Missing | Missing | Implemented | **Backend Capability Only** |
-| **Story CRUD** | Implemented (Metadata & multi-select relationships) | Implemented | Implemented | **Implemented Frontend UI** |
-| **Video CRUD** | Implemented (Metadata fields) | Implemented | Implemented | **Implemented Frontend UI** |
-| **Tour & Event CRUD** | Implemented (Metadata & relationship checkboxes) | Implemented | Implemented | **Implemented Frontend UI** |
+Active state is pathname-based for Stories, Places, Routes, Countries, About, and Contact. On `/explore`, the query parameter selects Places; any other Explore view resolves to Routes. Links receive both `is-active` and `aria-current="page"` when active.
 
----
+Tours and Events have placeholder detail routes but no navigation or list pages. Videos has a placeholder detail route but no list page. Partners has neither public route nor navigation entry.
 
-## 10. Video and Media Frontend Readiness
+## 3. Story Frontend Readiness
 
-- **Cloudflare Stream Upload UI**: Missing in frontend. Management form uses plain text input for `provider_id`, `playback_url`, and `thumbnail_url` ([src/features/management/entityConfig.js](src/features/management/entityConfig.js#L70-L83)).
-- **Shared Gallery / Upload Services**: Missing in frontend repository.
-- **Video Playback Component**: Missing. Public [src/pages/VideoPage.jsx](src/pages/VideoPage.jsx#L1-L8) renders `RoutePlaceholder`.
-- **Multi-Context Video Attachments**: Implemented in metadata forms as multi-select relationships linking videos to Stories, Tours, and Events ([src/features/management/EntityFormPage.jsx](src/features/management/EntityFormPage.jsx#L110-L120)).
-- **Panoramic Media**: No panorama viewer or 360 viewer components exist.
+| Capability | Current state |
+|---|---|
+| Story list | Real public list from `getPublicStories`, active filtering, published-date ordering, title/excerpt links. |
+| Story detail | Real public fetch with loading, not-found, and error states. |
+| Title/meta/body | Renders title, country label, published date, excerpt, and body. |
+| Hero image | Renders `story.hero_image` when a usable URL exists, with alt text. |
+| Videos | Resolves attached `media_ids` against the public video list and renders playable attached videos through `VideoPlayer`. |
+| Image collections | Renders collection title/description and ordered images. |
+| Image captions | Renders captions in figures and lightbox. |
+| Public lightbox | Real `ImageLightbox` with close, previous/next, keyboard navigation, focus restore, load/error states. |
+| Related routes/places | Resolves nested objects or bare slugs and links Routes and Places. Events/Tours are not presented in the public Story page. |
+| Home Latest Story | `LatestContentRail` loads latest Story and `LatestStoryCard` renders hero image, title, excerpt, country/date, and link. |
 
----
+**Missing presentation behavior:** no public Story list image thumbnails; no public Story display for related Events or Tours; no public Story-side editing concerns are inferred. The public Story body is rendered as supplied content without a richer structured-content renderer visible in the frontend.
 
-## 11. Exact Blockers
+## 4. Video Authoring UI Coverage
 
-1. **Disconnected Public Route API Service**: [src/services/routesApi.js](src/services/routesApi.js#L1-L5) returns hard-coded static `[]` and does not call `GET /api/offward/routes/?include_geometry=true`.
-2. **Missing GeoJSON Layer in MapView**: [src/features/map/components/MapView.jsx](src/features/map/components/MapView.jsx#L22-L42) only renders base `TileLayer` and does not accept or render route polylines.
-3. **Placeholder Public Pages**: Detail pages for Places, Routes, Stories, Videos, Tours, Events render static `RoutePlaceholder`.
-4. **Missing Map-Based Route Authoring UI**: Management interface lacks visual waypoint editing, candidate calculation, and geometry acceptance controls.
+`src/features/video/ContentVideoManager.jsx` provides the same authoring pattern for the following contexts: upload a new MP4/MOV/M4V, choose an existing managed Video, attach, detach/remove, and preview. Upload uses the direct-upload helper and then creates/attaches the Video record.
 
----
+| Content type | Upload new | Choose existing | Attach | Detach | Preview | Where |
+|---|---:|---:|---:|---:|---:|---|
+| Story | Yes | Yes | Yes | Yes | Yes | `EntityFormPage` Story branch |
+| Route | Yes | Yes | Yes | Yes | Yes | `EntityFormPage` Route branch and Route Map Editor Videos panel |
+| Segment | Yes | Yes | Yes | Yes | Yes | `SegmentEditor` via `ContentVideoManager` |
+| Waypoint | Yes, saved Waypoints only | Yes, saved Waypoints only | Yes | Yes | Yes | `WaypointEditor` via `ContentVideoManager` |
+| Place | Yes | Yes | Yes | Yes | Yes | `EntityFormPage` Place branch |
+| Tour | Yes | Yes | Yes | Yes | Yes | Generic EntityForm relationship context |
+| Event | Yes | Yes | Yes | Yes | Yes | Generic EntityForm relationship context |
 
-## 12. Build, Lint, and Git-Check Results
+Important UI limitation: a new Waypoint cannot attach a Video until it is saved. The generic entity form uses `video_ids`; Segment and Waypoint use route map persistence with `media_ids`.
 
-- **`npm run build`**: PASS (Vite production build completed in 541ms, `dist/` generated cleanly).
-- **`npm run lint`**: PASS (ESLint completed with 0 errors and 0 warnings).
-- **`git diff --check`**: PASS (Clean, no trailing whitespace or git diff errors).
-- **`git status --short --branch`**: PASS (`## main...origin/main`, clean working tree).
+## 5. Galleries and ImageCollections Management
 
----
+The Management dashboard includes Galleries and routes to dedicated Gallery pages. `GalleryListPage` lists collections and previews; `GalleryCreatePage` creates title/description; `GalleryEditPage` edits metadata and supports:
 
-## 13. Evidence Paths with Line References
+- single and multiple image upload;
+- JPEG, PNG, and WebP validation with a 10 MiB limit;
+- image order changes;
+- captions saved on blur;
+- membership removal;
+- image preview and empty/error states.
 
-- Central Axios API Client: [src/services/apiClient.js](src/services/apiClient.js#L15-L47)
-- Authoritative Management Auth: [src/services/authApi.js](src/services/authApi.js#L72-L80)
-- Management Route Guard: [src/pages/manage/ManagementGuard.jsx](src/pages/manage/ManagementGuard.jsx#L24-L28)
-- Countries Public API Service: [src/services/countriesApi.js](src/services/countriesApi.js#L3-L23)
-- Stubbed Public Places API Service: [src/services/placesApi.js](src/services/placesApi.js#L1-L5)
-- Stubbed Public Routes API Service: [src/services/routesApi.js](src/services/routesApi.js#L1-L5)
-- Map Component (`MapView`): [src/features/map/components/MapView.jsx](src/features/map/components/MapView.jsx#L22-L50)
-- Map Component (`HomeMapSection`): [src/features/map/components/HomeMapSection.jsx](src/features/map/components/HomeMapSection.jsx#L1-L15)
-- Map CSS Leaflet Import: [src/features/map/map.css](src/features/map/map.css#L1)
-- Generic Management Form: [src/features/management/EntityFormPage.jsx](src/features/management/EntityFormPage.jsx#L1-L350)
-- Generic Management List: [src/features/management/EntityListPage.jsx](src/features/management/EntityListPage.jsx#L1-L120)
-- Main App Shell Router: [src/app/router.jsx](src/app/router.jsx#L15-L32)
-- Management Sub-Router: [src/app/manageRouter.jsx](src/app/manageRouter.jsx#L12-L50)
+`ContentImageCollectionManager` is currently rendered only in the Story form. It supports selecting multiple existing collections, changing attached collection order, detaching collections, and selecting a Story hero image from attached images or automatic last-attached behavior. There is no equivalent image collection picker in Route, Segment, Waypoint, Place, Tour, or Event authoring. Country and Partner forms expose raw `hero_media_id`/`logo_media_id` text fields, not an ImageCollection UI.
 
----
+**Confirmed gap:** Gallery deletion is present in `imageCollectionsApi.delete`, but the visible Gallery list exposes only Edit, not Delete.
 
-## 14. Ordered Missing-Work Sequence
+## 6. Route Map Editor
 
-1. **Phase 1: Home Map Route Geometry Integration** *(Recommended Next Step)*
-   - Update `src/services/routesApi.js` to call `GET /api/offward/routes/?include_geometry=true`.
-   - Update `MapView.jsx` to render GeoJSON polylines using `react-leaflet` `<GeoJSON>`.
-   - Update `HomeMapSection.jsx` to fetch public routes and pass geometry to `MapView`.
-2. **Phase 2: Public Detail Pages & Public Services Integration**
-   - Connect `placesApi.js`, `storiesApi.js`, `videosApi.js`, `toursApi.js`, `eventsApi.js` to real backend endpoints.
-   - Replace `RoutePlaceholder` in `RoutePage.jsx`, `PlacePage.jsx`, `StoryPage.jsx`, `VideoPage.jsx`, `TourPage.jsx`, `EventPage.jsx` with actual data fetching and detail layouts.
-3. **Phase 3: Place Markers on Home Map**
-   - Connect public places API and render markers on `MapView` with custom Leaflet icons and popup links.
-4. **Phase 4: Management Map & Route Authoring Interface**
-   - Build interactive map UI in `EntityFormPage` for placing/reordering waypoints, triggering candidate calculations, comparing geometry, and accepting route geometry.
-5. **Phase 5: Cloudflare Media Upload & Playback Integration**
-   - Integrate Cloudflare Stream direct upload widget and video player component into management and public video pages.
+The editor is `src/pages/manage/routes/RouteMapEditorPage.jsx`, entered at `/manage/routes/:routeId/map`.
 
----
+| Area | Current state |
+|---|---|
+| Toolbar | Real Waypoints, Segments, Add video, Route status, context indicator, and panel close controls. |
+| Waypoints panel | Add blank, add by map click, add from Place, select, move Up/Down, remove, and edit. |
+| Waypoint editor | Type, `label`, Linked Place, latitude, longitude, video manager, Cancel, and Save. |
+| Segments panel | Add, select, move Up/Down, remove, title, summary, start/end Waypoints, regenerate geometry, and save. |
+| Route status | Accepted/candidate point counts, candidate distance/time, revision, Calculate candidate, and Accept candidate. |
+| Route-level video | Dedicated panel using the reusable video manager. |
+| Geometry | `RouteAuthoringMap` displays accepted geometry, candidate geometry, Waypoints, and Segments. Calculate and accept are wired through `routeMapApi`. |
 
-## Final Audit Verdicts
+**Dead/duplicate/incomplete controls:** `RouteMapActions` receives `showSave={false}` in the status panel, so the status panel intentionally does not expose a duplicate whole-waypoint save button; waypoint save is in `WaypointEditor`. The editor has no visible canonical Waypoint `name` field. Segment Story relationships are carried in normalization/payload (`story_ids`) but there is no Segment Story picker in `SegmentEditor`; the field is preserved rather than authorable. Segment geometry is derived/regenerated from accepted Route geometry and boundaries, not freely drawn.
 
-```
-FRONTEND READY TO ENTER FIRST REAL CONTENT: PARTIAL
-FRONTEND READY TO DISPLAY A SAVED ROUTE ON HOME: NO
-FRONTEND READY FOR COMPLETE CONTENT WORKFLOW: NO
-```
+## 7. Existing Waypoint Click/Edit State
 
-### Recommended Next Implementation Phase
+Clicking an existing Waypoint in the list or map sets `selectedWaypointId`; the selected record is passed to `WaypointEditor`.
 
-**Phase 1: Connect saved public Route geometry to the existing Home map.**
+Current capabilities:
 
-This is the smallest next implementation phase. All prerequisites for this phase exist: the Leaflet map foundation is cleanly isolated in `MapView`, Axios API client infrastructure is configured, and backend route list endpoints supporting `include_geometry=true` are verified. Connecting `src/services/routesApi.js` to `GET /api/offward/routes/?include_geometry=true` and adding `<GeoJSON>` layer rendering in `MapView` will immediately render real saved backend routes on the Home map.
+- select Waypoint: **Yes** (`WaypointList`, `RouteAuthoringMap`);
+- see coordinates: **Yes** in list/editor;
+- edit coordinates: **Yes**, numeric latitude/longitude fields;
+- edit order: **Yes**, Up/Down list actions;
+- edit Place: **Yes**, Linked Place select; selecting a Place can also populate coordinates/label when blank;
+- edit name: **No**;
+- edit label: **Yes**;
+- attach Video: **Yes** after the Waypoint exists;
+- detach Video: **Yes**;
+- delete Waypoint: **Yes**, with confirmation when a Segment references it;
+- save changes: **Yes**, `saveActiveWaypoint` calls `routeMapApi.updateWaypoints`.
+
+Exact components: `WaypointList.jsx`, `WaypointEditor.jsx`, `RouteAuthoringMap.jsx`, `RouteMapEditorPage.jsx`, `routeMapUtils.js`, and `routeMapApi.js`.
+
+## 8. Waypoint Name Gap
+
+There is no human-readable `name` input/control. The current UI uses `label`; `normalizeWaypoint` accepts a backend `name` only as a fallback into `label`, so a canonical name cannot be preserved distinctly.
+
+The logical location for the future field is `src/features/routes/routeMap/components/WaypointEditor.jsx`, beside `Label` and before type/Place. The owning state path is `RouteMapEditorPage.updateWaypoint`; the canonical payload is built by `buildWaypointPayload` in `routeMapUtils.js`, called by `routeMapApi.updateWaypoints` and also used by candidate calculation.
+
+The smallest future frontend change, once the backend exposes canonical `name`, is:
+
+1. preserve `name` in `normalizeWaypoint` and `createEmptyWaypoint`;
+2. render a controlled `name` input in `WaypointEditor`;
+3. include `name` in `buildWaypointPayload` and the candidate request projection;
+4. include it in the waypoint signature so edits become dirty and saveable;
+5. use `name` as the display fallback where the itinerary/list currently uses `label`.
+
+No implementation was made in this audit.
+
+## 9. Future Waypoint Metadata UI
+
+Later, non-blocking fields can fit in the same `WaypointEditor` form and normalization/payload boundary: street/road name near coordinates, waypoint type near the existing type control, roundabout/junction as structured classification, and viewpoint/parking/trailhead as later metadata or capability controls. These are enhancements, not prerequisites for the requested name/coordinate/Place/video/order/delete/save workflow.
+
+## 10. Segment Editor Readiness
+
+| Capability | Current state |
+|---|---|
+| Add | Yes, enabled after valid saved Waypoints and accepted geometry. |
+| Edit | Yes, title, summary, boundaries, and regenerated geometry. |
+| Delete | Yes, with confirmation during save when persisted Segments are removed. |
+| Reorder | Yes, Up/Down and contiguous-order validation. |
+| Geometry | Yes, stored and derived from accepted Route geometry between boundaries; review badge supported. |
+| Boundaries | Yes, start/end Waypoint selectors and ordering validation. |
+| Story relationships | **Not authorable** in the editor; `story_ids` is normalized, validated, and sent back. |
+| Video/media relationships | Yes, upload/existing/attach/detach/preview through `ContentVideoManager`. |
+
+## 11. Place Frontend Readiness
+
+Management list/create/edit/delete is provided by `EntityListPage`, `EntityFormPage`, `entityConfig`, and `managementApis`. Place authoring includes name, country, slug, summary, body, coordinates, visited date, status, map picker, and Video manager.
+
+Public Place detail is real but partial: it renders name, country, visited date, summary/body, and a coordinate map. It does not render Place Videos, ImageCollections/hero media, related Stories, or related Routes. Explore provides Place discovery and map selection. The public `placesApi.js` and management entity API are distinct service paths, with public list/detail normalization and generic management CRUD.
+
+## 12. Management Readiness
+
+All requested management sections are present in `manageRouter.jsx` and the dashboard: Countries, Places, Routes, Stories, Videos, Galleries, Tours, Events, and Partners.
+
+| Section | List | Create | Edit | Delete exposed | Completeness |
+|---|---:|---:|---:|---:|---|
+| Countries | Yes | Yes | Yes | Yes via generic list | Metadata CRUD; raw hero media ID only. |
+| Places | Yes | Yes | Yes | Yes | Strongest place workflow; map picker and video UI. |
+| Routes | Yes | Yes | Yes | Yes | Metadata/stops/video; map editor is separate. |
+| Stories | Yes | Yes | Yes | Yes | Metadata, relations, video, gallery, hero selection. |
+| Videos | Yes | Yes | Yes | Yes | Direct upload on create, preview on edit, location fields; attachment context is read-only on Video form. |
+| Galleries | Yes | Yes | Yes | **No visible list action** | Dedicated image upload/order/caption/membership UI. |
+| Tours | Yes | Yes | Yes | Yes | Generic metadata/relationship CRUD; no public presentation. |
+| Events | Yes | Yes | Yes | Yes | Generic metadata/relationship CRUD; no public presentation. |
+| Partners | Yes | Yes | Yes | Yes | Management-only generic CRUD; no public page. |
+
+## 13. Public Media Rendering Matrix
+
+This table records only visible public UI, not management/API capability.
+
+| Content type | Public Video | Public ImageCollection | Public hero image |
+|---|---:|---:|---:|
+| Story | **Yes** | **Yes** | **Yes** |
+| Route | No | No | No |
+| Segment | No separate public media UI | No | No |
+| Waypoint | No separate public media UI | No | No |
+| Place | No | No | No |
+| Tour | No, placeholder detail | No, placeholder detail | No, placeholder detail |
+| Event | No, placeholder detail | No, placeholder detail | No, placeholder detail |
+
+Home renders a playable latest Video card and a Story card with its hero image, but that is not a general public Video detail/list or a media renderer for every content type.
+
+## 14. Authoring Matrix
+
+| Content type | Video upload | Video choose existing | Video attach/detach | Video preview | Select ImageCollection | Image attach/detach | Hero selection |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Story | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Route | Yes | Yes | Yes | Yes | No | No | No |
+| Segment | Yes | Yes | Yes | Yes | No | No | No |
+| Waypoint | Yes after save | Yes after save | Yes | Yes | No | No | No |
+| Place | Yes | Yes | Yes | Yes | No | No | No |
+| Tour | Yes | Yes | Yes | Yes | No | No | No |
+| Event | Yes | Yes | Yes | Yes | No | No | No |
+
+## 15. API Helper Coverage
+
+| Area | Frontend coverage | Finding |
+|---|---|---|
+| Stories | `src/services/storiesApi.js` plus generic management API | Public list/detail and management CRUD are separate and both used. |
+| Routes | `src/services/routesApi.js` plus `routeMapApi.js` | Public route list/detail and management route-map operations are present. |
+| Waypoints | `routeMapApi.js` | No standalone helper; waypoint operations are nested under routes and share route-map normalization. |
+| Segments | `routeMapApi.js` | Nested route helper with dedicated normalize/build payload functions. |
+| Places | `src/services/placesApi.js` plus generic management API | Public service requires bare-array list response; management service accepts array/results. |
+| Videos | `src/services/videosApi.js`, `videoUploadApi.js`, and direct `apiClient` calls in `ContentVideoManager`/`EntityFormPage` | There is duplicated direct management-video fetching/serialization rather than one shared management video helper. |
+| ImageCollections | `imageCollectionsApi.js` plus `imageCollectionUtils.js` | Dedicated CRUD/upload/membership helper; membership payload serialization is centralized in `toImageMembershipPayload`. |
+
+Obvious mismatch: public Stories resolve `media_ids` by fetching the full public Video list because there is no public Video-by-ID helper. `ContentVideoManager` separately normalizes managed video records and uses direct `apiClient` requests. These are working patterns but duplicated serialization/lookup logic.
+
+## 16. Confirmed Dead/Legacy Frontend Code
+
+Confirmed current legacy/stub surfaces only:
+
+- `RoutePlaceholder` is still used by About, Contact, Video, Tour, and Event public pages, and by the Not Found page; the first five are placeholder public experiences.
+- `src/services/eventsApi.js` and `src/services/toursApi.js` still import local `src/data/events.js` and `src/data/tours.js`; the public pages do not use them.
+- No old management sidebar/navigation is mounted: `ManageLayout` renders only the management content outlet.
+- No separate old Route inspector is confirmed by the current mounted route editor.
+- No separate duplicate public gallery/video architecture is confirmed; `ContentVideoManager` and `ContentImageCollectionManager` are the active reusable authoring components.
+- No stale Story inline gallery creation flow is confirmed; Story uses the dedicated Gallery manager/picker.
+
+## 17. Frontend Gap Summary
+
+### Blocking authoring gaps
+
+- Canonical waypoint `name` cannot be edited or saved distinctly from `label`.
+- Segment Story relationships are preserved but not authorable in `SegmentEditor`.
+- Gallery deletion is implemented in the helper but not exposed in the Gallery list UI.
+- ImageCollection authoring is Story-only; other content types have no image selection/attachment/hero UI.
+
+### Public presentation gaps
+
+- About and Contact are placeholders.
+- Country detail is minimal and lacks related content/media/map presentation.
+- Place detail lacks public Video, ImageCollection, hero, Story, and Route relations.
+- Route detail lacks public Route-level, Segment-level, and Waypoint-level Video/ImageCollection rendering.
+- Tour and Event have placeholder detail pages and no list pages.
+- Video has no public list or detail implementation.
+- Partners have no public route/page.
+- Public Stories do not show related Events/Tours.
+
+### Map editor gaps
+
+- Waypoint `name` field/payload support is absent.
+- Segment Story relationship editing is absent.
+- Segment geometry is generated from accepted Route geometry rather than directly authored.
+- There is no public media presentation tied to selected Route Segments or Waypoints.
+
+### Later enhancements
+
+- Street/road name, waypoint classifications, roundabout/junction, viewpoint, parking, and trailhead metadata.
+- Reverse-geocoded labels.
+- Dedicated public Tours, Events, Videos, and Partners discovery/detail experiences.
+
+## 18. Specific Waypoint Recommendation
+
+The requested current workflow is nearly present. Once the backend exposes canonical `name`, the smallest frontend change is localized to the route-map model boundary: add `name` to waypoint normalization/defaults, add a controlled `name` field in `WaypointEditor`, include it in `buildWaypointPayload` and candidate calculation, include it in dirty-state signatures, and prefer it in list/itinerary labels. Existing coordinate, Place, media, order, delete, and save controls can remain in place.
+
+The later road/street, waypoint type expansion, roundabout/junction, and reverse-geocoded labels should remain separate follow-up work.
+
+## Final Summary
+
+1. **Can fully author today:** Countries, Places, Route metadata/stops, Stories with Video/ImageCollection/hero relationships, Videos with direct upload and metadata, Tours, Events, Partners, Galleries, and Route map Waypoints/Segments/geometry workflow. Segment Story relationships and canonical Waypoint name are exceptions.
+2. **Fully displays publicly today:** Home hero/latest rail, Story list/detail/media/relations, Countries list, Route/Place discovery, Place detail basics/map, and Route detail map/itinerary/Segments. Public detail for Video/Tour/Event and rich Country/About/Contact/Partner presentation is not complete.
+3. **Video authoring coverage:** upload, choose existing, attach, detach, and preview are available for Story, Route, Segment, saved Waypoint, Place, Tour, and Event contexts.
+4. **ImageCollection coverage:** management CRUD/upload/order/captions/membership is real; Story is the only content type with collection selection, attach/detach, and hero selection.
+5. **Exact Waypoint editor state:** existing Waypoints can be selected, coordinate-edited, Place-linked, label-edited, reordered, video-managed, deleted, and saved. No canonical name field exists.
+6. **Can waypoint name be edited today?** No.
+7. **Smallest change:** add canonical `name` through `normalizeWaypoint`/draft state, `WaypointEditor`, `buildWaypointPayload`, candidate payload, dirty signature, and display fallback.
+8. **Dependency order:** expose canonical Waypoint name; wire the smallest Waypoint editor/payload change; add Segment Story relationship UI; expose Gallery delete; generalize ImageCollection/media presentation; build public Video/Tour/Event/Partner surfaces; then add later waypoint metadata.
+
+## Requested Finish Report
+
+- **Audit path:** `docs/.audit/OFFWARD_FRONTEND_CONTENT_READINESS_AUDIT.md`
+- **Story frontend readiness:** Real and strong for public text, hero, galleries, captions, lightbox, videos, routes, places, and Home Latest Story; missing public Event/Tour relation rendering.
+- **Route frontend readiness:** Real for discovery, detail map, itinerary, Segments, management metadata, route-level video, and map authoring; missing public media rendering and some relationship authoring.
+- **Segment frontend readiness:** Add/edit/delete/reorder/boundaries/derived geometry/video are present; Story relationship editor is absent.
+- **Waypoint frontend readiness:** Selection, coordinates, order, Place, label, video, delete, and save are present; canonical name is absent.
+- **Video authoring coverage:** All seven requested contexts are covered, with saved-record prerequisite for Waypoints.
+- **ImageCollection coverage:** Dedicated management and Story attachment/hero workflow only.
+- **Public-site gaps:** Placeholder About/Contact/Video/Tour/Event, absent Partners, minimal Country detail, and missing public media for non-Story types.
+- **Management gaps:** Gallery delete not exposed, non-Story image authoring absent, Segment Story picker absent, and Waypoint name absent.
+- **Waypoint-name UI state:** No distinct name field or payload property today; `name` is only collapsed into `label` as a normalization fallback.
+- **Smallest frontend change needed:** the localized waypoint model/editor/payload/signature update described above once backend support exists.
+- **Next frontend tasks:** canonical name workflow, Segment Story picker, Gallery delete action, broader image/media presentation, then public Tours/Events/Videos/Partners and later waypoint metadata.
+- **Application code changed:** No. Only this audit report is to be created/updated.

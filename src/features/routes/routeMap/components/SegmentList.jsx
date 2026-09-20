@@ -1,5 +1,7 @@
+import { getWaypointDisplayName } from '../routeMapUtils.js'
+
 function getWaypointLabel(waypoint) {
-  return waypoint?.label || `${waypoint?.latitude || 'lat'}, ${waypoint?.longitude || 'lng'}`
+  return waypoint ? getWaypointDisplayName(waypoint) : 'Waypoint'
 }
 
 function SegmentList({ segments, waypoints, selectedSegmentId, canAdd, onAdd, onSelect, onMove, onRemove }) {

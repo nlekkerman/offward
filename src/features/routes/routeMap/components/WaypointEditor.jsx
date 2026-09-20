@@ -22,6 +22,7 @@ function WaypointEditor({ waypoint, places, routeId, onChange, onSave, onCancel 
       onChange({
         ...waypoint,
         place_id: value,
+        place_name: place?.name || place?.title || '',
         label: value && !waypoint.label ? place?.name || place?.title || waypoint.label : waypoint.label,
         latitude: coordinates?.latitude ?? waypoint.latitude,
         longitude: coordinates?.longitude ?? waypoint.longitude,
@@ -43,6 +44,11 @@ function WaypointEditor({ waypoint, places, routeId, onChange, onSave, onCancel 
       </div>
 
       <div className="route-map-form-grid">
+        <div className="form-field route-map-wide-field">
+          <label htmlFor="waypoint-name">Name</label>
+          <input id="waypoint-name" name="name" value={waypoint.name} onChange={handleChange} className="form-input" />
+        </div>
+
         <div className="form-field">
           <label htmlFor="waypoint-label">Label</label>
           <input id="waypoint-label" name="label" value={waypoint.label} onChange={handleChange} className="form-input" />

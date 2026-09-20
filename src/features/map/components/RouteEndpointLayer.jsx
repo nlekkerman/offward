@@ -1,5 +1,6 @@
 import L from 'leaflet'
 import { Marker } from 'react-leaflet'
+import { getWaypointDisplayName } from '../../routes/routeMap/routeMapUtils.js'
 
 // Renders start/finish/stop/via markers for a Route's waypoints.
 // Note: markers select the associated waypoint (onWaypointSelect), matching
@@ -29,7 +30,7 @@ function RouteEndpointLayer({ waypoints, selectedWaypointId, onWaypointSelect })
         key={waypoint.id}
         position={[waypoint.coordinates.lat, waypoint.coordinates.lng]}
         icon={createWaypointIcon(waypoint, selected)}
-        title={`Waypoint ${waypoint.order}`}
+        title={getWaypointDisplayName(waypoint)}
         eventHandlers={onWaypointSelect ? { click: () => onWaypointSelect(waypoint.id) } : undefined}
       />
     )

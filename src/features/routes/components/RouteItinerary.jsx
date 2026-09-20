@@ -5,13 +5,14 @@ const WAYPOINT_TYPE_LABELS = {
   finish: 'Finish',
 }
 
+import { getWaypointDisplayName } from '../routeMap/routeMapUtils.js'
+
 function getWaypointTypeLabel(type) {
   return WAYPOINT_TYPE_LABELS[type] || 'Via'
 }
 
 function getWaypointLabel(waypoint) {
-  const label = typeof waypoint.label === 'string' ? waypoint.label.trim() : ''
-  return label || `Waypoint ${waypoint.order}`
+  return getWaypointDisplayName(waypoint)
 }
 
 function RouteItinerary({ waypoints, selectedWaypointId, onWaypointSelect }) {

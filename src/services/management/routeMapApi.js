@@ -48,6 +48,7 @@ export const routeMapApi = {
         order: waypoint.order,
         type: waypoint.type,
         coordinates: waypoint.coordinates,
+        name: waypoint.name,
         label: waypoint.label,
         place_id: waypoint.place_id,
       })),

@@ -3,7 +3,7 @@ import L from 'leaflet'
 import { GeoJSON, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import MapErrorBoundary from './MapErrorBoundary.jsx'
 import { MAP_TILE_LAYER } from '../tileConfig.js'
-import { normalizeGeometry } from '../../routes/routeMap/routeMapUtils.js'
+import { getWaypointDisplayName, normalizeGeometry } from '../../routes/routeMap/routeMapUtils.js'
 import '../map.css'
 
 function toLatLng(waypoint) {
@@ -151,7 +151,7 @@ function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeomet
               key={waypoint.id}
               position={latLng}
               icon={createWaypointIcon({ waypoint, selected })}
-              title={`Waypoint ${waypoint.order}: ${waypoint.label || waypoint.type}`}
+              title={`${getWaypointDisplayName(waypoint)}: ${waypoint.type}`}
               eventHandlers={{ click: () => onWaypointSelect(waypoint.id) }}
             />
           )

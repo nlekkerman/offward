@@ -1,8 +1,9 @@
 import ContentVideoManager from '../../../video/ContentVideoManager.jsx'
+import { getWaypointDisplayName } from '../routeMapUtils.js'
 
 function getWaypointLabel(waypoint) {
   if (!waypoint) return 'Select a saved Waypoint'
-  return `${waypoint.order} · ${waypoint.type === 'start' ? 'Start' : waypoint.type === 'finish' ? 'Finish' : 'Via'} · ${waypoint.label || `${waypoint.latitude}, ${waypoint.longitude}`}`
+  return `${waypoint.order} · ${waypoint.type === 'start' ? 'Start' : waypoint.type === 'finish' ? 'Finish' : 'Via'} · ${getWaypointDisplayName(waypoint)}`
 }
 
 function SegmentEditor({ segment, routeId, waypoints, validation, canRegenerate, onChange, onRegenerate, onSave, saving = false }) {

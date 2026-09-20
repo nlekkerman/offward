@@ -1,4 +1,5 @@
 import { isRenderableRoute } from '../../map/mapGeometry.js'
+import { getWaypointDisplayName } from '../routeMap/routeMapUtils.js'
 
 function getOrderedSegments(segments) {
   if (!Array.isArray(segments)) {
@@ -17,12 +18,7 @@ function getOrderedSegments(segments) {
 }
 
 function getWaypointLabel(waypoint) {
-  const label = typeof waypoint?.label === 'string' ? waypoint.label.trim() : ''
-  if (label) return label
-  if (waypoint?.type && Number.isFinite(Number(waypoint.order))) {
-    return `${waypoint.type.charAt(0).toUpperCase()}${waypoint.type.slice(1)} waypoint ${waypoint.order}`
-  }
-  return Number.isFinite(Number(waypoint?.order)) ? `Waypoint ${waypoint.order}` : ''
+  return getWaypointDisplayName(waypoint)
 }
 
 function RouteSections({ segments, waypoints, selectedSegmentId, selectedSegment, onSegmentSelect, onDeselect }) {
