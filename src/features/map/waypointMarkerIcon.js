@@ -4,18 +4,19 @@ import { useMapEvents } from 'react-leaflet'
 
 // Single source of truth for waypoint marker zoom behaviour, shared by the
 // management Route Map Editor and the public Route map.
-// zoom < nameVisibleMinZoom       -> number only, compact marker
-// nameVisibleMinZoom..enlargedMinZoom -> number + name, normal size
-// zoom >= enlargedMinZoom         -> number + name, slightly larger marker/text
+// zoom < markerVisibleMinZoom          -> no markers rendered/visible at all
+// markerVisibleMinZoom..enlargedMinZoom -> number + name, normal size
+// zoom >= enlargedMinZoom              -> number + name, slightly larger marker/text
 export const WAYPOINT_MARKER_ZOOM = {
+  markerVisibleMinZoom: 8,
   nameVisibleMinZoom: 8,
   enlargedMinZoom: 13,
 }
 
-const ZOOM_CLASS_NAMES = ['route-marker-zoom-low', 'route-marker-zoom-mid', 'route-marker-zoom-high']
+const ZOOM_CLASS_NAMES = ['route-marker-zoom-hidden', 'route-marker-zoom-mid', 'route-marker-zoom-high']
 
 export function getWaypointMarkerZoomClass(zoom) {
-  if (zoom < WAYPOINT_MARKER_ZOOM.nameVisibleMinZoom) return 'route-marker-zoom-low'
+  if (zoom < WAYPOINT_MARKER_ZOOM.markerVisibleMinZoom) return 'route-marker-zoom-hidden'
   if (zoom >= WAYPOINT_MARKER_ZOOM.enlargedMinZoom) return 'route-marker-zoom-high'
   return 'route-marker-zoom-mid'
 }

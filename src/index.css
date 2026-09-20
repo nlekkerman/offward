@@ -1114,16 +1114,11 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   border: 1px solid var(--waypoint-bg);
 }
 
-.route-marker-zoom-low .route-waypoint-marker {
-  --waypoint-pill-max-width: 34px;
-}
-
-.route-marker-zoom-low .route-waypoint-marker .route-waypoint-pill {
-  padding: 0.3rem 0.5rem;
-}
-
-.route-marker-zoom-low .route-waypoint-marker .route-waypoint-number {
-  font-size: 0.8125rem; /* ~13px */
+/* Below markerVisibleMinZoom, waypoint markers (including selected ones)
+   are fully removed from view - not faded or shrunk - so the route line
+   stays clean at regional/country zoom. */
+.route-marker-zoom-hidden .route-waypoint-marker {
+  display: none;
 }
 
 .route-marker-zoom-mid .route-waypoint-marker .route-waypoint-name,
