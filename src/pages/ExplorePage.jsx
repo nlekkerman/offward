@@ -109,7 +109,8 @@ function ExplorePage() {
 
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
   const availableActivities = useMemo(() => [...new Set(routes.map((route) => route.activity_type).filter(Boolean))].sort(), [routes])
-  const activeSelectedRouteId = activeView === 'routes' && routes.some((route) => route.id === selectedRouteId) ? selectedRouteId : null
+  const routeSelectionEnabled = activeView === 'routes' && Boolean(selectedCountry)
+  const activeSelectedRouteId = routeSelectionEnabled && routes.some((route) => route.id === selectedRouteId) ? selectedRouteId : null
   const activeSelectedPlaceId = activeView === 'places' && places.some((place) => place.id === selectedPlaceId) ? selectedPlaceId : null
   const selectedRoute = activeView === 'routes' ? routes.find((route) => route.id === activeSelectedRouteId) : null
   const selectedPlace = activeView === 'places' ? places.find((place) => place.id === activeSelectedPlaceId) : null
@@ -226,10 +227,10 @@ function ExplorePage() {
           places={visiblePlaces}
           selectedRouteId={activeSelectedRouteId}
           selectedPlaceId={activeSelectedPlaceId}
-          onRouteSelect={(routeId) => {
+          onRouteSelect={routeSelectionEnabled ? (routeId) => {
             setSelectedRouteId(routeId)
             setSelectedPlaceId(null)
-          }}
+          } : undefined}
           onPlaceSelect={(placeId) => {
             setSelectedPlaceId(placeId)
             setSelectedRouteId(null)
@@ -264,8 +265,8 @@ function ExplorePage() {
           <>
             {routesStatus === 'loading' && <p className="explore-status" role="status">Loading routes...</p>}
             {routesStatus === 'error' && <p className="explore-status" role="status">Unable to load routes. The map remains available.</p>}
-            {routesStatus === 'success' && routes.length === 0 && <p className="explore-status" role="status">No routes match these filters.</p>}
-            {routes.length > 0 && (
+            {routesStatus === 'success' && selectedCountry && routes.length === 0 && <p className="explore-status" role="status">No routes match these filters.</p>}
+            {selectedCountry && routes.length > 0 && (
               <div className="explore-route-list" aria-label="Routes">
                 {routes.map((route) => (
                   <button

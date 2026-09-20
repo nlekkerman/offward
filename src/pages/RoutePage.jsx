@@ -161,7 +161,11 @@ function RoutePage() {
           onClick={toggleWaypointsPanel}
           disabled={waypoints.length === 0}
         >
-          Waypoints {waypoints.length}{openPanel === 'waypoints' && <span aria-hidden="true"> ▲</span>}
+          <span className="route-panel-toggle-copy">
+            <span className="route-panel-toggle-title">Waypoints</span>
+            <span className="route-panel-toggle-count">{waypoints.length} {waypoints.length === 1 ? 'item' : 'items'}</span>
+          </span>
+          <span className="route-panel-toggle-chevron" aria-hidden="true">{openPanel === 'waypoints' ? '▲' : '▼'}</span>
         </button>
         <button
           type="button"
@@ -172,7 +176,11 @@ function RoutePage() {
           onClick={toggleSectionsPanel}
           disabled={segments.length === 0}
         >
-          Sections {segments.length}{openPanel === 'sections' && <span aria-hidden="true"> ▲</span>}
+          <span className="route-panel-toggle-copy">
+            <span className="route-panel-toggle-title">Sections</span>
+            <span className="route-panel-toggle-count">{segments.length} {segments.length === 1 ? 'item' : 'items'}</span>
+          </span>
+          <span className="route-panel-toggle-chevron" aria-hidden="true">{openPanel === 'sections' ? '▲' : '▼'}</span>
         </button>
       </div>
 
