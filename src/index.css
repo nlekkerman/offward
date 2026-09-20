@@ -992,62 +992,40 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
    anchor); it stays invisible and pointer-events: none so only the pin
    body below is clickable/hoverable. */
 .route-waypoint-marker {
-  --waypoint-tip-size: 7px;
+  --waypoint-pin-width: 60px;
   position: relative;
   overflow: visible;
   pointer-events: none;
   font-family: sans-serif;
 }
 
-/* Pin body: bottom-anchored and horizontally centered in the wrapper so its
-   width can grow/shrink with the name without moving the pointer tip. */
+/* Pin body: a single clipped shape (rounded-ish top, sides narrowing
+   toward a pointed bottom) so it reads as one pin silhouette instead of a
+   rectangle with a separate triangle tacked on. The clip-path is defined
+   in percentages so it stays proportional at any width/height, including
+   when the name wraps onto extra lines. The body is bottom-anchored and
+   horizontally centered in the wrapper; its bottom tip sits exactly at the
+   wrapper's bottom edge, which is the geographic anchor point. Width is a
+   fixed, narrow value (per zoom level below) rather than sized to fit the
+   full unbroken name - names wrap instead of widening the pin. */
 .route-waypoint-marker .route-waypoint-body {
   position: absolute;
   left: 50%;
-  bottom: var(--waypoint-tip-size);
+  bottom: 0;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 30px;
-  max-width: 104px;
-  padding: 0.3rem 0.5rem 0.35rem;
+  box-sizing: border-box;
+  width: var(--waypoint-pin-width);
+  padding: 0.4rem 0.3rem 0.7rem;
   border: 1.5px solid #d8b47c;
-  border-radius: 8px 8px 2px 2px;
   background: #121310;
   color: #f2ead7;
   box-shadow: 0 2px 7px rgba(0, 0, 0, 0.55);
   cursor: pointer;
   pointer-events: auto;
-}
-
-/* Pointed bottom tip, drawn as two stacked CSS triangles so the pin border
-   color shows as a thin outline around the tip. */
-.route-waypoint-marker .route-waypoint-body::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--waypoint-tip-size) * -1);
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: calc(var(--waypoint-tip-size) * 0.85) solid transparent;
-  border-right: calc(var(--waypoint-tip-size) * 0.85) solid transparent;
-  border-top: var(--waypoint-tip-size) solid #d8b47c;
-}
-
-.route-waypoint-marker .route-waypoint-body::before {
-  content: '';
-  position: absolute;
-  z-index: 1;
-  left: 50%;
-  bottom: calc(var(--waypoint-tip-size) * -1 + 1.5px);
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: calc(var(--waypoint-tip-size) * 0.6) solid transparent;
-  border-right: calc(var(--waypoint-tip-size) * 0.6) solid transparent;
-  border-top: calc(var(--waypoint-tip-size) - 1.5px) solid #121310;
+  clip-path: polygon(20% 0%, 80% 0%, 100% 22%, 86% 66%, 50% 100%, 14% 66%, 0% 22%);
 }
 
 .route-waypoint-marker.is-selected .route-waypoint-body {
@@ -1058,11 +1036,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   box-shadow: 0 0 0 2px rgba(18, 19, 16, 0.7), 0 2px 8px rgba(0, 0, 0, 0.65);
 }
 
-.route-waypoint-marker.is-selected .route-waypoint-body::before {
-  border-top-color: #c25e00;
-}
-
-/* Number: the strongest element, centered above the name. */
+/* Number: the strongest element, centered near the top of the pin. */
 .route-waypoint-marker .route-waypoint-number {
   font-size: 0.875rem; /* ~14px */
   font-weight: 700;
@@ -1070,19 +1044,28 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 /* Name: secondary, smaller/lighter, hidden by default and revealed at
-   higher zoom via the .route-marker-zoom-* classes below. */
+   higher zoom via the .route-marker-zoom-* classes below. Words wrap
+   naturally (one word per line where the narrow width forces it) instead
+   of forcing the whole name onto one long horizontal line; only an
+   unbreakable single word that still doesn't fit will ever be split. A
+   line clamp guards against unusually long names growing the pin without
+   bound. */
 .route-waypoint-marker .route-waypoint-name {
   display: none;
-  max-width: 92px;
-  margin-top: 0.05rem;
+  width: 100%;
+  margin-top: 0.15rem;
   font-size: 0.625rem; /* ~10px */
   font-weight: 400;
-  line-height: 1.2;
+  line-height: 1.15;
   color: rgba(242, 234, 215, 0.78);
+  text-align: center;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: center;
 }
 
 .route-waypoint-marker.is-selected .route-waypoint-name {
@@ -1094,8 +1077,8 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .route-waypoint-marker .route-waypoint-media-slot {
   display: none;
   position: absolute;
-  top: -3px;
-  right: -3px;
+  top: 2px;
+  right: 2px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -1103,8 +1086,12 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   border: 1px solid #121310;
 }
 
+.route-marker-zoom-low .route-waypoint-marker {
+  --waypoint-pin-width: 40px;
+}
+
 .route-marker-zoom-low .route-waypoint-marker .route-waypoint-body {
-  padding: 0.22rem 0.42rem 0.28rem;
+  padding: 0.3rem 0.25rem 0.5rem;
 }
 
 .route-marker-zoom-low .route-waypoint-marker .route-waypoint-number {
@@ -1113,11 +1100,15 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .route-marker-zoom-mid .route-waypoint-marker .route-waypoint-name,
 .route-marker-zoom-high .route-waypoint-marker .route-waypoint-name {
-  display: block;
+  display: -webkit-box;
+}
+
+.route-marker-zoom-high .route-waypoint-marker {
+  --waypoint-pin-width: 72px;
 }
 
 .route-marker-zoom-high .route-waypoint-marker .route-waypoint-body {
-  padding: 0.36rem 0.6rem 0.4rem;
+  padding: 0.45rem 0.35rem 0.75rem;
 }
 
 .route-marker-zoom-high .route-waypoint-marker .route-waypoint-number {
@@ -1125,14 +1116,21 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 .route-marker-zoom-high .route-waypoint-marker .route-waypoint-name {
-  max-width: 118px;
   font-size: 0.6875rem; /* ~11px */
+  -webkit-line-clamp: 4;
 }
 
 @media (max-width: 600px) {
+  .route-marker-zoom-mid .route-waypoint-marker {
+    --waypoint-pin-width: 52px;
+  }
+
+  .route-marker-zoom-high .route-waypoint-marker {
+    --waypoint-pin-width: 60px;
+  }
+
   .route-marker-zoom-mid .route-waypoint-marker .route-waypoint-name,
   .route-marker-zoom-high .route-waypoint-marker .route-waypoint-name {
-    max-width: 78px;
     font-size: 0.6rem;
   }
 }

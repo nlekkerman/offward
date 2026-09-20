@@ -56,9 +56,11 @@ function escapeMarkerText(value) {
 //  - .route-waypoint-marker: the Leaflet icon element itself. Its size is
 //    fixed (WRAPPER_WIDTH x WRAPPER_HEIGHT) purely so Leaflet has a stable
 //    box to anchor; it is otherwise invisible and ignores pointer events.
-//  - .route-waypoint-body: the visible pin (number + name + pointer tip),
-//    absolutely positioned bottom-center within the wrapper so its width can
-//    vary with the name's length without ever moving the anchored tip.
+//  - .route-waypoint-body: the visible pin (number + name + pointed tip
+//    clipped into one silhouette), absolutely positioned bottom-center
+//    within the wrapper with a fixed, narrow width (via CSS) so the name
+//    wraps onto extra lines instead of widening the pin, and its bottom
+//    tip never moves off the anchored coordinate.
 const WRAPPER_WIDTH = 140
 const WRAPPER_HEIGHT = 64
 
