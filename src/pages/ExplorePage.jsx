@@ -207,16 +207,41 @@ function ExplorePage() {
         )}
       </div>
 
-      {selectedRoute && (
-        <div className="explore-preview explore-preview-compact">
-          <p className="eyebrow">SELECTED ROUTE</p>
-          <h2>{selectedRoute.title}</h2>
-          <p>{countryNames.get(selectedRoute.country) || selectedRoute.country} · {selectedRoute.activity_type}</p>
-          {selectedRoute.summary && <p>{selectedRoute.summary}</p>}
-          <div className="explore-preview-actions">
-            <Link className="primary-button" to={`/routes/${selectedRoute.slug}`}>View Route</Link>
-            <button type="button" className="secondary-button" onClick={() => setSelectedRouteId(null)}>Deselect</button>
-          </div>
+      {activeView === 'routes' && (
+        <div className="explore-route-results">
+          {selectedRoute && (
+            <div className="explore-preview explore-preview-compact">
+              <p className="eyebrow">SELECTED ROUTE</p>
+              <h2>{selectedRoute.title}</h2>
+              <p>{countryNames.get(selectedRoute.country) || selectedRoute.country} · {selectedRoute.activity_type}</p>
+              {selectedRoute.summary && <p>{selectedRoute.summary}</p>}
+              <div className="explore-preview-actions">
+                <Link className="primary-button" to={`/routes/${selectedRoute.slug}`}>View Route</Link>
+                <button type="button" className="secondary-button" onClick={() => setSelectedRouteId(null)}>Deselect</button>
+              </div>
+            </div>
+          )}
+          {routesStatus === 'loading' && <p className="explore-status" role="status">Loading routes...</p>}
+          {routesStatus === 'error' && <p className="explore-status" role="status">Unable to load routes. The map remains available.</p>}
+          {routesStatus === 'success' && selectedCountry && routes.length === 0 && <p className="explore-status" role="status">No routes match these filters.</p>}
+          {selectedCountry && routes.length > 0 && (
+            <div className="explore-route-list" aria-label="Routes">
+              {routes.map((route) => (
+                <button
+                  key={route.id}
+                  type="button"
+                  className={route.id === activeSelectedRouteId ? 'explore-route-item is-selected' : 'explore-route-item'}
+                  onClick={() => {
+                    setSelectedRouteId(route.id)
+                    setSelectedPlaceId(null)
+                  }}
+                >
+                  <strong>{route.title}</strong>
+                  <span>{countryNames.get(route.country) || route.country} · {route.activity_type}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -261,31 +286,6 @@ function ExplorePage() {
       <div className="explore-results">
         {countriesStatus === 'loading' && <p className="explore-status" role="status">Loading countries...</p>}
         {countriesStatus === 'error' && <p className="explore-status" role="status">Unable to load country filters.</p>}
-        {activeView === 'routes' && (
-          <>
-            {routesStatus === 'loading' && <p className="explore-status" role="status">Loading routes...</p>}
-            {routesStatus === 'error' && <p className="explore-status" role="status">Unable to load routes. The map remains available.</p>}
-            {routesStatus === 'success' && selectedCountry && routes.length === 0 && <p className="explore-status" role="status">No routes match these filters.</p>}
-            {selectedCountry && routes.length > 0 && (
-              <div className="explore-route-list" aria-label="Routes">
-                {routes.map((route) => (
-                  <button
-                    key={route.id}
-                    type="button"
-                    className={route.id === activeSelectedRouteId ? 'explore-route-item is-selected' : 'explore-route-item'}
-                    onClick={() => {
-                      setSelectedRouteId(route.id)
-                      setSelectedPlaceId(null)
-                    }}
-                  >
-                    <strong>{route.title}</strong>
-                    <span>{countryNames.get(route.country) || route.country} · {route.activity_type}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
         {activeView === 'places' && (
           <>
             {placesStatus === 'loading' && <p className="explore-status" role="status">Loading places...</p>}
