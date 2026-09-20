@@ -59,6 +59,9 @@ function RouteMapEditorPage() {
   const [mapRevision, setMapRevision] = useState('')
   const [updatedAt, setUpdatedAt] = useState('')
   const [selectedWaypointId, setSelectedWaypointId] = useState('')
+  const [quickEditWaypointId, setQuickEditWaypointId] = useState('')
+  const [quickEditSaving, setQuickEditSaving] = useState(false)
+  const [advancedWaypointId, setAdvancedWaypointId] = useState('')
   const [savedWaypointSignature, setSavedWaypointSignature] = useState('[]')
   const [segments, setSegments] = useState([])
   const [persistedSegmentIds, setPersistedSegmentIds] = useState([])
@@ -120,6 +123,8 @@ function RouteMapEditorPage() {
         setMapRevision(getRouteMapRevision(routeData, normalizedMap))
         setUpdatedAt(normalizedMap.updatedAt)
         setSelectedWaypointId(nextWaypoints[0]?.id || '')
+        setQuickEditWaypointId('')
+        setAdvancedWaypointId('')
 
       } catch (err) {
         if (active) {
@@ -143,6 +148,10 @@ function RouteMapEditorPage() {
   const selectedWaypoint = useMemo(
     () => waypoints.find((waypoint) => waypoint.id === selectedWaypointId),
     [selectedWaypointId, waypoints],
+  )
+  const advancedWaypoint = useMemo(
+    () => waypoints.find((waypoint) => waypoint.id === advancedWaypointId),
+    [advancedWaypointId, waypoints],
   )
 
   const hasUnsavedChanges = savedWaypointSignature !== getWaypointSignature(waypoints)
@@ -201,11 +210,26 @@ function RouteMapEditorPage() {
     changeWaypoints((current) => current.map((waypoint) => waypoint.id === nextWaypoint.id ? nextWaypoint : waypoint))
   }
 
+  const selectWaypoint = (waypointId) => {
+    const waypoint = waypoints.find((item) => item.id === waypointId)
+    setSelectedWaypointId(waypointId)
+    setAdvancedWaypointId('')
+    setQuickEditWaypointId(waypoint && !String(waypoint.id).startsWith('new-') ? waypointId : '')
+  }
+
+  const openAdvancedWaypoint = (waypointId) => {
+    setSelectedWaypointId(waypointId)
+    setQuickEditWaypointId('')
+    setAdvancedWaypointId(waypointId)
+  }
+
   const addBlankWaypoint = () => {
     setActivePanel('waypoints')
     changeWaypoints((current) => {
       const nextWaypoint = createEmptyWaypoint(current.length + 1)
       setSelectedWaypointId(nextWaypoint.id)
+      setQuickEditWaypointId('')
+      setAdvancedWaypointId(nextWaypoint.id)
       return [...current, nextWaypoint]
     })
   }
@@ -232,6 +256,8 @@ function RouteMapEditorPage() {
         longitude: coordinates.longitude,
       })
       setSelectedWaypointId(nextWaypoint.id)
+      setQuickEditWaypointId('')
+      setAdvancedWaypointId(nextWaypoint.id)
       return [...current, nextWaypoint]
     })
   }
@@ -241,6 +267,8 @@ function RouteMapEditorPage() {
     changeWaypoints((current) => {
       const nextWaypoint = createEmptyWaypoint(current.length + 1, coordinates)
       setSelectedWaypointId(nextWaypoint.id)
+      setQuickEditWaypointId('')
+      setAdvancedWaypointId(nextWaypoint.id)
       return [...current, nextWaypoint]
     })
   }
@@ -257,6 +285,8 @@ function RouteMapEditorPage() {
       }
       return nextWaypoints
     })
+    if (quickEditWaypointId === waypointId) setQuickEditWaypointId('')
+    if (advancedWaypointId === waypointId) setAdvancedWaypointId('')
   }
 
   const changeSegments = (updater) => {
@@ -389,6 +419,30 @@ function RouteMapEditorPage() {
     }
   }
 
+  const saveQuickWaypointName = async (waypointId, name) => {
+    const nextWaypoints = normalizeWaypoints(waypoints.map((waypoint) => waypoint.id === waypointId ? { ...waypoint, name } : waypoint))
+    const validation = validateWaypoints(nextWaypoints)
+    if (!validation.valid) {
+      setError(validation.message)
+      return false
+    }
+
+    try {
+      setQuickEditSaving(true)
+      setError('')
+      setNotice('')
+      const routeMapData = await routeMapApi.updateWaypoints(routeId, nextWaypoints)
+      applyRouteMap(routeMapData)
+      setNotice('Waypoint name saved.')
+      return true
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to save this waypoint name.'))
+      return false
+    } finally {
+      setQuickEditSaving(false)
+    }
+  }
+
   const saveActiveWaypoint = async () => {
     if (!selectedWaypoint) {
       return
@@ -438,6 +492,7 @@ function RouteMapEditorPage() {
 
     setQuickAddPlaceId('')
     setAddMode(false)
+    setAdvancedWaypointId('')
   }
 
   const calculateCandidate = async () => {
@@ -555,13 +610,18 @@ function RouteMapEditorPage() {
             waypoints={waypoints}
             places={places}
             selectedWaypointId={selectedWaypointId}
+            quickEditWaypointId={quickEditWaypointId}
+            quickEditSaving={quickEditSaving}
             addMode={addMode}
             selectedPlaceId={quickAddPlaceId}
             onPlaceIdChange={setQuickAddPlaceId}
             onAddBlank={addBlankWaypoint}
             onAddModeChange={setAddMode}
             onAddFromPlace={addWaypointFromPlace}
-            onSelect={setSelectedWaypointId}
+            onSelect={selectWaypoint}
+            onQuickSave={saveQuickWaypointName}
+            onQuickCancel={() => setQuickEditWaypointId('')}
+            onOpenAdvanced={openAdvancedWaypoint}
             onMove={moveWaypoint}
             onRemove={removeWaypoint}
           />
@@ -572,14 +632,16 @@ function RouteMapEditorPage() {
               <button type="button" className="secondary-button small-button" onClick={cancelMapClickMode}>Cancel map-click mode</button>
             </div>
           )}
-          <WaypointEditor
-            waypoint={selectedWaypoint}
-            places={places}
-            routeId={routeId}
-            onChange={updateWaypoint}
-            onSave={saveActiveWaypoint}
-            onCancel={cancelActiveWaypoint}
-          />
+          {advancedWaypoint && (
+            <WaypointEditor
+              waypoint={advancedWaypoint}
+              places={places}
+              routeId={routeId}
+              onChange={updateWaypoint}
+              onSave={saveActiveWaypoint}
+              onCancel={cancelActiveWaypoint}
+            />
+          )}
         </section>
       )}
 
@@ -641,7 +703,7 @@ function RouteMapEditorPage() {
           selectedSegmentId={selectedSegmentId}
           selectedWaypointId={selectedWaypointId}
           addMode={addMode}
-          onWaypointSelect={setSelectedWaypointId}
+          onWaypointSelect={selectWaypoint}
           onSegmentSelect={setSelectedSegmentId}
           onMapAddWaypoint={addWaypointFromMap}
         />

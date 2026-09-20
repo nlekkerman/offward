@@ -1,6 +1,7 @@
 import { getPlaceCoordinates, getWaypointDisplayName } from '../routeMapUtils.js'
+import WaypointQuickEditor from './WaypointQuickEditor.jsx'
 
-function WaypointList({ waypoints, places, selectedWaypointId, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onMove, onRemove }) {
+function WaypointList({ waypoints, places, selectedWaypointId, quickEditWaypointId, quickEditSaving, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onMove, onRemove }) {
   return (
     <section className="route-map-panel">
       <div className="route-map-panel-header">
@@ -47,10 +48,19 @@ function WaypointList({ waypoints, places, selectedWaypointId, addMode, selected
                 </span>
               </button>
               <span className="waypoint-inline-actions">
+                <button type="button" className="secondary-button small-button" onClick={() => onOpenAdvanced(waypoint.id)}>Edit details</button>
                 <button type="button" className="secondary-button small-button" onClick={() => onMove(index, -1)} disabled={index === 0}>Up</button>
                 <button type="button" className="secondary-button small-button" onClick={() => onMove(index, 1)} disabled={index === waypoints.length - 1}>Down</button>
                 <button type="button" className="danger-button small-button" onClick={() => onRemove(waypoint.id)}>Remove</button>
               </span>
+              {quickEditWaypointId === waypoint.id && (
+                <WaypointQuickEditor
+                  waypoint={waypoint}
+                  saving={quickEditSaving}
+                  onSave={(name) => onQuickSave(waypoint.id, name)}
+                  onCancel={onQuickCancel}
+                />
+              )}
             </div>
           ))}
         </div>

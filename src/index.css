@@ -1146,6 +1146,26 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   gap: 0.5rem;
 }
 
+.waypoint-quick-editor {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #171811;
+  border: 1px solid #5c4a32;
+  border-radius: 0.55rem;
+}
+
+.waypoint-quick-editor label {
+  color: #e9dfcf;
+  font: 700 0.78rem/1.2 sans-serif;
+}
+
+.waypoint-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .route-map-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
