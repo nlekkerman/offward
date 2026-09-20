@@ -1244,6 +1244,13 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   padding: 0.65rem 0.75rem;
 }
 
+.segment-story-list {
+  max-height: 13rem;
+  margin-top: 0.5rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
 .route-stops-list {
   display: grid;
   gap: 0.85rem;
