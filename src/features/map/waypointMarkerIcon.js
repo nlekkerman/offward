@@ -52,21 +52,27 @@ function escapeMarkerText(value) {
     .replaceAll("'", '&#039;')
 }
 
-// The marker DOM has two layers:
+// The marker DOM has three layers:
 //  - .route-waypoint-marker: the Leaflet icon element itself. Its size is
 //    fixed (WRAPPER_WIDTH x WRAPPER_HEIGHT) purely so Leaflet has a stable
 //    box to anchor; it is otherwise invisible and ignores pointer events.
-//  - .route-waypoint-body: the visible pin (number + name + pointed tip
-//    clipped into one silhouette), absolutely positioned bottom-center
-//    within the wrapper with a fixed, narrow width (via CSS) so the name
-//    wraps onto extra lines instead of widening the pin, and its bottom
-//    tip never moves off the anchored coordinate.
-const WRAPPER_WIDTH = 140
+//  - .route-waypoint-body: an invisible bottom-center-anchored column that
+//    stacks the pill above the pointer tip so the tip always sits exactly
+//    on the wrapper's bottom edge - the geographic anchor point - no
+//    matter how tall the pill grows (e.g. a 2-line name).
+//  - .route-waypoint-pill: the single visible rounded pill containing the
+//    number and name side by side (and a reserved future media slot). Its
+//    width is capped (via CSS) so long names wrap onto a second line
+//    instead of widening the pill indefinitely.
+//  - .route-waypoint-pointer: a small triangular tip beneath the pill so
+//    the marker still reads as a map pin; purely decorative.
+const WRAPPER_WIDTH = 160
 const WRAPPER_HEIGHT = 64
 
-// Shared marker presentation: number + name live inside one unified pin body.
-// Name visibility/size is controlled purely by CSS via the zoom classes
-// above, so the icon does not need to be rebuilt on every zoomend.
+// Shared marker presentation: number + name live inside one pill, with a
+// pointer tip beneath it. Name visibility/size is controlled purely by CSS
+// via the zoom classes above, so the icon does not need to be rebuilt on
+// every zoomend.
 export function createWaypointMarkerIcon({ order, displayName, selected = false, extraClassNames = [] }) {
   const className = ['route-waypoint-marker', ...extraClassNames, selected ? 'is-selected' : '']
     .filter(Boolean)
@@ -78,7 +84,7 @@ export function createWaypointMarkerIcon({ order, displayName, selected = false,
 
   return L.divIcon({
     className,
-    html: `<span class="route-waypoint-body"><span class="route-waypoint-number">${escapeMarkerText(order)}</span>${nameHtml}<span class="route-waypoint-media-slot" aria-hidden="true"></span></span>`,
+    html: `<span class="route-waypoint-body"><span class="route-waypoint-pill"><span class="route-waypoint-number">${escapeMarkerText(order)}</span>${nameHtml}<span class="route-waypoint-media-slot" aria-hidden="true"></span></span><span class="route-waypoint-pointer" aria-hidden="true"></span></span>`,
     iconSize: [WRAPPER_WIDTH, WRAPPER_HEIGHT],
     iconAnchor: [WRAPPER_WIDTH / 2, WRAPPER_HEIGHT],
   })

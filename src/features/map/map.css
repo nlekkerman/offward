@@ -22,22 +22,40 @@
   z-index: 1;
 }
 
-.public-route-waypoint-marker .route-waypoint-body {
+.public-route-waypoint-marker .route-waypoint-pill {
   border-color: #f1dfbd;
   background: #121310;
   color: #f3efe6;
 }
 
-.public-route-waypoint-marker.is-start .route-waypoint-body,
-.public-route-waypoint-marker.is-finish .route-waypoint-body {
+.public-route-waypoint-marker.is-start .route-waypoint-pill,
+.public-route-waypoint-marker.is-finish .route-waypoint-pill {
   border-color: #4F8A3C;
   background: #d8b47c;
   color: #121310;
 }
 
-.public-route-waypoint-marker.is-start .route-waypoint-body .route-waypoint-name,
-.public-route-waypoint-marker.is-finish .route-waypoint-body .route-waypoint-name {
+.public-route-waypoint-marker.is-start .route-waypoint-pill .route-waypoint-name,
+.public-route-waypoint-marker.is-finish .route-waypoint-pill .route-waypoint-name {
   color: rgba(18, 19, 16, 0.72);
+}
+
+.public-route-waypoint-marker .route-waypoint-pointer::before {
+  border-top-color: #f1dfbd;
+}
+
+.public-route-waypoint-marker .route-waypoint-pointer::after {
+  border-top-color: #121310;
+}
+
+.public-route-waypoint-marker.is-start .route-waypoint-pointer::before,
+.public-route-waypoint-marker.is-finish .route-waypoint-pointer::before {
+  border-top-color: #4F8A3C;
+}
+
+.public-route-waypoint-marker.is-start .route-waypoint-pointer::after,
+.public-route-waypoint-marker.is-finish .route-waypoint-pointer::after {
+  border-top-color: #d8b47c;
 }
 
 .public-place-marker {
