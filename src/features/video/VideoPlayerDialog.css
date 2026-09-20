@@ -1,0 +1,48 @@
+.video-player-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(8, 10, 8, 0.88);
+}
+
+.video-player-dialog {
+  width: min(920px, 100%);
+  max-height: calc(100svh - 2.5rem);
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid #514936;
+  border-radius: 0.75rem;
+  background: #121510;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.58);
+}
+
+.video-player-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.video-player-dialog-header h2 {
+  margin: 0.25rem 0 0;
+  color: #f2ece4;
+  font-size: 1.2rem;
+}
+
+.video-player-dialog-close {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
+  border: 1px solid #514936;
+  border-radius: 50%;
+  background: #1d211d;
+  color: #f2ece4;
+  font-size: 1.35rem;
+  cursor: pointer;
+}

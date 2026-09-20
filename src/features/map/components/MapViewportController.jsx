@@ -4,11 +4,12 @@ import { getCombinedBounds, getCombinedMapBounds, getWaypointBounds } from '../m
 
 // Fits the viewport to Route/waypoint bounds on data change and focuses the
 // selected Route, without resetting the viewport during normal interaction.
-function MapViewportController({ validRoutes, validSegments, validWaypoints, validPlaces, selectedRouteId, selectedSegmentId, selectedPlaceId }) {
+function MapViewportController({ validRoutes, validSegments, validWaypoints, validPlaces, selectedRouteId, selectedSegmentId, selectedWaypointId, selectedPlaceId, routeFocusRequest }) {
   const map = useMap()
   const prevRouteSignatureRef = useRef(null)
   const prevSelectedRouteIdRef = useRef(null)
   const prevSelectedSegmentIdRef = useRef(null)
+  const prevSelectedWaypointIdRef = useRef(null)
   const prevSelectedPlaceIdRef = useRef(null)
 
   useEffect(() => {
@@ -75,10 +76,36 @@ function MapViewportController({ validRoutes, validSegments, validWaypoints, val
     if (selectedSegment) {
       const bounds = getCombinedBounds([selectedSegment])
       if (bounds) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14, animate: false })
+        const compact = map.getSize().x < 700
+        map.fitBounds(bounds, {
+          paddingTopLeft: compact ? [24, 24] : [400, 40],
+          paddingBottomRight: compact ? [24, 230] : [40, 80],
+          maxZoom: 14,
+          animate: false,
+        })
       }
     }
   }, [map, selectedSegmentId, validSegments, validRoutes, validPlaces, validWaypoints])
+
+  useEffect(() => {
+    if (!selectedWaypointId) {
+      prevSelectedWaypointIdRef.current = null
+      return
+    }
+
+    if (prevSelectedWaypointIdRef.current === selectedWaypointId) return
+    prevSelectedWaypointIdRef.current = selectedWaypointId
+    const waypoint = validWaypoints.find((item) => item.id === selectedWaypointId)
+    if (waypoint) {
+      const compact = map.getSize().x < 700
+      map.fitBounds([[waypoint.coordinates.lat, waypoint.coordinates.lng]], {
+        paddingTopLeft: compact ? [24, 24] : [400, 40],
+        paddingBottomRight: compact ? [24, 230] : [40, 80],
+        maxZoom: 14,
+        animate: false,
+      })
+    }
+  }, [map, selectedWaypointId, validWaypoints])
 
   useEffect(() => {
     if (!selectedRouteId) {
@@ -103,6 +130,12 @@ function MapViewportController({ validRoutes, validSegments, validWaypoints, val
       }
     }
   }, [map, selectedRouteId, validRoutes])
+
+  useEffect(() => {
+    if (!routeFocusRequest) return
+    const bounds = getCombinedMapBounds(validRoutes, validPlaces) || getWaypointBounds(validWaypoints)
+    if (bounds) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13, animate: false })
+  }, [map, routeFocusRequest, validPlaces, validRoutes, validWaypoints])
 
   useEffect(() => {
     if (!selectedPlaceId) {

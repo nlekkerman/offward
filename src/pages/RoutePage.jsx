@@ -3,9 +3,12 @@ import { Link, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import RouteItinerary from '../features/routes/components/RouteItinerary.jsx'
+import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
 import { normalizeMediaIds, resolveAttachedVideos } from '../features/routes/components/routeMediaUtils.js'
 import RouteSections from '../features/routes/components/RouteSections.jsx'
+import VideoPlayerDialog from '../features/video/VideoPlayerDialog.jsx'
+import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
@@ -41,6 +44,17 @@ function getOrderedRouteWaypoints(route) {
     .sort((a, b) => a.order - b.order)
 }
 
+function getPublicGalleries(item) {
+  const collections = Array.isArray(item?.image_collections)
+    ? item.image_collections
+    : Array.isArray(item?.galleries) ? item.galleries : []
+  return collections.filter((collection) => collection && typeof collection === 'object' && Array.isArray(collection.images) && collection.images.length > 0)
+}
+
+function getWaypointTitle(waypoint) {
+  return waypoint?.name || waypoint?.label || waypoint?.place_name || `Waypoint ${waypoint?.order}`
+}
+
 function RoutePage() {
   const { routeSlug } = useParams()
   const [routeResult, setRouteResult] = useState({ slug: null, status: 'loading', route: null })
@@ -50,6 +64,9 @@ function RoutePage() {
   const [selectedSegmentId, setSelectedSegmentId] = useState(null)
   const [openPanel, setOpenPanel] = useState(null)
   const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
+  const [activeVideo, setActiveVideo] = useState(null)
+  const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
+  const [routeFocusRequest, setRouteFocusRequest] = useState(0)
 
   useEffect(() => {
     let isCurrent = true
@@ -109,7 +126,14 @@ function RoutePage() {
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
   const segments = useMemo(() => (Array.isArray(route?.segments) ? route.segments : []), [route])
-  const selectSegment = (segmentId) => setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
+  const selectWaypoint = (waypointId) => {
+    setSelectedSegmentId(null)
+    setSelectedWaypointId((currentId) => currentId === waypointId ? null : waypointId)
+  }
+  const selectSegment = (segmentId) => {
+    setSelectedWaypointId(null)
+    setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
+  }
   // Accordion: opening one panel closes the others to keep page height minimal.
   const toggleWaypointsPanel = () => setOpenPanel((current) => (current === 'waypoints' ? null : 'waypoints'))
   const toggleSectionsPanel = () => setOpenPanel((current) => (current === 'sections' ? null : 'sections'))
@@ -154,6 +178,52 @@ function RoutePage() {
 
   const videoById = useMemo(() => new Map(videoCatalog.videos.map((video) => [String(video.id), video])), [videoCatalog.videos])
   const routeVideos = useMemo(() => resolveAttachedVideos(routeVideoIds, videoById), [routeVideoIds, videoById])
+  const waypointMediaCountById = useMemo(() => new Map(waypoints.map((waypoint) => [
+    waypoint.id,
+    resolveAttachedVideos(waypoint.media_ids, videoById).length + getPublicGalleries(waypoint).length,
+  ])), [videoById, waypoints])
+  const segmentMediaCountById = useMemo(() => new Map(segments.map((segment) => [
+    segment.id,
+    resolveAttachedVideos(segment.media_ids, videoById).length + getPublicGalleries(segment).length,
+  ])), [segments, videoById])
+  const mapDetail = useMemo(() => {
+    const waypoint = waypoints.find((item) => item.id === selectedWaypointId)
+    if (waypoint) {
+      return {
+        type: 'waypoint',
+        eyebrow: `Waypoint ${waypoint.order}`,
+        title: getWaypointTitle(waypoint),
+        subtitle: String(waypoint.type || 'via').toUpperCase(),
+        summary: waypoint.summary || waypoint.note || waypoint.description || '',
+        videos: resolveAttachedVideos(waypoint.media_ids, videoById),
+        galleries: getPublicGalleries(waypoint),
+      }
+    }
+
+    const segment = segments.find((item) => item.id === selectedSegmentId)
+    if (!segment) return null
+    const start = waypoints.find((waypointItem) => waypointItem.id === segment.start_waypoint_id)
+    const end = waypoints.find((waypointItem) => waypointItem.id === segment.end_waypoint_id)
+    return {
+      type: 'segment',
+      eyebrow: `Section ${segment.order}`,
+      title: segment.title || `${getWaypointTitle(start)} → ${getWaypointTitle(end)}`,
+      subtitle: start && end ? `${getWaypointTitle(start)} → ${getWaypointTitle(end)}` : '',
+      summary: segment.summary || segment.note || '',
+      videos: resolveAttachedVideos(segment.media_ids, videoById),
+      galleries: getPublicGalleries(segment),
+    }
+  }, [segments, selectedSegmentId, selectedWaypointId, videoById, waypoints])
+  const closeMapDetail = () => {
+    setSelectedWaypointId(null)
+    setSelectedSegmentId(null)
+  }
+  const openVideo = (video) => {
+    setOpenPanel(null)
+    setActiveVideo(video)
+  }
+  const showFullRoute = () => setRouteFocusRequest((current) => current + 1)
+  const lightboxImages = lightbox.gallery?.images || []
   const mapRoute = route && route.is_map_renderable === true && isRenderableRoute(route) ? route : null
   const hasMalformedGeometry = route?.geometry && route?.is_map_renderable === true && !mapRoute
   const countryLabel = countryNames.get(route?.country) || route?.country || 'Country pending'
@@ -247,7 +317,7 @@ function RoutePage() {
 
       {openPanel === 'waypoints' && (
         <section id="route-waypoints-panel" className="route-panel-revealed" aria-labelledby="route-waypoints-toggle">
-          <RouteItinerary waypoints={waypoints} selectedWaypointId={selectedWaypointId} onWaypointSelect={setSelectedWaypointId} videoById={videoById} />
+          <RouteItinerary waypoints={waypoints} selectedWaypointId={selectedWaypointId} onWaypointSelect={selectWaypoint} mediaCountById={waypointMediaCountById} />
         </section>
       )}
 
@@ -258,8 +328,7 @@ function RoutePage() {
             waypoints={waypoints}
             selectedSegmentId={selectedSegmentId}
             onSegmentSelect={selectSegment}
-            onDeselect={() => setSelectedSegmentId(null)}
-            videoById={videoById}
+            mediaCountById={segmentMediaCountById}
           />
         </section>
       )}
@@ -282,15 +351,33 @@ function RoutePage() {
           routes={mapRoute ? [mapRoute] : []}
           waypoints={waypoints}
           selectedWaypointId={selectedWaypointId}
-          onWaypointSelect={setSelectedWaypointId}
+          onWaypointSelect={selectWaypoint}
           routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}
           segments={segments}
           selectedSegmentId={selectedSegmentId}
           onSegmentSelect={selectSegment}
+          routeFocusRequest={routeFocusRequest}
           initialCenter={[50, 10]}
           initialZoom={4}
-        />
+        >
+          <RouteMapDetailOverlay
+            detail={mapDetail}
+            onClose={closeMapDetail}
+            onPlayVideo={openVideo}
+            onOpenGallery={(gallery) => setLightbox({ gallery, index: 0 })}
+            onShowFullRoute={showFullRoute}
+          />
+        </MapView>
       </section>
+      <VideoPlayerDialog video={activeVideo} onClose={() => setActiveVideo(null)} />
+      <ImageLightbox
+        images={lightboxImages}
+        activeIndex={lightbox.index}
+        isOpen={lightbox.index >= 0}
+        onClose={() => setLightbox({ gallery: null, index: -1 })}
+        onPrevious={() => setLightbox((current) => ({ ...current, index: (current.index - 1 + lightboxImages.length) % lightboxImages.length }))}
+        onNext={() => setLightbox((current) => ({ ...current, index: (current.index + 1) % lightboxImages.length }))}
+      />
     </section>
   )
 }

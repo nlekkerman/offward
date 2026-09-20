@@ -13,6 +13,7 @@ import { WaypointMarkerZoomController } from '../waypointMarkerIcon.js'
 import '../map.css'
 
 function MapViewContent({
+  children,
   className = '',
   initialCenter = [50.0, 10.0],
   initialZoom = 4,
@@ -29,6 +30,7 @@ function MapViewContent({
   segments = [],
   selectedSegmentId = null,
   onSegmentSelect,
+  routeFocusRequest = 0,
 }) {
   const center = normalizeCenter(initialCenter)
   const zoom = typeof initialZoom === 'number' ? initialZoom : 4
@@ -81,9 +83,10 @@ function MapViewContent({
         />
         <PlaceLayer places={validPlaces} selectedPlaceId={selectedPlaceId} onPlaceSelect={onPlaceSelect} />
         {(validRoutes.length > 0 || validSegments.length > 0 || validWaypoints.length > 0 || validPlaces.length > 0) && (
-          <MapViewportController validRoutes={validRoutes} validSegments={validSegments} validWaypoints={validWaypoints} validPlaces={validPlaces} selectedRouteId={selectedRouteId} selectedSegmentId={selectedSegmentId} selectedPlaceId={selectedPlaceId} />
+          <MapViewportController validRoutes={validRoutes} validSegments={validSegments} validWaypoints={validWaypoints} validPlaces={validPlaces} selectedRouteId={selectedRouteId} selectedSegmentId={selectedSegmentId} selectedWaypointId={selectedWaypointId} selectedPlaceId={selectedPlaceId} routeFocusRequest={routeFocusRequest} />
         )}
       </MapContainer>
+      {children}
     </div>
   )
 }

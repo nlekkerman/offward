@@ -16,8 +16,8 @@ function withAutoplay(url) {
  * (playbackUrl/thumbnailUrl/title) so it can be reused for Video management
  * preview, Story, Route, Place, Event, Reel, and future Live surfaces.
  */
-function VideoPlayer({ playbackUrl, thumbnailUrl, title, className = '' }) {
-  const [isActivated, setIsActivated] = useState(false)
+function VideoPlayer({ playbackUrl, thumbnailUrl, title, className = '', initiallyActivated = false }) {
+  const [isActivated, setIsActivated] = useState(initiallyActivated)
   const [isFrameLoading, setIsFrameLoading] = useState(false)
 
   const hasPlayback = Boolean(playbackUrl)

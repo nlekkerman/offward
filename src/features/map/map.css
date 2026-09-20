@@ -22,6 +22,198 @@
   z-index: 1;
 }
 
+.route-map-detail-overlay {
+  position: absolute;
+  left: 1rem;
+  bottom: 1.8rem;
+  z-index: 800;
+  display: grid;
+  width: min(380px, calc(100% - 2rem));
+  max-height: calc(100% - 3rem);
+  gap: 0.8rem;
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid rgba(216, 180, 124, 0.42);
+  border-radius: 0.75rem;
+  background: rgba(18, 21, 16, 0.96);
+  color: #f2ece4;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.46);
+  backdrop-filter: blur(10px);
+}
+
+.route-map-detail-close {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #514936;
+  border-radius: 50%;
+  background: #1c201b;
+  color: #f2ece4;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.route-map-detail-header {
+  display: grid;
+  gap: 0.25rem;
+  padding-right: 2.25rem;
+}
+
+.route-map-detail-eyebrow,
+.route-map-detail-section-label {
+  margin: 0;
+  color: #d8b47c;
+  font: 800 0.68rem/1.2 sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.route-map-detail-header h3 {
+  margin: 0;
+  color: #f7f1e8;
+  font: 700 1.25rem/1.2 Georgia, serif;
+}
+
+.route-map-detail-subtitle,
+.route-map-detail-summary {
+  margin: 0;
+  color: #c8c2b6;
+  font: 0.82rem/1.45 sans-serif;
+}
+
+.route-map-detail-subtitle {
+  color: #9fa897;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.route-map-detail-summary,
+.route-map-detail-media,
+.route-map-show-route {
+  border-top: 1px solid #34382f;
+  padding-top: 0.75rem;
+}
+
+.route-map-detail-media {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.route-map-detail-media-group {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.route-map-detail-media-group > p {
+  margin: 0;
+  color: #c8c2b6;
+  font: 700 0.72rem/1.2 sans-serif;
+}
+
+.route-map-detail-rail {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scrollbar-width: thin;
+}
+
+.route-map-video-preview,
+.route-map-gallery-preview {
+  flex: 0 0 260px;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 0.65rem;
+  min-height: 72px;
+  padding: 0.55rem;
+  border: 1px solid #353a32;
+  border-radius: 0.5rem;
+  background: #191d18;
+  color: inherit;
+  text-align: left;
+}
+
+.route-map-gallery-preview {
+  cursor: pointer;
+}
+
+.route-map-video-thumbnail,
+.route-map-gallery-cover {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  min-height: 62px;
+  background: #0e110e;
+  color: #d8b47c;
+}
+
+.route-map-video-thumbnail img,
+.route-map-gallery-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.route-map-video-copy,
+.route-map-gallery-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.route-map-video-copy strong,
+.route-map-gallery-copy strong {
+  overflow: hidden;
+  width: 100%;
+  color: #f2ece4;
+  font: 700 0.82rem/1.25 sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-map-video-copy span,
+.route-map-gallery-copy span {
+  color: #aaa99e;
+  font: 0.72rem/1.2 sans-serif;
+}
+
+.route-map-video-copy button,
+.route-map-show-route {
+  border: 0;
+  background: transparent;
+  color: #d8b47c;
+  font: 800 0.75rem/1.2 sans-serif;
+  cursor: pointer;
+}
+
+.route-map-show-route {
+  width: 100%;
+  text-align: left;
+}
+
+@media (max-width: 699px) {
+  .route-map-detail-overlay {
+    right: 0.6rem;
+    bottom: 1.4rem;
+    left: 0.6rem;
+    width: auto;
+    max-height: min(46%, 300px);
+    padding: 0.85rem;
+  }
+
+  .route-map-video-preview,
+  .route-map-gallery-preview {
+    flex-basis: 230px;
+  }
+}
+
 /* Start/finish markers use an olive accent (still within the shared
    palette) so endpoints stand out from ordinary via waypoints. */
 .public-route-waypoint-marker.is-start .route-waypoint-pill,

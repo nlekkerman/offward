@@ -10,7 +10,9 @@ import { createWaypointMarkerIcon } from '../waypointMarkerIcon.js'
 // read-only: click still selects a waypoint, but no editing UI is exposed.
 function PublicWaypointMarker({ waypoint, selected, onWaypointSelect }) {
   const displayName = getWaypointDisplayName(waypoint)
-  const hasMedia = Array.isArray(waypoint.media_ids) && waypoint.media_ids.length > 0
+  const hasMedia = (Array.isArray(waypoint.media_ids) && waypoint.media_ids.length > 0)
+    || (Array.isArray(waypoint.image_collections) && waypoint.image_collections.length > 0)
+    || (Array.isArray(waypoint.galleries) && waypoint.galleries.length > 0)
   const icon = useMemo(
     () => createWaypointMarkerIcon({
       order: waypoint.order,
