@@ -6,6 +6,11 @@ import { MAP_TILE_LAYER } from '../tileConfig.js'
 import { getWaypointDisplayName, normalizeGeometry } from '../../routes/routeMap/routeMapUtils.js'
 import '../map.css'
 
+const WAYPOINT_MARKER_ZOOM = {
+  lowMax: 7,
+  highMin: 13,
+}
+
 function toLatLng(waypoint) {
   const lat = Number(waypoint.latitude)
   const lng = Number(waypoint.longitude)
@@ -61,13 +66,67 @@ function AuthoringViewport({ waypoints, acceptedGeometry, candidateGeometry, seg
   return null
 }
 
-function createWaypointIcon({ waypoint, selected }) {
+function escapeMarkerText(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+}
+
+function createWaypointIcon({ order, displayName, selected }) {
   return L.divIcon({
-    className: selected ? 'route-waypoint-marker is-selected' : 'route-waypoint-marker',
-    html: `<span>${waypoint.order}</span>`,
+    className: selected ? 'route-waypoint-marker route-authoring-waypoint-marker is-selected' : 'route-waypoint-marker route-authoring-waypoint-marker',
+    html: `<span class="route-waypoint-number">${escapeMarkerText(order)}</span><span class="route-waypoint-label">${escapeMarkerText(displayName)}</span><span class="route-waypoint-media-slot" aria-hidden="true"></span>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   })
+}
+
+function getWaypointMarkerZoomClass(zoom) {
+  if (zoom <= WAYPOINT_MARKER_ZOOM.lowMax) return 'route-marker-zoom-low'
+  if (zoom >= WAYPOINT_MARKER_ZOOM.highMin) return 'route-marker-zoom-high'
+  return 'route-marker-zoom-mid'
+}
+
+function applyWaypointMarkerZoomClass(map) {
+  const container = map.getContainer()
+  container.classList.remove('route-marker-zoom-low', 'route-marker-zoom-mid', 'route-marker-zoom-high')
+  container.classList.add(getWaypointMarkerZoomClass(map.getZoom()))
+}
+
+function WaypointMarkerZoomController() {
+  const map = useMapEvents({
+    zoomend() {
+      applyWaypointMarkerZoomClass(map)
+    },
+  })
+
+  useEffect(() => {
+    const container = map.getContainer()
+    applyWaypointMarkerZoomClass(map)
+    return () => container.classList.remove('route-marker-zoom-low', 'route-marker-zoom-mid', 'route-marker-zoom-high')
+  }, [map])
+
+  return null
+}
+
+function WaypointMarker({ waypoint, latLng, selected, onWaypointSelect }) {
+  const displayName = getWaypointDisplayName(waypoint)
+  const icon = useMemo(
+    () => createWaypointIcon({ order: waypoint.order, displayName, selected }),
+    [displayName, selected, waypoint.order],
+  )
+
+  return (
+    <Marker
+      position={latLng}
+      icon={icon}
+      title={`${waypoint.order} · ${displayName}`}
+      eventHandlers={{ click: () => onWaypointSelect(waypoint.id) }}
+    />
+  )
 }
 
 function MapClickHandler({ addMode, onMapAddWaypoint }) {
@@ -128,6 +187,7 @@ function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeomet
     <div className={addMode ? 'offward-map-container route-authoring-map is-add-mode' : 'offward-map-container route-authoring-map'} aria-label="Route waypoint authoring map">
       <MapContainer center={[50, 10]} zoom={4} scrollWheelZoom={true} className="offward-map-inner">
         <TileLayer attribution={MAP_TILE_LAYER.attribution} url={MAP_TILE_LAYER.url} />
+        <WaypointMarkerZoomController />
         {accepted && <GeoJSON key={`accepted-${JSON.stringify(accepted.coordinates)}`} data={{ type: 'Feature', geometry: accepted, properties: {} }} style={ACCEPTED_STYLE} />}
         {candidate && <GeoJSON key={`candidate-${JSON.stringify(candidate.coordinates)}`} data={{ type: 'Feature', geometry: candidate, properties: {} }} style={CANDIDATE_STYLE} />}
         {segments.map((segment) => {
@@ -147,12 +207,12 @@ function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeomet
         {validWaypoints.map(({ waypoint, latLng }) => {
           const selected = waypoint.id === selectedWaypointId
           return (
-            <Marker
+            <WaypointMarker
               key={waypoint.id}
-              position={latLng}
-              icon={createWaypointIcon({ waypoint, selected })}
-              title={`${getWaypointDisplayName(waypoint)}: ${waypoint.type}`}
-              eventHandlers={{ click: () => onWaypointSelect(waypoint.id) }}
+              waypoint={waypoint}
+              latLng={latLng}
+              selected={selected}
+              onWaypointSelect={onWaypointSelect}
             />
           )
         })}

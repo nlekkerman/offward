@@ -1012,6 +1012,100 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   height: 100%;
 }
 
+.route-authoring-waypoint-marker {
+  --waypoint-marker-size: 30px;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.route-authoring-waypoint-marker .route-waypoint-number {
+  z-index: 1;
+  flex: 0 0 var(--waypoint-marker-size);
+  width: var(--waypoint-marker-size);
+  height: var(--waypoint-marker-size);
+  border: 2px solid #d8b47c;
+  border-radius: 50%;
+  background: #121310;
+  color: #f2ead7;
+  box-shadow: 0 0 0 2px rgba(18, 19, 16, 0.72), 0 2px 7px rgba(0, 0, 0, 0.65);
+}
+
+.route-authoring-waypoint-marker .route-waypoint-label {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + (var(--waypoint-marker-size) / 2) + 5px);
+  display: block;
+  width: max-content;
+  max-width: 150px;
+  height: auto;
+  overflow: hidden;
+  padding: 0.3rem 0.42rem;
+  border: 1px solid rgba(216, 180, 124, 0.72);
+  border-radius: 0.25rem;
+  background: rgba(18, 19, 16, 0.94);
+  color: #f2ead7;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.62);
+  font: 650 0.7rem/1.15 sans-serif;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.route-authoring-waypoint-marker .route-waypoint-media-slot {
+  display: none;
+}
+
+.route-authoring-waypoint-marker.is-selected .route-waypoint-number {
+  border-width: 3px;
+  border-color: #f2ead7;
+  background: #b85b08;
+  color: #121310;
+  box-shadow: 0 0 0 3px rgba(18, 19, 16, 0.82), 0 2px 8px rgba(0, 0, 0, 0.7);
+  transform: scale(1.08);
+}
+
+.route-authoring-waypoint-marker.is-selected .route-waypoint-label {
+  border-color: #f2ead7;
+  font-weight: 750;
+}
+
+.route-marker-zoom-low .route-authoring-waypoint-marker {
+  --waypoint-marker-size: 25px;
+  font-size: 0.68rem;
+}
+
+.route-marker-zoom-low .route-authoring-waypoint-marker .route-waypoint-label {
+  display: none;
+}
+
+.route-marker-zoom-high .route-authoring-waypoint-marker {
+  --waypoint-marker-size: 34px;
+  font-size: 0.82rem;
+}
+
+.route-marker-zoom-high .route-authoring-waypoint-marker .route-waypoint-label {
+  max-width: 180px;
+  padding: 0.34rem 0.48rem;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 600px) {
+  .route-marker-zoom-mid .route-authoring-waypoint-marker .route-waypoint-label {
+    max-width: 108px;
+    font-size: 0.66rem;
+  }
+
+  .route-marker-zoom-high .route-authoring-waypoint-marker .route-waypoint-label {
+    max-width: 132px;
+  }
+}
+
 .route-map-panel {
   padding: 1rem;
   background: #171a17;
