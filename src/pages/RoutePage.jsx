@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
-import RouteItinerary from '../features/routes/components/RouteItinerary.jsx'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
 import { normalizeMediaIds, resolveAttachedVideos } from '../features/routes/components/routeMediaUtils.js'
@@ -135,7 +134,6 @@ function RoutePage() {
     setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
   }
   // Accordion: opening one panel closes the others to keep page height minimal.
-  const toggleWaypointsPanel = () => setOpenPanel((current) => (current === 'waypoints' ? null : 'waypoints'))
   const toggleSectionsPanel = () => setOpenPanel((current) => (current === 'sections' ? null : 'sections'))
   const toggleVideosPanel = () => setOpenPanel((current) => (current === 'videos' ? null : 'videos'))
 
@@ -178,10 +176,6 @@ function RoutePage() {
 
   const videoById = useMemo(() => new Map(videoCatalog.videos.map((video) => [String(video.id), video])), [videoCatalog.videos])
   const routeVideos = useMemo(() => resolveAttachedVideos(routeVideoIds, videoById), [routeVideoIds, videoById])
-  const waypointMediaCountById = useMemo(() => new Map(waypoints.map((waypoint) => [
-    waypoint.id,
-    resolveAttachedVideos(waypoint.media_ids, videoById).length + getPublicGalleries(waypoint).length,
-  ])), [videoById, waypoints])
   const segmentMediaCountById = useMemo(() => new Map(segments.map((segment) => [
     segment.id,
     resolveAttachedVideos(segment.media_ids, videoById).length + getPublicGalleries(segment).length,
@@ -269,21 +263,6 @@ function RoutePage() {
       <div className="route-detail-toggles" role="group" aria-label="Route detail panels">
         <button
           type="button"
-          id="route-waypoints-toggle"
-          className={openPanel === 'waypoints' ? 'route-panel-toggle is-open' : 'route-panel-toggle'}
-          aria-expanded={openPanel === 'waypoints'}
-          aria-controls="route-waypoints-panel"
-          onClick={toggleWaypointsPanel}
-          disabled={waypoints.length === 0}
-        >
-          <span className="route-panel-toggle-copy">
-            <span className="route-panel-toggle-title">Waypoints</span>
-            <span className="route-panel-toggle-count">{waypoints.length} {waypoints.length === 1 ? 'item' : 'items'}</span>
-          </span>
-          <span className="route-panel-toggle-chevron" aria-hidden="true">{openPanel === 'waypoints' ? '▲' : '▼'}</span>
-        </button>
-        <button
-          type="button"
           id="route-sections-toggle"
           className={openPanel === 'sections' ? 'route-panel-toggle is-open' : 'route-panel-toggle'}
           aria-expanded={openPanel === 'sections'}
@@ -307,19 +286,13 @@ function RoutePage() {
             onClick={toggleVideosPanel}
           >
             <span className="route-panel-toggle-copy">
-              <span className="route-panel-toggle-title">Videos</span>
-              <span className="route-panel-toggle-count">{routeVideos.length} {routeVideos.length === 1 ? 'item' : 'items'}</span>
+              <span className="route-panel-toggle-title">Media</span>
+              <span className="route-panel-toggle-count">{routeVideos.length} {routeVideos.length === 1 ? 'video' : 'videos'}</span>
             </span>
             <span className="route-panel-toggle-chevron" aria-hidden="true">{openPanel === 'videos' ? '▲' : '▼'}</span>
           </button>
         )}
       </div>
-
-      {openPanel === 'waypoints' && (
-        <section id="route-waypoints-panel" className="route-panel-revealed" aria-labelledby="route-waypoints-toggle">
-          <RouteItinerary waypoints={waypoints} selectedWaypointId={selectedWaypointId} onWaypointSelect={selectWaypoint} mediaCountById={waypointMediaCountById} />
-        </section>
-      )}
 
       {openPanel === 'sections' && (
         <section id="route-sections-panel" className="route-panel-revealed" aria-labelledby="route-sections-toggle">
