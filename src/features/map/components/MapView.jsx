@@ -8,6 +8,7 @@ import PlaceLayer from './PlaceLayer.jsx'
 import MapViewportController from './MapViewportController.jsx'
 import { MAP_TILE_LAYER } from '../tileConfig.js'
 import { isRenderableRoute, getRenderablePlaces, getValidWaypoints, normalizeCenter } from '../mapGeometry.js'
+import { WaypointMarkerZoomController } from '../waypointMarkerIcon.js'
 import '../map.css'
 
 function MapViewContent({
@@ -59,6 +60,7 @@ function MapViewContent({
           attribution={MAP_TILE_LAYER.attribution}
           url={MAP_TILE_LAYER.url}
         />
+        <WaypointMarkerZoomController />
         <RouteLayer
           routes={validRoutes}
           selectedRouteId={selectedRouteId}

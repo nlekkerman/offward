@@ -103,7 +103,6 @@ function RoutePage() {
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
   const segments = useMemo(() => (Array.isArray(route?.segments) ? route.segments : []), [route])
-  const selectedSegment = segments.find((segment) => segment?.id === selectedSegmentId) || null
   const selectSegment = (segmentId) => setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
   const mapRoute = route && route.is_map_renderable === true && isRenderableRoute(route) ? route : null
   const hasMalformedGeometry = route?.geometry && route?.is_map_renderable === true && !mapRoute
@@ -174,7 +173,6 @@ function RoutePage() {
             segments={segments}
             waypoints={waypoints}
             selectedSegmentId={selectedSegmentId}
-            selectedSegment={selectedSegment}
             onSegmentSelect={selectSegment}
             onDeselect={() => setSelectedSegmentId(null)}
           />

@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react'
-import L from 'leaflet'
 import { GeoJSON, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import MapErrorBoundary from './MapErrorBoundary.jsx'
 import { MAP_TILE_LAYER } from '../tileConfig.js'
 import { getWaypointDisplayName, normalizeGeometry } from '../../routes/routeMap/routeMapUtils.js'
+import { createWaypointMarkerIcon, WaypointMarkerZoomController } from '../waypointMarkerIcon.js'
 import '../map.css'
-
-const WAYPOINT_MARKER_ZOOM = {
-  lowMax: 7,
-  highMin: 13,
-}
 
 function toLatLng(waypoint) {
   const lat = Number(waypoint.latitude)
@@ -66,56 +61,10 @@ function AuthoringViewport({ waypoints, acceptedGeometry, candidateGeometry, seg
   return null
 }
 
-function escapeMarkerText(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
-}
-
-function createWaypointIcon({ order, displayName, selected }) {
-  return L.divIcon({
-    className: selected ? 'route-waypoint-marker route-authoring-waypoint-marker is-selected' : 'route-waypoint-marker route-authoring-waypoint-marker',
-    html: `<span class="route-waypoint-number">${escapeMarkerText(order)}</span><span class="route-waypoint-label">${escapeMarkerText(displayName)}</span><span class="route-waypoint-media-slot" aria-hidden="true"></span>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-  })
-}
-
-function getWaypointMarkerZoomClass(zoom) {
-  if (zoom <= WAYPOINT_MARKER_ZOOM.lowMax) return 'route-marker-zoom-low'
-  if (zoom >= WAYPOINT_MARKER_ZOOM.highMin) return 'route-marker-zoom-high'
-  return 'route-marker-zoom-mid'
-}
-
-function applyWaypointMarkerZoomClass(map) {
-  const container = map.getContainer()
-  container.classList.remove('route-marker-zoom-low', 'route-marker-zoom-mid', 'route-marker-zoom-high')
-  container.classList.add(getWaypointMarkerZoomClass(map.getZoom()))
-}
-
-function WaypointMarkerZoomController() {
-  const map = useMapEvents({
-    zoomend() {
-      applyWaypointMarkerZoomClass(map)
-    },
-  })
-
-  useEffect(() => {
-    const container = map.getContainer()
-    applyWaypointMarkerZoomClass(map)
-    return () => container.classList.remove('route-marker-zoom-low', 'route-marker-zoom-mid', 'route-marker-zoom-high')
-  }, [map])
-
-  return null
-}
-
 function WaypointMarker({ waypoint, latLng, selected, onWaypointSelect }) {
   const displayName = getWaypointDisplayName(waypoint)
   const icon = useMemo(
-    () => createWaypointIcon({ order: waypoint.order, displayName, selected }),
+    () => createWaypointMarkerIcon({ order: waypoint.order, displayName, selected, extraClassNames: ['route-authoring-waypoint-marker'] }),
     [displayName, selected, waypoint.order],
   )
 
