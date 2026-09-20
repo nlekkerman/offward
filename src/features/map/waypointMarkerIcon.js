@@ -71,8 +71,8 @@ const WRAPPER_HEIGHT = 40
 // its bottom-left corner (the geographic waypoint coordinate). Name
 // visibility/size/truncation is controlled purely by CSS via the zoom
 // classes above, so the icon does not need to be rebuilt on every zoomend.
-export function createWaypointMarkerIcon({ order, displayName, selected = false, extraClassNames = [] }) {
-  const className = ['route-waypoint-marker', ...extraClassNames, selected ? 'is-selected' : '']
+export function createWaypointMarkerIcon({ order, displayName, selected = false, hasMedia = false, extraClassNames = [] }) {
+  const className = ['route-waypoint-marker', ...extraClassNames, selected ? 'is-selected' : '', hasMedia ? 'has-media' : '']
     .filter(Boolean)
     .join(' ')
 
@@ -80,9 +80,15 @@ export function createWaypointMarkerIcon({ order, displayName, selected = false,
     ? `<span class="route-waypoint-name">${escapeMarkerText(displayName)}</span>`
     : ''
 
+  // Only rendered when the Waypoint actually has attached media; otherwise
+  // no icon markup exists at all (no empty reserved slot in the DOM).
+  const mediaHtml = hasMedia
+    ? '<span class="route-waypoint-media-slot" aria-hidden="true">▶</span>'
+    : ''
+
   return L.divIcon({
     className,
-    html: `<span class="route-waypoint-pill"><span class="route-waypoint-number">${escapeMarkerText(order)}</span>${nameHtml}<span class="route-waypoint-media-slot" aria-hidden="true"></span></span>`,
+    html: `<span class="route-waypoint-pill"><span class="route-waypoint-number">${escapeMarkerText(order)}</span>${nameHtml}${mediaHtml}</span>`,
     iconSize: [WRAPPER_WIDTH, WRAPPER_HEIGHT],
     iconAnchor: [0, WRAPPER_HEIGHT],
   })

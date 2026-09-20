@@ -3,9 +3,12 @@ import { Link, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import RouteItinerary from '../features/routes/components/RouteItinerary.jsx'
+import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
+import { normalizeMediaIds, resolveAttachedVideos } from '../features/routes/components/routeMediaUtils.js'
 import RouteSections from '../features/routes/components/RouteSections.jsx'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
+import { getPublicVideos } from '../services/videosApi.js'
 import NotFoundPage from './NotFoundPage.jsx'
 
 const ROUTE_DETAIL_LINE_STYLE = {
@@ -46,6 +49,7 @@ function RoutePage() {
   const [selectedWaypointId, setSelectedWaypointId] = useState(null)
   const [selectedSegmentId, setSelectedSegmentId] = useState(null)
   const [openPanel, setOpenPanel] = useState(null)
+  const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
 
   useEffect(() => {
     let isCurrent = true
@@ -106,9 +110,50 @@ function RoutePage() {
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
   const segments = useMemo(() => (Array.isArray(route?.segments) ? route.segments : []), [route])
   const selectSegment = (segmentId) => setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
-  // Accordion: opening one panel closes the other to keep page height minimal.
+  // Accordion: opening one panel closes the others to keep page height minimal.
   const toggleWaypointsPanel = () => setOpenPanel((current) => (current === 'waypoints' ? null : 'waypoints'))
   const toggleSectionsPanel = () => setOpenPanel((current) => (current === 'sections' ? null : 'sections'))
+  const toggleVideosPanel = () => setOpenPanel((current) => (current === 'videos' ? null : 'videos'))
+
+  const routeVideoIds = useMemo(() => normalizeMediaIds(route?.video_ids), [route])
+  const hasAnyAttachedMedia = useMemo(
+    () => routeVideoIds.length > 0
+      || segments.some((segment) => normalizeMediaIds(segment.media_ids).length > 0)
+      || waypoints.some((waypoint) => normalizeMediaIds(waypoint.media_ids).length > 0),
+    [routeVideoIds, segments, waypoints],
+  )
+
+  // Videos load independently, resolved against the public Video list - the
+  // same pattern used for public Story media. Only fetched when at least one
+  // Route/Segment/Waypoint media id exists.
+  useEffect(() => {
+    if (!hasAnyAttachedMedia) {
+      return undefined
+    }
+
+    let isCurrent = true
+
+    async function loadVideos() {
+      try {
+        const data = await getPublicVideos()
+        if (isCurrent) {
+          setVideoCatalog({ status: 'success', videos: data })
+        }
+      } catch {
+        if (isCurrent) {
+          setVideoCatalog({ status: 'error', videos: [] })
+        }
+      }
+    }
+
+    loadVideos()
+    return () => {
+      isCurrent = false
+    }
+  }, [hasAnyAttachedMedia])
+
+  const videoById = useMemo(() => new Map(videoCatalog.videos.map((video) => [String(video.id), video])), [videoCatalog.videos])
+  const routeVideos = useMemo(() => resolveAttachedVideos(routeVideoIds, videoById), [routeVideoIds, videoById])
   const mapRoute = route && route.is_map_renderable === true && isRenderableRoute(route) ? route : null
   const hasMalformedGeometry = route?.geometry && route?.is_map_renderable === true && !mapRoute
   const countryLabel = countryNames.get(route?.country) || route?.country || 'Country pending'
@@ -182,11 +227,27 @@ function RoutePage() {
           </span>
           <span className="route-panel-toggle-chevron" aria-hidden="true">{openPanel === 'sections' ? '▲' : '▼'}</span>
         </button>
+        {routeVideos.length > 0 && (
+          <button
+            type="button"
+            id="route-videos-toggle"
+            className={openPanel === 'videos' ? 'route-panel-toggle is-open' : 'route-panel-toggle'}
+            aria-expanded={openPanel === 'videos'}
+            aria-controls="route-videos-panel"
+            onClick={toggleVideosPanel}
+          >
+            <span className="route-panel-toggle-copy">
+              <span className="route-panel-toggle-title">Videos</span>
+              <span className="route-panel-toggle-count">{routeVideos.length} {routeVideos.length === 1 ? 'item' : 'items'}</span>
+            </span>
+            <span className="route-panel-toggle-chevron" aria-hidden="true">{openPanel === 'videos' ? '▲' : '▼'}</span>
+          </button>
+        )}
       </div>
 
       {openPanel === 'waypoints' && (
         <section id="route-waypoints-panel" className="route-panel-revealed" aria-labelledby="route-waypoints-toggle">
-          <RouteItinerary waypoints={waypoints} selectedWaypointId={selectedWaypointId} onWaypointSelect={setSelectedWaypointId} />
+          <RouteItinerary waypoints={waypoints} selectedWaypointId={selectedWaypointId} onWaypointSelect={setSelectedWaypointId} videoById={videoById} />
         </section>
       )}
 
@@ -198,7 +259,14 @@ function RoutePage() {
             selectedSegmentId={selectedSegmentId}
             onSegmentSelect={selectSegment}
             onDeselect={() => setSelectedSegmentId(null)}
+            videoById={videoById}
           />
+        </section>
+      )}
+
+      {openPanel === 'videos' && routeVideos.length > 0 && (
+        <section id="route-videos-panel" className="route-panel-revealed" aria-labelledby="route-videos-toggle">
+          <RouteMediaGrid videos={routeVideos} />
         </section>
       )}
 
