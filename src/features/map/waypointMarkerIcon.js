@@ -52,27 +52,24 @@ function escapeMarkerText(value) {
     .replaceAll("'", '&#039;')
 }
 
-// The marker DOM has three layers:
+// The marker DOM has two layers:
 //  - .route-waypoint-marker: the Leaflet icon element itself. Its size is
 //    fixed (WRAPPER_WIDTH x WRAPPER_HEIGHT) purely so Leaflet has a stable
 //    box to anchor; it is otherwise invisible and ignores pointer events.
-//  - .route-waypoint-body: an invisible bottom-center-anchored column that
-//    stacks the pill above the pointer tip so the tip always sits exactly
-//    on the wrapper's bottom edge - the geographic anchor point - no
-//    matter how tall the pill grows (e.g. a 2-line name).
-//  - .route-waypoint-pill: the single visible rounded pill containing the
-//    number and name side by side (and a reserved future media slot). Its
-//    width is capped (via CSS) so long names wrap onto a second line
-//    instead of widening the pill indefinitely.
-//  - .route-waypoint-pointer: a small triangular tip beneath the pill so
-//    the marker still reads as a map pin; purely decorative.
-const WRAPPER_WIDTH = 160
-const WRAPPER_HEIGHT = 64
+//  - .route-waypoint-pill: the single visible rounded pill (number + name
+//    + reserved media slot) absolutely positioned at the wrapper's
+//    bottom-left corner (left: 0; bottom: 0). Because it is anchored to
+//    that corner - not centered - the pill can grow/shrink in width
+//    without ever moving the wrapper's bottom-left point, which is also
+//    the Leaflet iconAnchor. A small corner dot on the pill marks that
+//    exact anchor point on the map.
+const WRAPPER_WIDTH = 220
+const WRAPPER_HEIGHT = 40
 
-// Shared marker presentation: number + name live inside one pill, with a
-// pointer tip beneath it. Name visibility/size is controlled purely by CSS
-// via the zoom classes above, so the icon does not need to be rebuilt on
-// every zoomend.
+// Shared marker presentation: a single-line number + name pill anchored at
+// its bottom-left corner (the geographic waypoint coordinate). Name
+// visibility/size/truncation is controlled purely by CSS via the zoom
+// classes above, so the icon does not need to be rebuilt on every zoomend.
 export function createWaypointMarkerIcon({ order, displayName, selected = false, extraClassNames = [] }) {
   const className = ['route-waypoint-marker', ...extraClassNames, selected ? 'is-selected' : '']
     .filter(Boolean)
@@ -84,8 +81,8 @@ export function createWaypointMarkerIcon({ order, displayName, selected = false,
 
   return L.divIcon({
     className,
-    html: `<span class="route-waypoint-body"><span class="route-waypoint-pill"><span class="route-waypoint-number">${escapeMarkerText(order)}</span>${nameHtml}<span class="route-waypoint-media-slot" aria-hidden="true"></span></span><span class="route-waypoint-pointer" aria-hidden="true"></span></span>`,
+    html: `<span class="route-waypoint-pill"><span class="route-waypoint-number">${escapeMarkerText(order)}</span>${nameHtml}<span class="route-waypoint-media-slot" aria-hidden="true"></span></span>`,
     iconSize: [WRAPPER_WIDTH, WRAPPER_HEIGHT],
-    iconAnchor: [WRAPPER_WIDTH / 2, WRAPPER_HEIGHT],
+    iconAnchor: [0, WRAPPER_HEIGHT],
   })
 }

@@ -990,89 +990,116 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 /* Wrapper is the actual Leaflet icon element (fixed size for a stable
    anchor); it stays invisible and pointer-events: none so only the pill
-   below is clickable/hoverable. */
+   below is clickable/hoverable. The Offward waypoint palette lives here as
+   CSS variables so both the public map and the management editor share one
+   source of truth. */
 .route-waypoint-marker {
   --waypoint-pill-max-width: 168px;
+  --waypoint-bg: #dcc6a1;
+  --waypoint-border: #8a6d46;
+  --waypoint-text: #2b2620;
+  --waypoint-name-color: rgba(43, 38, 32, 0.7);
+  --waypoint-number-color: #5c3f1f;
+  --waypoint-divider-color: rgba(43, 38, 32, 0.3);
+  --waypoint-shadow: 0 2px 6px rgba(43, 38, 32, 0.35);
+  --waypoint-selected-bg: #e8b756;
+  --waypoint-selected-border: #6b4a1e;
+  --waypoint-selected-text: #2b2620;
+  --waypoint-selected-shadow: 0 0 0 2px rgba(107, 74, 30, 0.35), 0 3px 9px rgba(43, 38, 32, 0.45);
   position: relative;
   overflow: visible;
   pointer-events: none;
   font-family: sans-serif;
 }
 
-/* Invisible column that stacks the pill above its pointer tip, bottom-
-   anchored and horizontally centered in the wrapper so the pointer tip
-   always sits exactly at the wrapper's bottom edge - the geographic
-   anchor point - regardless of how tall the pill grows. */
-.route-waypoint-marker .route-waypoint-body {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 /* The pill: one compact rounded rect holding number + name (+ reserved
-   media slot) side by side. Max-width is fixed (per zoom level below)
-   rather than sized to fit the full unbroken name - the name wraps onto a
-   second line instead of widening the pill. */
+   media slot) on a single line, anchored at the wrapper's bottom-left
+   corner - the geographic waypoint coordinate. Anchoring left (not
+   center) means width changes only ever extend the pill rightward and
+   never move that corner. */
 .route-waypoint-marker .route-waypoint-pill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   gap: 0.35rem;
   box-sizing: border-box;
   max-width: var(--waypoint-pill-max-width);
   padding: 0.3rem 0.55rem;
-  border-radius: 14px;
-  border: 1.5px solid #d8b47c;
-  background: #121310;
-  color: #f2ead7;
-  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.55);
+  border-radius: 3px 14px 14px 14px;
+  border: 1.5px solid var(--waypoint-border);
+  background: var(--waypoint-bg);
+  color: var(--waypoint-text);
+  box-shadow: var(--waypoint-shadow);
   cursor: pointer;
   pointer-events: auto;
+  transform-origin: 0 100%;
+}
+
+/* Small circular dot on the bottom-left corner marks the exact anchor
+   point on the map (replaces the old centered speech-bubble pointer). */
+.route-waypoint-marker .route-waypoint-pill::after {
+  content: '';
+  position: absolute;
+  left: -3px;
+  bottom: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--waypoint-border);
+  border: 1px solid var(--waypoint-bg);
 }
 
 .route-waypoint-marker.is-selected .route-waypoint-pill {
-  border-color: #f2ead7;
-  background: #c25e00;
-  color: #121310;
+  border-color: var(--waypoint-selected-border);
+  background: var(--waypoint-selected-bg);
+  color: var(--waypoint-selected-text);
   transform: scale(1.08);
-  box-shadow: 0 0 0 2px rgba(18, 19, 16, 0.7), 0 2px 8px rgba(0, 0, 0, 0.65);
+  box-shadow: var(--waypoint-selected-shadow);
 }
 
-/* Number: the strongest element, left of the name, vertically centered. */
+.route-waypoint-marker.is-selected .route-waypoint-pill::after {
+  background: var(--waypoint-selected-border);
+  border-color: var(--waypoint-selected-bg);
+}
+
+/* Number: the strongest element, left of the name, vertically centered,
+   with a subtle divider separating it from the name. */
 .route-waypoint-marker .route-waypoint-number {
   flex-shrink: 0;
+  padding-right: 0.35rem;
+  border-right: 1px solid var(--waypoint-divider-color);
   font-size: 0.875rem; /* ~14px */
   font-weight: 700;
   line-height: 1.15;
+  color: var(--waypoint-number-color);
 }
 
-/* Name: secondary, smaller/lighter, hidden by default and revealed at
-   higher zoom via the .route-marker-zoom-* classes below. min-width: 0 is
-   required so this flex child can actually shrink/wrap instead of forcing
-   the pill wider. A line clamp keeps unusually long names to at most 2
-   lines rather than growing the pill without bound. */
+.route-waypoint-marker.is-selected .route-waypoint-number {
+  color: var(--waypoint-selected-text);
+}
+
+/* Name: secondary, smaller/lighter, same baseline as the number, on a
+   single line - hidden by default and revealed at higher zoom via the
+   .route-marker-zoom-* classes below. min-width: 0 is required so this
+   flex child can actually shrink instead of forcing the pill wider; long
+   names are truncated with an ellipsis rather than wrapping. */
 .route-waypoint-marker .route-waypoint-name {
   display: none;
   min-width: 0;
   font-size: 0.6875rem; /* ~11px */
   font-weight: 400;
   line-height: 1.2;
-  color: rgba(242, 234, 215, 0.78);
+  color: var(--waypoint-name-color);
   text-align: left;
-  white-space: normal;
-  word-break: normal;
-  overflow-wrap: break-word;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .route-waypoint-marker.is-selected .route-waypoint-name {
-  color: rgba(18, 19, 16, 0.78);
+  color: var(--waypoint-selected-text);
 }
 
 /* Reserved slot for a future tiny media/status icon at the far right of
@@ -1084,49 +1111,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   height: 8px;
   border-radius: 50%;
   background: #4F8A3C;
-  border: 1px solid #121310;
-}
-
-/* Pointer tip: a small triangle beneath the pill so the marker still
-   reads as a map pin. Two stacked triangles (border-color outer, fill-
-   color inner) fake a bordered edge matching the pill's border. */
-.route-waypoint-marker .route-waypoint-pointer {
-  position: relative;
-  width: 14px;
-  height: 7px;
-  margin-top: -1px;
-}
-
-.route-waypoint-marker .route-waypoint-pointer::before,
-.route-waypoint-marker .route-waypoint-pointer::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 0;
-  height: 0;
-  transform: translateX(-50%);
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-}
-
-.route-waypoint-marker .route-waypoint-pointer::before {
-  border-top: 8px solid #d8b47c;
-}
-
-.route-waypoint-marker .route-waypoint-pointer::after {
-  top: 1.5px;
-  border-left-width: 5.5px;
-  border-right-width: 5.5px;
-  border-top: 6.5px solid #121310;
-}
-
-.route-waypoint-marker.is-selected .route-waypoint-pointer::before {
-  border-top-color: #f2ead7;
-}
-
-.route-waypoint-marker.is-selected .route-waypoint-pointer::after {
-  border-top-color: #c25e00;
+  border: 1px solid var(--waypoint-bg);
 }
 
 .route-marker-zoom-low .route-waypoint-marker {
@@ -1143,7 +1128,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .route-marker-zoom-mid .route-waypoint-marker .route-waypoint-name,
 .route-marker-zoom-high .route-waypoint-marker .route-waypoint-name {
-  display: -webkit-box;
+  display: inline-block;
 }
 
 .route-marker-zoom-high .route-waypoint-marker {
@@ -1164,11 +1149,11 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 @media (max-width: 600px) {
   .route-marker-zoom-mid .route-waypoint-marker {
-    --waypoint-pill-max-width: 140px;
+    --waypoint-pill-max-width: 120px;
   }
 
   .route-marker-zoom-high .route-waypoint-marker {
-    --waypoint-pill-max-width: 160px;
+    --waypoint-pill-max-width: 140px;
   }
 
   .route-marker-zoom-mid .route-waypoint-marker .route-waypoint-name,
