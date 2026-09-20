@@ -1,5 +1,5 @@
+import { useId, useState } from 'react'
 import { isRenderableRoute } from '../../map/mapGeometry.js'
-import { getWaypointDisplayName } from '../routeMap/routeMapUtils.js'
 
 function getOrderedSegments(segments) {
   if (!Array.isArray(segments)) {
@@ -12,65 +12,62 @@ function getOrderedSegments(segments) {
       ...segment,
       order: Number.isFinite(Number(segment.order)) ? Number(segment.order) : index + 1,
       title: typeof segment.title === 'string' ? segment.title.trim() : '',
-      summary: typeof segment.summary === 'string' ? segment.summary.trim() : '',
     }))
     .sort((a, b) => a.order - b.order)
 }
 
-function getWaypointLabel(waypoint) {
-  return getWaypointDisplayName(waypoint)
-}
-
-function RouteSections({ segments, waypoints, selectedSegmentId, onSegmentSelect, mediaCountById = new Map() }) {
+function RouteSections({ segments, selectedSegmentId, onSegmentSelect }) {
   const orderedSegments = getOrderedSegments(segments)
+  const [isOpen, setIsOpen] = useState(false)
+  const listId = useId()
 
   if (orderedSegments.length === 0) {
     return null
   }
 
-  const waypointById = new Map(waypoints.map((waypoint) => [waypoint.id, waypoint]))
+  const handleSelect = (segmentId) => {
+    onSegmentSelect(segmentId)
+    setIsOpen(false)
+  }
 
   return (
-    <ol className="route-sections-chip-list">
-      {orderedSegments.map((segment) => {
-        const available = typeof segment.id === 'string' && isRenderableRoute(segment)
-        const expanded = segment.id === selectedSegmentId
-        const title = segment.title || `Section ${segment.order}`
-        const startWaypoint = segment.start_waypoint_id ? waypointById.get(segment.start_waypoint_id) : null
-        const endWaypoint = segment.end_waypoint_id ? waypointById.get(segment.end_waypoint_id) : null
-        const compactSummary = startWaypoint && endWaypoint ? `${getWaypointLabel(startWaypoint)} → ${getWaypointLabel(endWaypoint)}` : ''
-        const mediaCount = mediaCountById.get(segment.id) || 0
-
-        return (
-          <li
-            key={segment.id || `${segment.order}-${segment.title || segment.summary}`}
-            className={expanded ? 'route-section-card is-selected' : 'route-section-card'}
-          >
-            <button
-              type="button"
-              className="route-section-toggle"
-              aria-expanded={expanded}
-              aria-disabled={!available}
-              disabled={!available}
-              onClick={() => onSegmentSelect(segment.id)}
-            >
-              <span className="route-section-order">Section {segment.order}</span>
-              <span className="route-section-copy">
-                <strong>{title}</strong>
-                {compactSummary && <span className="route-section-compact-summary">{compactSummary}</span>}
-                {mediaCount > 0 && <span className="route-section-media-badge">Media {mediaCount}</span>}
-                {!available && <span className="route-section-unavailable">Map geometry unavailable</span>}
-              </span>
-              {available && (
-                <span className="route-section-toggle-label" aria-hidden="true">
-                  {expanded ? 'Selected' : 'View on map'}
-                </span>
-              )}
-            </button>
-          </li>
-        )
-      })}
-    </ol>
+    <div className="route-map-sections-control">
+      <button
+        type="button"
+        className="route-map-sections-trigger"
+        aria-expanded={isOpen}
+        aria-controls={listId}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <span>Sections</span>
+        <strong>{orderedSegments.length}</strong>
+        <span aria-hidden="true">{isOpen ? '▲' : '▼'}</span>
+      </button>
+      {isOpen && (
+        <ol id={listId} className="route-map-sections-list">
+          {orderedSegments.map((segment) => {
+            const available = typeof segment.id === 'string' && isRenderableRoute(segment)
+            const selected = segment.id === selectedSegmentId
+            const title = segment.title || 'Untitled section'
+            return (
+              <li key={segment.id || `${segment.order}-${title}`}>
+                <button
+                  type="button"
+                  className={selected ? 'route-map-section-row is-selected' : 'route-map-section-row'}
+                  disabled={!available}
+                  aria-pressed={selected}
+                  aria-label={`Section ${segment.order}: ${title}`}
+                  onClick={() => handleSelect(segment.id)}
+                >
+                  <span>Section {segment.order}</span>
+                  <strong>{title}</strong>
+                </button>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </div>
   )
 }
 

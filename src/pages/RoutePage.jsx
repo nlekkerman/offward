@@ -133,8 +133,6 @@ function RoutePage() {
     setSelectedWaypointId(null)
     setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
   }
-  // Accordion: opening one panel closes the others to keep page height minimal.
-  const toggleSectionsPanel = () => setOpenPanel((current) => (current === 'sections' ? null : 'sections'))
   const toggleVideosPanel = () => setOpenPanel((current) => (current === 'videos' ? null : 'videos'))
 
   const routeVideoIds = useMemo(() => normalizeMediaIds(route?.video_ids), [route])
@@ -176,10 +174,6 @@ function RoutePage() {
 
   const videoById = useMemo(() => new Map(videoCatalog.videos.map((video) => [String(video.id), video])), [videoCatalog.videos])
   const routeVideos = useMemo(() => resolveAttachedVideos(routeVideoIds, videoById), [routeVideoIds, videoById])
-  const segmentMediaCountById = useMemo(() => new Map(segments.map((segment) => [
-    segment.id,
-    resolveAttachedVideos(segment.media_ids, videoById).length + getPublicGalleries(segment).length,
-  ])), [segments, videoById])
   const mapDetail = useMemo(() => {
     const waypoint = waypoints.find((item) => item.id === selectedWaypointId)
     if (waypoint) {
@@ -261,21 +255,6 @@ function RoutePage() {
       </header>
 
       <div className="route-detail-toggles" role="group" aria-label="Route detail panels">
-        <button
-          type="button"
-          id="route-sections-toggle"
-          className={openPanel === 'sections' ? 'route-panel-toggle is-open' : 'route-panel-toggle'}
-          aria-expanded={openPanel === 'sections'}
-          aria-controls="route-sections-panel"
-          onClick={toggleSectionsPanel}
-          disabled={segments.length === 0}
-        >
-          <span className="route-panel-toggle-copy">
-            <span className="route-panel-toggle-title">Sections</span>
-            <span className="route-panel-toggle-count">{segments.length} {segments.length === 1 ? 'item' : 'items'}</span>
-          </span>
-          <span className="route-panel-toggle-chevron" aria-hidden="true">{openPanel === 'sections' ? '▲' : '▼'}</span>
-        </button>
         {routeVideos.length > 0 && (
           <button
             type="button"
@@ -293,18 +272,6 @@ function RoutePage() {
           </button>
         )}
       </div>
-
-      {openPanel === 'sections' && (
-        <section id="route-sections-panel" className="route-panel-revealed" aria-labelledby="route-sections-toggle">
-          <RouteSections
-            segments={segments}
-            waypoints={waypoints}
-            selectedSegmentId={selectedSegmentId}
-            onSegmentSelect={selectSegment}
-            mediaCountById={segmentMediaCountById}
-          />
-        </section>
-      )}
 
       {openPanel === 'videos' && routeVideos.length > 0 && (
         <section id="route-videos-panel" className="route-panel-revealed" aria-labelledby="route-videos-toggle">
@@ -333,6 +300,11 @@ function RoutePage() {
           initialCenter={[50, 10]}
           initialZoom={4}
         >
+          <RouteSections
+            segments={segments}
+            selectedSegmentId={selectedSegmentId}
+            onSegmentSelect={selectSegment}
+          />
           <RouteMapDetailOverlay
             detail={mapDetail}
             onClose={closeMapDetail}
