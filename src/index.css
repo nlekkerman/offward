@@ -988,61 +988,127 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   cursor: crosshair;
 }
 
+/* Wrapper is the actual Leaflet icon element (fixed size for a stable
+   anchor); it stays invisible and pointer-events: none so only the pin
+   body below is clickable/hoverable. */
 .route-waypoint-marker {
-  --waypoint-marker-size: 26px;
-  display: inline-flex;
-  align-items: center;
-  overflow: hidden;
-  border: 2px solid #d8b47c;
-  border-radius: 999px;
-  background: #121310;
-  color: #f2ead7;
-  box-shadow: 0 0 0 2px rgba(18, 19, 16, 0.72), 0 2px 7px rgba(0, 0, 0, 0.55);
-  font: 700 0.72rem/1 sans-serif;
-  white-space: nowrap;
-  cursor: pointer;
+  --waypoint-tip-size: 7px;
+  position: relative;
+  overflow: visible;
+  pointer-events: none;
+  font-family: sans-serif;
 }
 
-.route-waypoint-marker.is-selected {
+/* Pin body: bottom-anchored and horizontally centered in the wrapper so its
+   width can grow/shrink with the name without moving the pointer tip. */
+.route-waypoint-marker .route-waypoint-body {
+  position: absolute;
+  left: 50%;
+  bottom: var(--waypoint-tip-size);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 30px;
+  max-width: 104px;
+  padding: 0.3rem 0.5rem 0.35rem;
+  border: 1.5px solid #d8b47c;
+  border-radius: 8px 8px 2px 2px;
+  background: #121310;
+  color: #f2ead7;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Pointed bottom tip, drawn as two stacked CSS triangles so the pin border
+   color shows as a thin outline around the tip. */
+.route-waypoint-marker .route-waypoint-body::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--waypoint-tip-size) * -1);
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: calc(var(--waypoint-tip-size) * 0.85) solid transparent;
+  border-right: calc(var(--waypoint-tip-size) * 0.85) solid transparent;
+  border-top: var(--waypoint-tip-size) solid #d8b47c;
+}
+
+.route-waypoint-marker .route-waypoint-body::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: calc(var(--waypoint-tip-size) * -1 + 1.5px);
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: calc(var(--waypoint-tip-size) * 0.6) solid transparent;
+  border-right: calc(var(--waypoint-tip-size) * 0.6) solid transparent;
+  border-top: calc(var(--waypoint-tip-size) - 1.5px) solid #121310;
+}
+
+.route-waypoint-marker.is-selected .route-waypoint-body {
   border-color: #f2ead7;
   background: #c25e00;
   color: #121310;
+  transform: translateX(-50%) scale(1.08);
+  box-shadow: 0 0 0 2px rgba(18, 19, 16, 0.7), 0 2px 8px rgba(0, 0, 0, 0.65);
 }
 
+.route-waypoint-marker.is-selected .route-waypoint-body::before {
+  border-top-color: #c25e00;
+}
+
+/* Number: the strongest element, centered above the name. */
 .route-waypoint-marker .route-waypoint-number {
-  flex: 0 0 var(--waypoint-marker-size);
-  width: var(--waypoint-marker-size);
-  height: var(--waypoint-marker-size);
-  display: grid;
-  place-items: center;
+  font-size: 0.875rem; /* ~14px */
+  font-weight: 700;
+  line-height: 1.15;
 }
 
-/* Name lives inside the same pill; hidden by default and revealed at higher
-   zoom via the .route-marker-zoom-* classes below (see requirement #2). */
+/* Name: secondary, smaller/lighter, hidden by default and revealed at
+   higher zoom via the .route-marker-zoom-* classes below. */
 .route-waypoint-marker .route-waypoint-name {
   display: none;
-  max-width: 130px;
-  padding: 0 0.55rem 0 0.15rem;
-  border-left: 1px solid rgba(243, 239, 230, 0.28);
+  max-width: 92px;
+  margin-top: 0.05rem;
+  font-size: 0.625rem; /* ~10px */
+  font-weight: 400;
+  line-height: 1.2;
+  color: rgba(242, 234, 215, 0.78);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 650;
+  text-align: center;
 }
 
+.route-waypoint-marker.is-selected .route-waypoint-name {
+  color: rgba(18, 19, 16, 0.78);
+}
+
+/* Reserved slot for a future tiny media/status icon in one corner; empty
+   and hidden until that feature is implemented. */
 .route-waypoint-marker .route-waypoint-media-slot {
   display: none;
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4F8A3C;
+  border: 1px solid #121310;
 }
 
-.route-authoring-waypoint-marker.is-selected {
-  border-width: 3px;
-  transform: scale(1.08);
-  box-shadow: 0 0 0 3px rgba(18, 19, 16, 0.82), 0 2px 8px rgba(0, 0, 0, 0.7);
+.route-marker-zoom-low .route-waypoint-marker .route-waypoint-body {
+  padding: 0.22rem 0.42rem 0.28rem;
 }
 
-.route-marker-zoom-low .route-waypoint-marker {
-  --waypoint-marker-size: 22px;
-  font-size: 0.66rem;
+.route-marker-zoom-low .route-waypoint-marker .route-waypoint-number {
+  font-size: 0.8125rem; /* ~13px */
 }
 
 .route-marker-zoom-mid .route-waypoint-marker .route-waypoint-name,
@@ -1050,25 +1116,24 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   display: block;
 }
 
-.route-marker-zoom-high .route-waypoint-marker {
-  --waypoint-marker-size: 30px;
-  font-size: 0.8rem;
+.route-marker-zoom-high .route-waypoint-marker .route-waypoint-body {
+  padding: 0.36rem 0.6rem 0.4rem;
+}
+
+.route-marker-zoom-high .route-waypoint-marker .route-waypoint-number {
+  font-size: 0.9375rem; /* ~15px */
 }
 
 .route-marker-zoom-high .route-waypoint-marker .route-waypoint-name {
-  max-width: 170px;
-  padding: 0 0.6rem 0 0.2rem;
-  font-size: 0.76rem;
+  max-width: 118px;
+  font-size: 0.6875rem; /* ~11px */
 }
 
 @media (max-width: 600px) {
-  .route-marker-zoom-mid .route-waypoint-marker .route-waypoint-name {
-    max-width: 96px;
-    font-size: 0.64rem;
-  }
-
+  .route-marker-zoom-mid .route-waypoint-marker .route-waypoint-name,
   .route-marker-zoom-high .route-waypoint-marker .route-waypoint-name {
-    max-width: 118px;
+    max-width: 78px;
+    font-size: 0.6rem;
   }
 }
 

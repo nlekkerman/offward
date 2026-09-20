@@ -22,23 +22,22 @@
   z-index: 1;
 }
 
-.public-route-waypoint-marker {
+.public-route-waypoint-marker .route-waypoint-body {
   border-color: #f1dfbd;
   background: #121310;
   color: #f3efe6;
 }
 
-.public-route-waypoint-marker.is-start,
-.public-route-waypoint-marker.is-finish {
+.public-route-waypoint-marker.is-start .route-waypoint-body,
+.public-route-waypoint-marker.is-finish .route-waypoint-body {
   border-color: #4F8A3C;
   background: #d8b47c;
   color: #121310;
 }
 
-.public-route-waypoint-marker.is-selected {
-  border-color: #f3efe6;
-  background: #4F8A3C;
-  color: #f3efe6;
+.public-route-waypoint-marker.is-start .route-waypoint-body .route-waypoint-name,
+.public-route-waypoint-marker.is-finish .route-waypoint-body .route-waypoint-name {
+  color: rgba(18, 19, 16, 0.72);
 }
 
 .public-place-marker {

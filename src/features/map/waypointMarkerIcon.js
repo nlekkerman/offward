@@ -52,7 +52,17 @@ function escapeMarkerText(value) {
     .replaceAll("'", '&#039;')
 }
 
-// Shared marker presentation: number + name live inside one pill element.
+// The marker DOM has two layers:
+//  - .route-waypoint-marker: the Leaflet icon element itself. Its size is
+//    fixed (WRAPPER_WIDTH x WRAPPER_HEIGHT) purely so Leaflet has a stable
+//    box to anchor; it is otherwise invisible and ignores pointer events.
+//  - .route-waypoint-body: the visible pin (number + name + pointer tip),
+//    absolutely positioned bottom-center within the wrapper so its width can
+//    vary with the name's length without ever moving the anchored tip.
+const WRAPPER_WIDTH = 140
+const WRAPPER_HEIGHT = 64
+
+// Shared marker presentation: number + name live inside one unified pin body.
 // Name visibility/size is controlled purely by CSS via the zoom classes
 // above, so the icon does not need to be rebuilt on every zoomend.
 export function createWaypointMarkerIcon({ order, displayName, selected = false, extraClassNames = [] }) {
@@ -66,8 +76,8 @@ export function createWaypointMarkerIcon({ order, displayName, selected = false,
 
   return L.divIcon({
     className,
-    html: `<span class="route-waypoint-number">${escapeMarkerText(order)}</span>${nameHtml}<span class="route-waypoint-media-slot" aria-hidden="true"></span>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
+    html: `<span class="route-waypoint-body"><span class="route-waypoint-number">${escapeMarkerText(order)}</span>${nameHtml}<span class="route-waypoint-media-slot" aria-hidden="true"></span></span>`,
+    iconSize: [WRAPPER_WIDTH, WRAPPER_HEIGHT],
+    iconAnchor: [WRAPPER_WIDTH / 2, WRAPPER_HEIGHT],
   })
 }
