@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { useMapEvents } from 'react-leaflet'
 
@@ -25,19 +25,25 @@ function applyWaypointMarkerZoomClass(map) {
   const container = map.getContainer()
   container.classList.remove(...ZOOM_CLASS_NAMES)
   container.classList.add(getWaypointMarkerZoomClass(map.getZoom()))
+  return map.getZoom() >= WAYPOINT_MARKER_ZOOM.markerVisibleMinZoom
 }
 
 // Mount once inside a MapContainer to keep marker zoom classes in sync.
-export function WaypointMarkerZoomController() {
+export function WaypointMarkerZoomController({ onVisibilityChange }) {
+  const visibilityCallbackRef = useRef(onVisibilityChange)
+  useEffect(() => {
+    visibilityCallbackRef.current = onVisibilityChange
+  }, [onVisibilityChange])
+
   const map = useMapEvents({
     zoomend() {
-      applyWaypointMarkerZoomClass(map)
+      visibilityCallbackRef.current?.(applyWaypointMarkerZoomClass(map))
     },
   })
 
   useEffect(() => {
     const container = map.getContainer()
-    applyWaypointMarkerZoomClass(map)
+    visibilityCallbackRef.current?.(applyWaypointMarkerZoomClass(map))
     return () => container.classList.remove(...ZOOM_CLASS_NAMES)
   }, [map])
 

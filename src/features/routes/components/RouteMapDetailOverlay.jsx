@@ -4,7 +4,7 @@ function getGalleryImages(gallery) {
   return Array.isArray(gallery?.images) ? gallery.images : []
 }
 
-function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, onShowFullRoute }) {
+function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, onShowFullRoute, onPointerEnter, onPointerLeave }) {
   if (!detail) {
     return null
   }
@@ -14,7 +14,7 @@ function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, on
   const hasMedia = videos.length > 0 || imageCollections.length > 0
 
   return (
-    <aside className="route-map-detail-overlay" aria-live="polite" aria-label={`${detail.eyebrow}: ${detail.title}`}>
+    <aside className="route-map-detail-overlay" aria-live="polite" aria-label={`${detail.eyebrow}: ${detail.title}`} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
       <button type="button" className="route-map-detail-close" onClick={onClose} aria-label="Close map details">×</button>
       <header className="route-map-detail-header">
         <p className="route-map-detail-eyebrow">{detail.eyebrow}</p>

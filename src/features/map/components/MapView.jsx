@@ -26,6 +26,9 @@ function MapViewContent({
   selectedPlaceId = null,
   onRouteSelect,
   onWaypointSelect,
+  onWaypointHoverStart,
+  onWaypointHoverEnd,
+  onWaypointVisibilityChange,
   onPlaceSelect,
   routeLineStyle,
   segments = [],
@@ -64,7 +67,7 @@ function MapViewContent({
           attribution={MAP_TILE_LAYER.attribution}
           url={MAP_TILE_LAYER.url}
         />
-        <WaypointMarkerZoomController />
+        <WaypointMarkerZoomController onVisibilityChange={onWaypointVisibilityChange} />
         <MapResizeController />
         <RouteLayer
           routes={validRoutes}
@@ -82,6 +85,8 @@ function MapViewContent({
           waypointMediaCountById={waypointMediaCountById}
           selectedWaypointId={selectedWaypointId}
           onWaypointSelect={onWaypointSelect}
+          onWaypointHoverStart={onWaypointHoverStart}
+          onWaypointHoverEnd={onWaypointHoverEnd}
         />
         <PlaceLayer places={validPlaces} selectedPlaceId={selectedPlaceId} onPlaceSelect={onPlaceSelect} />
         {(validRoutes.length > 0 || validSegments.length > 0 || validWaypoints.length > 0 || validPlaces.length > 0) && (

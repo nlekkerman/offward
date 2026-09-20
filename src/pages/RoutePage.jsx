@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
@@ -19,6 +19,23 @@ const ROUTE_DETAIL_LINE_STYLE = {
   opacity: 0.95,
   lineCap: 'round',
   lineJoin: 'round',
+}
+
+const WAYPOINT_HOVER_QUERY = '(hover: hover) and (pointer: fine)'
+const HOVER_CLOSE_DELAY_MS = 300
+
+function useHoverCapability() {
+  const [supportsHover, setSupportsHover] = useState(false)
+
+  useEffect(() => {
+    const query = window.matchMedia(WAYPOINT_HOVER_QUERY)
+    const update = () => setSupportsHover(query.matches)
+    update()
+    query.addEventListener?.('change', update)
+    return () => query.removeEventListener?.('change', update)
+  }, [])
+
+  return supportsHover
 }
 
 function formatActivity(value) {
@@ -53,12 +70,17 @@ function RoutePage() {
   const [countries, setCountries] = useState([])
   const [countriesStatus, setCountriesStatus] = useState('loading')
   const [selectedWaypointId, setSelectedWaypointId] = useState(null)
+  const [hoveredWaypointId, setHoveredWaypointId] = useState(null)
   const [selectedSegmentId, setSelectedSegmentId] = useState(null)
   const [openPanel, setOpenPanel] = useState(null)
   const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
   const [activeVideo, setActiveVideo] = useState(null)
   const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
   const [routeFocusRequest, setRouteFocusRequest] = useState(0)
+  const hoverCloseTimerRef = useRef(null)
+  const supportsHover = useHoverCapability()
+
+  useEffect(() => () => window.clearTimeout(hoverCloseTimerRef.current), [])
 
   useEffect(() => {
     let isCurrent = true
@@ -118,11 +140,31 @@ function RoutePage() {
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
   const segments = useMemo(() => (Array.isArray(route?.segments) ? route.segments : []), [route])
+  const cancelHoverClose = () => {
+    window.clearTimeout(hoverCloseTimerRef.current)
+    hoverCloseTimerRef.current = null
+  }
+  const clearHoveredWaypoint = () => {
+    cancelHoverClose()
+    setHoveredWaypointId(null)
+  }
+  const previewWaypoint = (waypointId) => {
+    if (!supportsHover || selectedWaypointId || selectedSegmentId) return
+    cancelHoverClose()
+    setHoveredWaypointId(waypointId)
+  }
+  const scheduleHoverClose = () => {
+    if (!supportsHover || selectedWaypointId || selectedSegmentId) return
+    cancelHoverClose()
+    hoverCloseTimerRef.current = window.setTimeout(() => setHoveredWaypointId(null), HOVER_CLOSE_DELAY_MS)
+  }
   const selectWaypoint = (waypointId) => {
+    clearHoveredWaypoint()
     setSelectedSegmentId(null)
     setSelectedWaypointId((currentId) => currentId === waypointId ? null : waypointId)
   }
   const selectSegment = (segmentId) => {
+    clearHoveredWaypoint()
     setSelectedWaypointId(null)
     setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
   }
@@ -173,8 +215,9 @@ function RoutePage() {
     waypoint.id,
     getAttachedMediaCount(waypoint, videoById),
   ])), [videoById, waypoints])
+  const activeWaypointId = selectedSegmentId ? null : selectedWaypointId || hoveredWaypointId
   const mapDetail = useMemo(() => {
-    const waypoint = waypoints.find((item) => item.id === selectedWaypointId)
+    const waypoint = waypoints.find((item) => item.id === activeWaypointId)
     if (waypoint) {
       return {
         type: 'waypoint',
@@ -200,14 +243,29 @@ function RoutePage() {
       videos: resolveAttachedVideos(segment, videoById),
       imageCollections: resolveImageCollections(segment),
     }
-  }, [segments, selectedSegmentId, selectedWaypointId, videoById, waypoints])
+  }, [activeWaypointId, segments, selectedSegmentId, videoById, waypoints])
   const closeMapDetail = () => {
+    clearHoveredWaypoint()
     setSelectedWaypointId(null)
     setSelectedSegmentId(null)
   }
+  const pinHoveredWaypoint = () => {
+    if (!selectedWaypointId && hoveredWaypointId) setSelectedWaypointId(hoveredWaypointId)
+    clearHoveredWaypoint()
+  }
   const openVideo = (video) => {
+    pinHoveredWaypoint()
     setOpenPanel(null)
     setActiveVideo(video)
+  }
+  const openGallery = (gallery) => {
+    pinHoveredWaypoint()
+    setLightbox({ gallery, index: 0 })
+  }
+  const handleWaypointVisibilityChange = (isVisible) => {
+    if (isVisible) return
+    clearHoveredWaypoint()
+    setSelectedWaypointId(null)
   }
   const showFullRoute = () => setRouteFocusRequest((current) => current + 1)
   const lightboxImages = lightbox.gallery?.images || []
@@ -292,6 +350,9 @@ function RoutePage() {
           waypointMediaCountById={waypointMediaCountById}
           selectedWaypointId={selectedWaypointId}
           onWaypointSelect={selectWaypoint}
+          onWaypointHoverStart={supportsHover ? previewWaypoint : undefined}
+          onWaypointHoverEnd={supportsHover ? scheduleHoverClose : undefined}
+          onWaypointVisibilityChange={handleWaypointVisibilityChange}
           routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}
           segments={segments}
           selectedSegmentId={selectedSegmentId}
@@ -309,8 +370,10 @@ function RoutePage() {
             detail={mapDetail}
             onClose={closeMapDetail}
             onPlayVideo={openVideo}
-            onOpenGallery={(gallery) => setLightbox({ gallery, index: 0 })}
+            onOpenGallery={openGallery}
             onShowFullRoute={showFullRoute}
+            onPointerEnter={cancelHoverClose}
+            onPointerLeave={scheduleHoverClose}
           />
         </MapView>
       </section>

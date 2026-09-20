@@ -1059,6 +1059,13 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   box-shadow: var(--waypoint-selected-shadow);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .public-route-waypoint-marker:not(.is-selected) .route-waypoint-pill:hover {
+    border-color: #6b4a1e;
+    box-shadow: 0 0 0 2px rgba(107, 74, 30, 0.2), 0 3px 9px rgba(43, 38, 32, 0.4);
+  }
+}
+
 .route-waypoint-marker.is-selected .route-waypoint-pill::after {
   background: var(--waypoint-selected-border);
   border-color: var(--waypoint-selected-bg);
