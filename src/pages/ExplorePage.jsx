@@ -206,6 +206,19 @@ function ExplorePage() {
         )}
       </div>
 
+      {selectedRoute && (
+        <div className="explore-preview explore-preview-compact">
+          <p className="eyebrow">SELECTED ROUTE</p>
+          <h2>{selectedRoute.title}</h2>
+          <p>{countryNames.get(selectedRoute.country) || selectedRoute.country} · {selectedRoute.activity_type}</p>
+          {selectedRoute.summary && <p>{selectedRoute.summary}</p>}
+          <div className="explore-preview-actions">
+            <Link className="primary-button" to={`/routes/${selectedRoute.slug}`}>View Route</Link>
+            <button type="button" className="secondary-button" onClick={() => setSelectedRouteId(null)}>Deselect</button>
+          </div>
+        </div>
+      )}
+
       <div className="explore-map-wrap">
         <MapView
           className="explore-map"
@@ -230,19 +243,6 @@ function ExplorePage() {
           </p>
         )}
       </div>
-
-      {selectedRoute && (
-        <div className="explore-preview">
-          <p className="eyebrow">SELECTED ROUTE</p>
-          <h2>{selectedRoute.title}</h2>
-          <p>{countryNames.get(selectedRoute.country) || selectedRoute.country} · {selectedRoute.activity_type}</p>
-          {selectedRoute.summary && <p>{selectedRoute.summary}</p>}
-          <div className="explore-preview-actions">
-            <Link className="primary-button" to={`/routes/${selectedRoute.slug}`}>View Route</Link>
-            <button type="button" className="secondary-button" onClick={() => setSelectedRouteId(null)}>Deselect</button>
-          </div>
-        </div>
-      )}
 
       {selectedPlace && (
         <div className="explore-preview">

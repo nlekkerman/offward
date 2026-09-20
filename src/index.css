@@ -1585,6 +1585,12 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   background: #171b18;
 }
 
+.explore-preview-compact {
+  margin-top: 0;
+  margin-bottom: 0.85rem;
+  padding: 1rem 1.25rem;
+}
+
 .explore-preview h2 {
   margin: 0;
   color: #f2ece4;
