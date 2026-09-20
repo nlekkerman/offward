@@ -1,7 +1,6 @@
 import { INTERMEDIATE_WAYPOINT_TYPES, getPlaceCoordinates, getWaypointErrors } from '../routeMapUtils.js'
-import ContentVideoManager from '../../../video/ContentVideoManager.jsx'
 
-function WaypointEditor({ waypoint, places, routeId, onChange, onSave, onCancel }) {
+function WaypointEditor({ waypoint, places, onChange, onSave, onCancel }) {
   if (!waypoint) {
     return (
       <section className="route-map-panel">
@@ -91,19 +90,7 @@ function WaypointEditor({ waypoint, places, routeId, onChange, onSave, onCancel 
           {isNewWaypoint ? 'Add Waypoint' : 'Save Waypoint'}
         </button>
       </div>
-
-      {isNewWaypoint ? (
-        <p className="route-map-muted">Save this Waypoint before attaching videos.</p>
-      ) : (
-        <ContentVideoManager
-          resourceKey="waypoint"
-          resourceId={waypoint.id}
-          routeId={routeId}
-          waypointId={waypoint.id}
-          attachedVideoIds={waypoint.media_ids || []}
-          onAttachmentsChange={(nextIds) => onChange({ ...waypoint, media_ids: nextIds })}
-        />
-      )}
+      {isNewWaypoint && <p className="route-map-muted">Save this Waypoint before adding media.</p>}
     </section>
   )
 }

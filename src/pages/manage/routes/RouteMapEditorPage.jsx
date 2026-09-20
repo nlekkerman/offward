@@ -62,6 +62,7 @@ function RouteMapEditorPage() {
   const [quickEditWaypointId, setQuickEditWaypointId] = useState('')
   const [quickEditSaving, setQuickEditSaving] = useState(false)
   const [advancedWaypointId, setAdvancedWaypointId] = useState('')
+  const [mediaWaypointId, setMediaWaypointId] = useState('')
   const [savedWaypointSignature, setSavedWaypointSignature] = useState('[]')
   const [segments, setSegments] = useState([])
   const [persistedSegmentIds, setPersistedSegmentIds] = useState([])
@@ -125,6 +126,7 @@ function RouteMapEditorPage() {
         setSelectedWaypointId(nextWaypoints[0]?.id || '')
         setQuickEditWaypointId('')
         setAdvancedWaypointId('')
+        setMediaWaypointId('')
 
       } catch (err) {
         if (active) {
@@ -214,13 +216,35 @@ function RouteMapEditorPage() {
     const waypoint = waypoints.find((item) => item.id === waypointId)
     setSelectedWaypointId(waypointId)
     setAdvancedWaypointId('')
+    setMediaWaypointId('')
     setQuickEditWaypointId(waypoint && !String(waypoint.id).startsWith('new-') ? waypointId : '')
   }
 
   const openAdvancedWaypoint = (waypointId) => {
     setSelectedWaypointId(waypointId)
     setQuickEditWaypointId('')
+    setMediaWaypointId('')
     setAdvancedWaypointId(waypointId)
+  }
+
+  const openWaypointMedia = (waypointId) => {
+    setSelectedWaypointId(waypointId)
+    setQuickEditWaypointId('')
+    setAdvancedWaypointId('')
+    setMediaWaypointId((current) => current === waypointId ? '' : waypointId)
+  }
+
+  const updateWaypointMedia = (waypointId, nextIds) => {
+    const mediaIds = Array.isArray(nextIds) ? [...nextIds] : []
+    setWaypoints((current) => normalizeWaypoints(current.map((waypoint) => waypoint.id === waypointId
+      ? { ...waypoint, media_ids: mediaIds }
+      : waypoint)))
+    setSavedWaypointSignature((current) => {
+      const savedWaypoints = JSON.parse(current)
+      return JSON.stringify(savedWaypoints.map((waypoint) => String(waypoint.id) === String(waypointId)
+        ? { ...waypoint, media_ids: mediaIds }
+        : waypoint))
+    })
   }
 
   const addBlankWaypoint = () => {
@@ -287,6 +311,7 @@ function RouteMapEditorPage() {
     })
     if (quickEditWaypointId === waypointId) setQuickEditWaypointId('')
     if (advancedWaypointId === waypointId) setAdvancedWaypointId('')
+    if (mediaWaypointId === waypointId) setMediaWaypointId('')
   }
 
   const changeSegments = (updater) => {
@@ -609,7 +634,9 @@ function RouteMapEditorPage() {
           <WaypointList
             waypoints={waypoints}
             places={places}
+            routeId={routeId}
             selectedWaypointId={selectedWaypointId}
+            mediaWaypointId={mediaWaypointId}
             quickEditWaypointId={quickEditWaypointId}
             quickEditSaving={quickEditSaving}
             addMode={addMode}
@@ -622,6 +649,8 @@ function RouteMapEditorPage() {
             onQuickSave={saveQuickWaypointName}
             onQuickCancel={() => setQuickEditWaypointId('')}
             onOpenAdvanced={openAdvancedWaypoint}
+            onOpenMedia={openWaypointMedia}
+            onMediaChange={updateWaypointMedia}
             onMove={moveWaypoint}
             onRemove={removeWaypoint}
           />
@@ -636,7 +665,6 @@ function RouteMapEditorPage() {
             <WaypointEditor
               waypoint={advancedWaypoint}
               places={places}
-              routeId={routeId}
               onChange={updateWaypoint}
               onSave={saveActiveWaypoint}
               onCancel={cancelActiveWaypoint}
