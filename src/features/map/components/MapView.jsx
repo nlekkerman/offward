@@ -19,6 +19,7 @@ function MapViewContent({
   initialZoom = 4,
   routes = [],
   waypoints = [],
+  waypointMediaCountById = new Map(),
   selectedRouteId = null,
   selectedWaypointId = null,
   places = [],
@@ -78,6 +79,7 @@ function MapViewContent({
         />
         <RouteEndpointLayer
           waypoints={validWaypoints}
+          waypointMediaCountById={waypointMediaCountById}
           selectedWaypointId={selectedWaypointId}
           onWaypointSelect={onWaypointSelect}
         />

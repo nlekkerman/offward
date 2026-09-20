@@ -8,11 +8,9 @@ import { createWaypointMarkerIcon } from '../waypointMarkerIcon.js'
 // the existing RoutePage itinerary interaction; there is no separate
 // Route-level endpoint concept in the current data model. Public markers are
 // read-only: click still selects a waypoint, but no editing UI is exposed.
-function PublicWaypointMarker({ waypoint, selected, onWaypointSelect }) {
+function PublicWaypointMarker({ waypoint, mediaCount, selected, onWaypointSelect }) {
   const displayName = getWaypointDisplayName(waypoint)
-  const hasMedia = (Array.isArray(waypoint.media_ids) && waypoint.media_ids.length > 0)
-    || (Array.isArray(waypoint.image_collections) && waypoint.image_collections.length > 0)
-    || (Array.isArray(waypoint.galleries) && waypoint.galleries.length > 0)
+  const hasMedia = mediaCount > 0
   const icon = useMemo(
     () => createWaypointMarkerIcon({
       order: waypoint.order,
@@ -34,11 +32,12 @@ function PublicWaypointMarker({ waypoint, selected, onWaypointSelect }) {
   )
 }
 
-function RouteEndpointLayer({ waypoints, selectedWaypointId, onWaypointSelect }) {
+function RouteEndpointLayer({ waypoints, waypointMediaCountById, selectedWaypointId, onWaypointSelect }) {
   return waypoints.map((waypoint) => (
     <PublicWaypointMarker
       key={waypoint.id}
       waypoint={waypoint}
+      mediaCount={waypointMediaCountById.get(waypoint.id) || 0}
       selected={waypoint.id === selectedWaypointId}
       onWaypointSelect={onWaypointSelect}
     />

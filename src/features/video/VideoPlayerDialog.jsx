@@ -39,7 +39,6 @@ function VideoPlayerDialog({ video, onClose }) {
           playbackUrl={video.playback_url}
           thumbnailUrl={video.thumbnail_url}
           title={video.title}
-          initiallyActivated
         />
       </div>
     </div>

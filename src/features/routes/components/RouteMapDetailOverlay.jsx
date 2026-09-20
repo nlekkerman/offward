@@ -1,6 +1,4 @@
-function getImageUrl(image) {
-  return image?.url || image?.image_url || image?.thumbnail_url || image?.image?.url || image?.image?.image_url || ''
-}
+import { collectionCount, collectionPreview } from '../../management/imageCollectionUtils.js'
 
 function getGalleryImages(gallery) {
   return Array.isArray(gallery?.images) ? gallery.images : []
@@ -12,8 +10,8 @@ function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, on
   }
 
   const videos = Array.isArray(detail.videos) ? detail.videos : []
-  const galleries = Array.isArray(detail.galleries) ? detail.galleries : []
-  const hasMedia = videos.length > 0 || galleries.length > 0
+  const imageCollections = Array.isArray(detail.imageCollections) ? detail.imageCollections : []
+  const hasMedia = videos.length > 0 || imageCollections.length > 0
 
   return (
     <aside className="route-map-detail-overlay" aria-live="polite" aria-label={`${detail.eyebrow}: ${detail.title}`}>
@@ -49,13 +47,14 @@ function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, on
             </div>
           )}
 
-          {galleries.length > 0 && (
+          {imageCollections.length > 0 && (
             <div className="route-map-detail-media-group">
               <p>Galleries</p>
               <div className="route-map-detail-rail">
-                {galleries.map((gallery, index) => {
+                {imageCollections.map((gallery, index) => {
                   const images = getGalleryImages(gallery)
-                  const cover = getImageUrl(images[0])
+                  const cover = collectionPreview(gallery)
+                  const imageCount = collectionCount(gallery)
                   return (
                     <button
                       type="button"
@@ -67,7 +66,8 @@ function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, on
                       <span className="route-map-gallery-cover">{cover ? <img src={cover} alt="" loading="lazy" /> : <span aria-hidden="true">▧</span>}</span>
                       <span className="route-map-gallery-copy">
                         <strong>{gallery.title || 'Gallery'}</strong>
-                        <span>{images.length} {images.length === 1 ? 'image' : 'images'}</span>
+                        <span>{imageCount} {imageCount === 1 ? 'image' : 'images'}</span>
+                        <span className="route-map-gallery-action">View</span>
                       </span>
                     </button>
                   )

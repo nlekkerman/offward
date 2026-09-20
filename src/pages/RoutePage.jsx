@@ -4,7 +4,7 @@ import MapView from '../features/map/components/MapView.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
-import { normalizeMediaIds, resolveAttachedVideos } from '../features/routes/components/routeMediaUtils.js'
+import { getAttachedMediaCount, normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import RouteSections from '../features/routes/components/RouteSections.jsx'
 import VideoPlayerDialog from '../features/video/VideoPlayerDialog.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
@@ -41,13 +41,6 @@ function getOrderedRouteWaypoints(route) {
       order: Number.isFinite(Number(waypoint.order)) ? Number(waypoint.order) : index + 1,
     }))
     .sort((a, b) => a.order - b.order)
-}
-
-function getPublicGalleries(item) {
-  const collections = Array.isArray(item?.image_collections)
-    ? item.image_collections
-    : Array.isArray(item?.galleries) ? item.galleries : []
-  return collections.filter((collection) => collection && typeof collection === 'object' && Array.isArray(collection.images) && collection.images.length > 0)
 }
 
 function getWaypointTitle(waypoint) {
@@ -135,12 +128,14 @@ function RoutePage() {
   }
   const toggleVideosPanel = () => setOpenPanel((current) => (current === 'videos' ? null : 'videos'))
 
-  const routeVideoIds = useMemo(() => normalizeMediaIds(route?.video_ids), [route])
+  const unresolvedVideoIds = useMemo(() => [
+    ...normalizeMediaIds(route?.video_ids ?? route?.media_ids),
+    ...segments.flatMap((segment) => normalizeMediaIds(segment.media_ids ?? segment.video_ids)),
+    ...waypoints.flatMap((waypoint) => normalizeMediaIds(waypoint.media_ids ?? waypoint.video_ids)),
+  ], [route, segments, waypoints])
   const hasAnyAttachedMedia = useMemo(
-    () => routeVideoIds.length > 0
-      || segments.some((segment) => normalizeMediaIds(segment.media_ids).length > 0)
-      || waypoints.some((waypoint) => normalizeMediaIds(waypoint.media_ids).length > 0),
-    [routeVideoIds, segments, waypoints],
+    () => unresolvedVideoIds.length > 0,
+    [unresolvedVideoIds],
   )
 
   // Videos load independently, resolved against the public Video list - the
@@ -173,7 +168,11 @@ function RoutePage() {
   }, [hasAnyAttachedMedia])
 
   const videoById = useMemo(() => new Map(videoCatalog.videos.map((video) => [String(video.id), video])), [videoCatalog.videos])
-  const routeVideos = useMemo(() => resolveAttachedVideos(routeVideoIds, videoById), [routeVideoIds, videoById])
+  const routeVideos = useMemo(() => resolveAttachedVideos(route, videoById), [route, videoById])
+  const waypointMediaCountById = useMemo(() => new Map(waypoints.map((waypoint) => [
+    waypoint.id,
+    getAttachedMediaCount(waypoint, videoById),
+  ])), [videoById, waypoints])
   const mapDetail = useMemo(() => {
     const waypoint = waypoints.find((item) => item.id === selectedWaypointId)
     if (waypoint) {
@@ -183,8 +182,8 @@ function RoutePage() {
         title: getWaypointTitle(waypoint),
         subtitle: String(waypoint.type || 'via').toUpperCase(),
         summary: waypoint.summary || waypoint.note || waypoint.description || '',
-        videos: resolveAttachedVideos(waypoint.media_ids, videoById),
-        galleries: getPublicGalleries(waypoint),
+        videos: resolveAttachedVideos(waypoint, videoById),
+        imageCollections: resolveImageCollections(waypoint),
       }
     }
 
@@ -198,8 +197,8 @@ function RoutePage() {
       title: segment.title || `${getWaypointTitle(start)} → ${getWaypointTitle(end)}`,
       subtitle: start && end ? `${getWaypointTitle(start)} → ${getWaypointTitle(end)}` : '',
       summary: segment.summary || segment.note || '',
-      videos: resolveAttachedVideos(segment.media_ids, videoById),
-      galleries: getPublicGalleries(segment),
+      videos: resolveAttachedVideos(segment, videoById),
+      imageCollections: resolveImageCollections(segment),
     }
   }, [segments, selectedSegmentId, selectedWaypointId, videoById, waypoints])
   const closeMapDetail = () => {
@@ -290,6 +289,7 @@ function RoutePage() {
           className="route-detail-map"
           routes={mapRoute ? [mapRoute] : []}
           waypoints={waypoints}
+          waypointMediaCountById={waypointMediaCountById}
           selectedWaypointId={selectedWaypointId}
           onWaypointSelect={selectWaypoint}
           routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}

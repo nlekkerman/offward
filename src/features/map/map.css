@@ -276,12 +276,17 @@
 }
 
 .route-map-video-copy button,
+.route-map-gallery-action,
 .route-map-show-route {
   border: 0;
   background: transparent;
   color: #d8b47c;
   font: 800 0.75rem/1.2 sans-serif;
   cursor: pointer;
+}
+
+.route-map-gallery-action {
+  margin-top: auto;
 }
 
 .route-map-show-route {
