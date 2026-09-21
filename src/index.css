@@ -1657,6 +1657,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   color: #f2ece4;
   padding: 0.85rem 1rem;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
@@ -1680,12 +1681,6 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   border: 1px solid #30362f;
   border-radius: 0.75rem;
   background: #171b18;
-}
-
-.explore-preview-compact {
-  margin-top: 0;
-  margin-bottom: 0.85rem;
-  padding: 1rem 1.25rem;
 }
 
 .explore-preview h2 {

@@ -117,7 +117,7 @@ function ExplorePage() {
   const renderableRouteCount = routes.filter((route) => route.is_map_renderable === true).length
   const renderablePlaceCount = places.filter(isRenderablePlace).length
   const visibleCountryOptions = countries.filter((country) => country.status === 'active' || country.status === 'upcoming')
-  const visibleRoutes = activeView === 'routes' ? routes : []
+  const visibleRoutes = selectedRoute ? [selectedRoute] : []
   const visiblePlaces = activeView === 'places' ? places : []
 
   const activeCount = activeView === 'routes' ? renderableRouteCount : renderablePlaceCount
@@ -209,37 +209,42 @@ function ExplorePage() {
 
       {activeView === 'routes' && (
         <div className="explore-route-results">
-          {selectedRoute && (
-            <div className="explore-preview explore-preview-compact">
-              <p className="eyebrow">SELECTED ROUTE</p>
-              <h2>{selectedRoute.title}</h2>
-              <p>{countryNames.get(selectedRoute.country) || selectedRoute.country} · {selectedRoute.activity_type}</p>
-              {selectedRoute.summary && <p>{selectedRoute.summary}</p>}
-              <div className="explore-preview-actions">
-                <Link className="primary-button" to={`/routes/${selectedRoute.slug}`}>View Route</Link>
-                <button type="button" className="secondary-button" onClick={() => setSelectedRouteId(null)}>Deselect</button>
-              </div>
-            </div>
-          )}
           {routesStatus === 'loading' && <p className="explore-status" role="status">Loading routes...</p>}
           {routesStatus === 'error' && <p className="explore-status" role="status">Unable to load routes. The map remains available.</p>}
           {routesStatus === 'success' && selectedCountry && routes.length === 0 && <p className="explore-status" role="status">No routes match these filters.</p>}
           {selectedCountry && routes.length > 0 && (
             <div className="explore-route-list" aria-label="Routes">
-              {routes.map((route) => (
-                <button
-                  key={route.id}
-                  type="button"
-                  className={route.id === activeSelectedRouteId ? 'explore-route-item is-selected' : 'explore-route-item'}
-                  onClick={() => {
-                    setSelectedRouteId(route.id)
-                    setSelectedPlaceId(null)
-                  }}
-                >
-                  <strong>{route.title}</strong>
-                  <span>{countryNames.get(route.country) || route.country} · {route.activity_type}</span>
-                </button>
-              ))}
+              {routes.map((route) => {
+                const routeContent = (
+                  <>
+                    <strong>{route.title}</strong>
+                    <span>{countryNames.get(route.country) || route.country} · {route.activity_type}</span>
+                  </>
+                )
+
+                return route.id === activeSelectedRouteId ? (
+                  <Link
+                    key={route.id}
+                    className="explore-route-item is-selected"
+                    to={`/routes/${route.slug}`}
+                    aria-label={`View route details: ${route.title}`}
+                  >
+                    {routeContent}
+                  </Link>
+                ) : (
+                  <button
+                    key={route.id}
+                    type="button"
+                    className="explore-route-item"
+                    onClick={() => {
+                      setSelectedRouteId(route.id)
+                      setSelectedPlaceId(null)
+                    }}
+                  >
+                    {routeContent}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
@@ -262,6 +267,7 @@ function ExplorePage() {
           }}
           initialCenter={[50, 10]}
           initialZoom={4}
+          resetViewWhenRoutesEmpty
         />
         {activeView === 'routes' && routesStatus === 'success' && routes.length > 0 && renderableRouteCount === 0 && (
           <p className="explore-map-notice" role="status">

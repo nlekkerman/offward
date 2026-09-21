@@ -35,6 +35,7 @@ function MapViewContent({
   selectedSegmentId = null,
   onSegmentSelect,
   routeFocusRequest = 0,
+  resetViewWhenRoutesEmpty = false,
 }) {
   const center = normalizeCenter(initialCenter)
   const zoom = typeof initialZoom === 'number' ? initialZoom : 4
@@ -89,8 +90,8 @@ function MapViewContent({
           onWaypointHoverEnd={onWaypointHoverEnd}
         />
         <PlaceLayer places={validPlaces} selectedPlaceId={selectedPlaceId} onPlaceSelect={onPlaceSelect} />
-        {(validRoutes.length > 0 || validSegments.length > 0 || validWaypoints.length > 0 || validPlaces.length > 0) && (
-          <MapViewportController validRoutes={validRoutes} validSegments={validSegments} validWaypoints={validWaypoints} validPlaces={validPlaces} selectedRouteId={selectedRouteId} selectedSegmentId={selectedSegmentId} selectedWaypointId={selectedWaypointId} selectedPlaceId={selectedPlaceId} routeFocusRequest={routeFocusRequest} />
+        {(resetViewWhenRoutesEmpty || validRoutes.length > 0 || validSegments.length > 0 || validWaypoints.length > 0 || validPlaces.length > 0) && (
+          <MapViewportController validRoutes={validRoutes} validSegments={validSegments} validWaypoints={validWaypoints} validPlaces={validPlaces} selectedRouteId={selectedRouteId} selectedSegmentId={selectedSegmentId} selectedWaypointId={selectedWaypointId} selectedPlaceId={selectedPlaceId} routeFocusRequest={routeFocusRequest} resetViewWhenRoutesEmpty={resetViewWhenRoutesEmpty} initialCenter={center} initialZoom={zoom} />
         )}
       </MapContainer>
       {children}

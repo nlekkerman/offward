@@ -4,7 +4,7 @@ import { getCombinedBounds, getCombinedMapBounds, getWaypointBounds } from '../m
 
 // Fits the viewport to Route/waypoint bounds on data change and focuses the
 // selected Route, without resetting the viewport during normal interaction.
-function MapViewportController({ validRoutes, validSegments, validWaypoints, validPlaces, selectedRouteId, selectedSegmentId, selectedWaypointId, selectedPlaceId, routeFocusRequest }) {
+function MapViewportController({ validRoutes, validSegments, validWaypoints, validPlaces, selectedRouteId, selectedSegmentId, selectedWaypointId, selectedPlaceId, routeFocusRequest, resetViewWhenRoutesEmpty, initialCenter, initialZoom }) {
   const map = useMap()
   const prevRouteSignatureRef = useRef(null)
   const prevSelectedRouteIdRef = useRef(null)
@@ -109,7 +109,11 @@ function MapViewportController({ validRoutes, validSegments, validWaypoints, val
 
   useEffect(() => {
     if (!selectedRouteId) {
+      const hadSelectedRoute = prevSelectedRouteIdRef.current
       prevSelectedRouteIdRef.current = null
+      if (hadSelectedRoute && resetViewWhenRoutesEmpty && validRoutes.length === 0) {
+        map.setView(initialCenter, initialZoom, { animate: false })
+      }
       return
     }
 
@@ -129,7 +133,7 @@ function MapViewportController({ validRoutes, validSegments, validWaypoints, val
         })
       }
     }
-  }, [map, selectedRouteId, validRoutes])
+  }, [map, selectedRouteId, validRoutes, resetViewWhenRoutesEmpty, initialCenter, initialZoom])
 
   useEffect(() => {
     if (!routeFocusRequest) return
