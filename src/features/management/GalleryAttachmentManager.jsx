@@ -7,10 +7,12 @@ function normalizeIds(ids) {
   return (Array.isArray(ids) ? ids : []).filter(Boolean).map(String)
 }
 
-function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = [], onAttach, onDetach, onPreview, disabled = false }) {
+function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = [], onAttach, onDetach, onPreview, disabled = false, persistImmediately = false }) {
   const [collections, setCollections] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [persistenceStatus, setPersistenceStatus] = useState('idle')
+  const [persistenceError, setPersistenceError] = useState('')
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [previewCollection, setPreviewCollection] = useState(null)
   const [previewIndex, setPreviewIndex] = useState(0)
@@ -44,20 +46,44 @@ function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = 
     setPreviewIndex(0)
   }
 
-  const handleAttach = (collection) => {
-    if (!selectedIds.includes(String(collection.id))) onAttach?.(collection)
+  const persistChange = async (callback, collection) => {
+    if (!callback || persistenceStatus === 'saving') return
+    if (!persistImmediately) {
+      callback(collection)
+      return
+    }
+
+    setPersistenceStatus('saving')
+    setPersistenceError('')
+    try {
+      await callback(collection)
+      setPersistenceStatus('saved')
+    } catch (errorValue) {
+      setPersistenceStatus('idle')
+      setPersistenceError(errorMessage(errorValue, 'Unable to save gallery attachments.'))
+    }
   }
+
+  const handleAttach = (collection) => {
+    if (!selectedIds.includes(String(collection.id))) persistChange(onAttach, collection)
+  }
+
+  const isSaving = persistenceStatus === 'saving'
 
   return (
     <section className="gallery-attachment-manager" aria-label={`Galleries for ${ownerType || 'content'} ${ownerId || ''}`}>
       <div className="gallery-attachment-header">
         <div><p className="eyebrow">Galleries</p><h3>Attached galleries</h3></div>
-        <button type="button" className="secondary-button small-button" onClick={() => setIsPickerOpen((open) => !open)} disabled={disabled} aria-expanded={isPickerOpen}>
+        <button type="button" className="secondary-button small-button" onClick={() => setIsPickerOpen((open) => !open)} disabled={disabled || isSaving} aria-expanded={isPickerOpen}>
           {isPickerOpen ? 'Close picker' : '+ Add gallery'}
         </button>
       </div>
 
       {error && <p className="content-image-error" role="alert">{error}</p>}
+      {persistenceError && <p className="content-image-error" role="alert">{persistenceError}</p>}
+      {persistImmediately && persistenceStatus !== 'idle' && (
+        <p className="content-image-status" role="status">{isSaving ? 'Saving...' : 'Saved'}</p>
+      )}
       {!attachedCollections.length && <p className="content-image-empty">No galleries attached yet.</p>}
       {attachedCollections.length > 0 && (
         <div className="gallery-attachment-grid">
@@ -72,7 +98,7 @@ function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = 
               </div>
               <div className="gallery-attachment-actions">
                 <button type="button" className="secondary-button small-button" onClick={() => openPreview(collection)}>Preview</button>
-                <button type="button" className="danger-button small-button" onClick={() => onDetach?.(collection)} disabled={disabled}>Remove</button>
+                <button type="button" className="danger-button small-button" onClick={() => persistChange(onDetach, collection)} disabled={disabled || isSaving}>Remove</button>
               </div>
             </article>
           ))}
@@ -89,7 +115,7 @@ function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = 
               {collections.map((collection) => {
                 const attached = selectedIds.includes(String(collection.id))
                 return (
-                  <button type="button" className={attached ? 'content-image-picker-card is-selected' : 'content-image-picker-card'} key={collection.id} onClick={() => handleAttach(collection)} disabled={disabled || attached} aria-pressed={attached}>
+                  <button type="button" className={attached ? 'content-image-picker-card is-selected' : 'content-image-picker-card'} key={collection.id} onClick={() => handleAttach(collection)} disabled={disabled || isSaving || attached} aria-pressed={attached}>
                     <div className="content-image-picker-preview">{collectionPreview(collection) ? <img src={collectionPreview(collection)} alt="" /> : <span>No preview</span>}</div>
                     <strong>{collection.title || 'Untitled gallery'}</strong>
                     <span>{collectionCount(collection)} {collectionCount(collection) === 1 ? 'photo' : 'photos'}</span>

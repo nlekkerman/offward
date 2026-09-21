@@ -9,7 +9,7 @@ function getWaypointLabel(waypoint) {
   return `${waypoint.order} · ${waypoint.type === 'start' ? 'Start' : waypoint.type === 'finish' ? 'Finish' : 'Via'} · ${getWaypointDisplayName(waypoint)}`
 }
 
-function SegmentEditor({ segment, routeId, waypoints, validation, canRegenerate, onChange, onRegenerate, onSave, saving = false }) {
+function SegmentEditor({ segment, routeId, waypoints, validation, canRegenerate, onChange, onRegenerate, onSave, onGalleryChange, saving = false }) {
   const [stories, setStories] = useState([])
   const [storiesStatus, setStoriesStatus] = useState('loading')
   const [storySearch, setStorySearch] = useState('')
@@ -150,8 +150,10 @@ function SegmentEditor({ segment, routeId, waypoints, validation, canRegenerate,
         ownerType="RouteSegment"
         ownerId={segment.id}
         attachedCollectionIds={segment.image_collection_ids || []}
-        onAttach={(collection) => onChange({ ...segment, image_collection_ids: [...(segment.image_collection_ids || []), collection.id] })}
-        onDetach={(collection) => onChange({ ...segment, image_collection_ids: (segment.image_collection_ids || []).filter((value) => String(value) !== String(collection.id)) })}
+        onAttach={(collection) => onGalleryChange(segment.id, [...(segment.image_collection_ids || []), collection.id])}
+        onDetach={(collection) => onGalleryChange(segment.id, (segment.image_collection_ids || []).filter((value) => String(value) !== String(collection.id)))}
+        disabled={isNewSegment || saving}
+        persistImmediately
       />
     </section>
   )

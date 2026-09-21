@@ -98,6 +98,7 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
                       attachedCollectionIds={waypoint.image_collection_ids || []}
                       onAttach={(collection) => onGalleryAttach(waypoint.id, collection)}
                       onDetach={(collection) => onGalleryDetach(waypoint.id, collection)}
+                      persistImmediately
                     />
                   </section>
                 )}

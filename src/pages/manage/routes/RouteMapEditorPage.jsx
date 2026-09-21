@@ -247,8 +247,8 @@ function RouteMapEditorPage() {
     })
   }
 
-  const updateWaypointGallery = (waypointId, collection, attach) => {
-    setWaypoints((current) => normalizeWaypoints(current.map((waypoint) => {
+  const updateWaypointGallery = async (waypointId, collection, attach) => {
+    const nextWaypoints = normalizeWaypoints(waypoints.map((waypoint) => {
       if (String(waypoint.id) !== String(waypointId)) return waypoint
       const currentIds = Array.isArray(waypoint.image_collection_ids) ? waypoint.image_collection_ids.map(String) : []
       const collectionId = String(collection.id)
@@ -256,7 +256,9 @@ function RouteMapEditorPage() {
         ? [...currentIds, ...(currentIds.includes(collectionId) ? [] : [collectionId])]
         : currentIds.filter((value) => value !== collectionId)
       return { ...waypoint, image_collection_ids: nextIds }
-    })))
+    }))
+    const routeMapData = await routeMapApi.updateWaypoints(routeId, nextWaypoints)
+    applyRouteMap(routeMapData)
   }
 
   const addBlankWaypoint = () => {
@@ -419,6 +421,17 @@ function RouteMapEditorPage() {
     } finally {
       setSegmentsSaving(false)
     }
+  }
+
+  const updateSegmentGallery = async (segmentId, imageCollectionIds) => {
+    const nextSegments = normalizeSegments(segments.map((segment) => String(segment.id) === String(segmentId)
+      ? { ...segment, image_collection_ids: imageCollectionIds }
+      : segment))
+    const savedSegments = await routeMapApi.updateSegments(routeId, nextSegments)
+    setSegments(savedSegments)
+    setPersistedSegmentIds(savedSegments.map((segment) => segment.id))
+    setSavedSegmentSignature(getSegmentSignature(savedSegments))
+    setSelectedSegmentId((current) => savedSegments.some((segment) => segment.id === current) ? current : savedSegments[0]?.id || '')
   }
 
   const moveWaypoint = (index, direction) => {
@@ -703,6 +716,7 @@ function RouteMapEditorPage() {
                 onChange={updateSegment}
                 onRegenerate={regenerateSegment}
                 onSave={saveSegments}
+                onGalleryChange={updateSegmentGallery}
                 saving={segmentsSaving}
               />
             </>
