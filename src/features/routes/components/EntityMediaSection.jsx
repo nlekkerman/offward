@@ -9,8 +9,11 @@ function EntityMediaSection({ videos = [], galleries = [], onOpenGallery, loadin
   }
 
   return (
-    <section className="route-map-detail-media" aria-label="Media">
-      <p className="route-map-detail-section-label">Media</p>
+    <section className="route-map-detail-media entity-detail-media" aria-label="Media">
+      <div className="entity-detail-section-heading">
+        <p className="route-map-detail-section-label">Media</p>
+        <span>{videos.length + galleries.length} {videos.length + galleries.length === 1 ? 'item' : 'items'}</span>
+      </div>
 
       {videos.length > 0 && (
         <div className="route-map-detail-media-group">

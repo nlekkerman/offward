@@ -169,7 +169,6 @@ function WaypointDetailPage() {
         route={route}
         routeSlug={routeSlug}
         childLabel="Waypoint"
-        childTitle={waypointLabel}
         childSubtitle={waypoint.type ? String(waypoint.type).toUpperCase() : 'VIA'}
       />
 
@@ -185,19 +184,19 @@ function WaypointDetailPage() {
       </header>
 
       {placeContext && (
-        <section style={{ marginBottom: '2rem', display: 'grid', gap: '0.75rem' }} aria-label="Place context">
+        <section className="route-detail-place-context" aria-label="Place context">
           <p className="eyebrow">Place</p>
-          <div style={{ border: '1px solid #30362f', borderRadius: '0.75rem', background: '#171b18', padding: '1rem 1.1rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <strong style={{ color: '#f3efe6' }}>{placeContext.name}</strong>
-            <Link to={`/places/${encodeURIComponent(placeContext.slug)}`} style={{ color: '#d8b47c', textDecoration: 'none' }}>View place</Link>
+          <div className="route-detail-place-card">
+            <strong>{placeContext.name}</strong>
+            <Link to={`/places/${encodeURIComponent(placeContext.slug)}`}>View place</Link>
           </div>
         </section>
       )}
 
       {waypoint.place_id && !placeContext && (
-        <section style={{ marginBottom: '2rem' }} aria-label="Linked place status">
+        <section className="route-detail-place-context" aria-label="Linked place status">
           <p className="eyebrow">Place</p>
-          <p className="route-detail-summary" style={{ fontSize: '1rem' }}>This waypoint is linked to a Place reference, but the public Place detail could not be resolved.</p>
+          <p className="route-detail-place-unavailable">This waypoint is linked to a Place reference, but the public Place detail could not be resolved.</p>
         </section>
       )}
 

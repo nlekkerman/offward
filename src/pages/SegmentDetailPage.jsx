@@ -180,7 +180,6 @@ function SegmentDetailPage() {
         route={route}
         routeSlug={routeSlug}
         childLabel="Section"
-        childTitle={segmentTitle}
         childSubtitle={startWaypoint && endWaypoint ? `${startWaypoint.name || startWaypoint.label || 'Start'} → ${endWaypoint.name || endWaypoint.label || 'End'}` : 'Route segment'}
       />
 

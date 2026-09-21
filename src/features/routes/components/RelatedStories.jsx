@@ -6,12 +6,12 @@ function RelatedStories({ stories = [] }) {
   }
 
   return (
-    <section aria-label="Related stories" style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid #30362f' }}>
+    <section className="route-detail-related-stories" aria-label="Related stories">
       <p className="eyebrow">Stories</p>
-      <ul style={{ listStyle: 'none', display: 'grid', gap: '0.75rem', padding: 0, margin: '1rem 0 0' }}>
+      <ul>
         {stories.map((story) => (
           <li key={story.id}>
-            <Link to={`/stories/${encodeURIComponent(story.slug)}`} style={{ color: '#f3efe6', textDecoration: 'none' }}>
+            <Link to={`/stories/${encodeURIComponent(story.slug)}`}>
               {story.title || 'Story'}
             </Link>
           </li>
