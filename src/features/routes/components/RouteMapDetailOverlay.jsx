@@ -1,10 +1,6 @@
 import { collectionCount, collectionPreview } from '../../management/imageCollectionUtils.js'
 
-function getGalleryImages(gallery) {
-  return Array.isArray(gallery?.images) ? gallery.images : []
-}
-
-function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, onShowFullRoute, onPointerEnter, onPointerLeave }) {
+function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, onShowFullRoute, onPointerEnter, onPointerLeave, loadingGalleryId, galleryErrorByCollectionId }) {
   if (!detail) {
     return null
   }
@@ -52,24 +48,29 @@ function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, on
               <p>Galleries</p>
               <div className="route-map-detail-rail">
                 {imageCollections.map((gallery, index) => {
-                  const images = getGalleryImages(gallery)
                   const cover = collectionPreview(gallery)
                   const imageCount = collectionCount(gallery)
+                  const galleryId = gallery.id ? String(gallery.id) : ''
+                  const isLoading = galleryId && loadingGalleryId === galleryId
+                  const errorMessage = galleryId ? galleryErrorByCollectionId?.[galleryId] : null
                   return (
-                    <button
-                      type="button"
-                      className="route-map-gallery-preview"
-                      key={gallery.id || gallery.title || index}
-                      onClick={() => onOpenGallery(gallery)}
-                      disabled={images.length === 0}
-                    >
+                    <article className="route-map-gallery-preview" key={galleryId || gallery.title || index}>
                       <span className="route-map-gallery-cover">{cover ? <img src={cover} alt="" loading="lazy" /> : <span aria-hidden="true">▧</span>}</span>
                       <span className="route-map-gallery-copy">
                         <strong>{gallery.title || 'Gallery'}</strong>
-                        <span>{imageCount} {imageCount === 1 ? 'image' : 'images'}</span>
-                        <span className="route-map-gallery-action">View</span>
+                        {imageCount > 0 && <span>{imageCount} {imageCount === 1 ? 'photo' : 'photos'}</span>}
+                        <button
+                          type="button"
+                          className="route-map-gallery-action"
+                          onClick={() => onOpenGallery(gallery)}
+                          disabled={isLoading}
+                          aria-label={`View gallery ${gallery.title || ''}`.trim()}
+                        >
+                          {isLoading ? 'Loading…' : 'View'}
+                        </button>
+                        {errorMessage && <span className="route-map-gallery-error" role="alert">{errorMessage}</span>}
                       </span>
-                    </button>
+                    </article>
                   )
                 })}
               </div>

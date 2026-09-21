@@ -9,6 +9,7 @@ import RouteSections from '../features/routes/components/RouteSections.jsx'
 import VideoPlayerDialog from '../features/video/VideoPlayerDialog.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import { getCountries } from '../services/countriesApi.js'
+import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import NotFoundPage from './NotFoundPage.jsx'
@@ -76,8 +77,11 @@ function RoutePage() {
   const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
   const [activeVideo, setActiveVideo] = useState(null)
   const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
+  const [galleryLoadingId, setGalleryLoadingId] = useState(null)
+  const [galleryErrorByCollectionId, setGalleryErrorByCollectionId] = useState({})
   const [routeFocusRequest, setRouteFocusRequest] = useState(0)
   const hoverCloseTimerRef = useRef(null)
+  const galleryCacheRef = useRef(new Map())
   const supportsHover = useHoverCapability()
 
   useEffect(() => () => window.clearTimeout(hoverCloseTimerRef.current), [])
@@ -258,9 +262,34 @@ function RoutePage() {
     setOpenPanel(null)
     setActiveVideo(video)
   }
-  const openGallery = (gallery) => {
+  // Preview data only carries lightweight ImageCollection summaries. The full
+  // ordered image list is fetched on demand, cached per session, and only
+  // then handed to the existing ImageLightbox.
+  const openGallery = async (galleryPreview) => {
+    const collectionId = galleryPreview?.id ? String(galleryPreview.id) : ''
+    if (!collectionId || galleryLoadingId === collectionId) {
+      return
+    }
+
     pinHoveredWaypoint()
-    setLightbox({ gallery, index: 0 })
+    setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: null }))
+
+    const cached = galleryCacheRef.current.get(collectionId)
+    if (cached) {
+      setLightbox({ gallery: cached, index: 0 })
+      return
+    }
+
+    setGalleryLoadingId(collectionId)
+    try {
+      const fullCollection = await getPublicImageCollection(collectionId)
+      galleryCacheRef.current.set(collectionId, fullCollection)
+      setLightbox({ gallery: fullCollection, index: 0 })
+    } catch {
+      setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Unable to load gallery. Try again.' }))
+    } finally {
+      setGalleryLoadingId((current) => (current === collectionId ? null : current))
+    }
   }
   const handleWaypointVisibilityChange = (isVisible) => {
     if (isVisible) return
@@ -374,6 +403,8 @@ function RoutePage() {
             onShowFullRoute={showFullRoute}
             onPointerEnter={cancelHoverClose}
             onPointerLeave={scheduleHoverClose}
+            loadingGalleryId={galleryLoadingId}
+            galleryErrorByCollectionId={galleryErrorByCollectionId}
           />
         </MapView>
       </section>

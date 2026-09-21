@@ -230,7 +230,7 @@
 }
 
 .route-map-gallery-preview {
-  cursor: pointer;
+  cursor: default;
 }
 
 .route-map-video-thumbnail,
@@ -287,6 +287,17 @@
 
 .route-map-gallery-action {
   margin-top: auto;
+  padding: 0;
+}
+
+.route-map-gallery-action:disabled {
+  color: #8a8776;
+  cursor: default;
+}
+
+.route-map-gallery-error {
+  color: #e08a8a;
+  font: 0.7rem/1.2 sans-serif;
 }
 
 .route-map-show-route {
