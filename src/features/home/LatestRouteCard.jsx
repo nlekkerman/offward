@@ -6,8 +6,8 @@ function LatestRouteCard({ route }) {
   const activityLabel = formatActivityLabel(route.activity_type)
   const countryLabel = formatCountryLabel(route.country)
 
-  return (
-    <article className="latest-rail-card latest-rail-card-route" aria-label="Latest route">
+  const cardContent = (
+    <>
       <RouteMiniMap route={route} className="latest-rail-mini-map" />
       <p className="latest-rail-type">Route</p>
       <h3 className="latest-rail-title">{route.title}</h3>
@@ -16,8 +16,25 @@ function LatestRouteCard({ route }) {
         {activityLabel && <span>{activityLabel}</span>}
         {countryLabel && <span>{countryLabel}</span>}
       </div>
-      {route.slug && <Link className="latest-rail-cta" to={`/routes/${route.slug}`}>View route →</Link>}
-    </article>
+    </>
+  )
+
+  if (!route.slug) {
+    return (
+      <article className="latest-rail-card latest-rail-card-route" aria-label="Latest route">
+        {cardContent}
+      </article>
+    )
+  }
+
+  return (
+    <Link
+      className="latest-rail-card latest-rail-card-route latest-rail-card-link"
+      to={`/routes/${route.slug}`}
+      aria-label={`View route: ${route.title}`}
+    >
+      {cardContent}
+    </Link>
   )
 }
 

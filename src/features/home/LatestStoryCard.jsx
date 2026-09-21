@@ -10,8 +10,8 @@ function LatestStoryCard({ story }) {
   const publishedLabel = formatPublishedDate(story.published_at)
   const heroUrl = getHeroUrl(story.hero_image)
 
-  return (
-    <article className="latest-rail-card latest-rail-card-story" aria-label="Latest story">
+  const cardContent = (
+    <>
       {heroUrl && <img className="latest-rail-story-image" src={heroUrl} alt="" />}
       <p className="latest-rail-type">Story</p>
       <h3 className="latest-rail-title">{story.title}</h3>
@@ -20,8 +20,25 @@ function LatestStoryCard({ story }) {
         {countryLabel && <span>{countryLabel}</span>}
         {publishedLabel && <span>{publishedLabel}</span>}
       </div>
-      <Link className="latest-rail-cta" to={`/stories/${story.slug}`}>Read story →</Link>
-    </article>
+    </>
+  )
+
+  if (!story.slug) {
+    return (
+      <article className="latest-rail-card latest-rail-card-story" aria-label="Latest story">
+        {cardContent}
+      </article>
+    )
+  }
+
+  return (
+    <Link
+      className="latest-rail-card latest-rail-card-story latest-rail-card-link"
+      to={`/stories/${story.slug}`}
+      aria-label={`Read story: ${story.title}`}
+    >
+      {cardContent}
+    </Link>
   )
 }
 

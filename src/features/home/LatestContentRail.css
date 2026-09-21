@@ -54,6 +54,28 @@
   background: #1a1c17;
 }
 
+a.latest-rail-card {
+  color: inherit;
+  text-decoration: none;
+}
+
+.latest-rail-card-link {
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.latest-rail-card-link:hover,
+.latest-rail-card-link:focus-visible {
+  border-color: #d8b47c;
+  background: #20221c;
+  transform: translateY(-2px);
+}
+
+.latest-rail-card-link:focus-visible {
+  outline: 2px solid #d8b47c;
+  outline-offset: 2px;
+}
+
 .latest-rail-card-video {
   padding: 0.9rem;
 }
@@ -71,6 +93,7 @@
   aspect-ratio: 16 / 9;
   margin: -1.25rem -1.25rem 0;
   border-bottom: 1px solid #393b31;
+  pointer-events: none;
 }
 
 .latest-rail-type {
@@ -120,14 +143,6 @@
   content: '·';
   margin-right: 0.85rem;
   color: #4a4c41;
-}
-
-.latest-rail-cta {
-  margin-top: auto;
-  color: #d8b47c;
-  font: 600 0.82rem/1.2 sans-serif;
-  text-decoration: none;
-  align-self: flex-start;
 }
 
 .latest-rail-card-video .video-player {
