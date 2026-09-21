@@ -247,6 +247,18 @@ function RouteMapEditorPage() {
     })
   }
 
+  const updateWaypointGallery = (waypointId, collection, attach) => {
+    setWaypoints((current) => normalizeWaypoints(current.map((waypoint) => {
+      if (String(waypoint.id) !== String(waypointId)) return waypoint
+      const currentIds = Array.isArray(waypoint.image_collection_ids) ? waypoint.image_collection_ids.map(String) : []
+      const collectionId = String(collection.id)
+      const nextIds = attach
+        ? [...currentIds, ...(currentIds.includes(collectionId) ? [] : [collectionId])]
+        : currentIds.filter((value) => value !== collectionId)
+      return { ...waypoint, image_collection_ids: nextIds }
+    })))
+  }
+
   const addBlankWaypoint = () => {
     setActivePanel('waypoints')
     changeWaypoints((current) => {
@@ -651,6 +663,8 @@ function RouteMapEditorPage() {
             onOpenAdvanced={openAdvancedWaypoint}
             onOpenMedia={openWaypointMedia}
             onMediaChange={updateWaypointMedia}
+            onGalleryAttach={(waypointId, collection) => updateWaypointGallery(waypointId, collection, true)}
+            onGalleryDetach={(waypointId, collection) => updateWaypointGallery(waypointId, collection, false)}
             onMove={moveWaypoint}
             onRemove={removeWaypoint}
           />

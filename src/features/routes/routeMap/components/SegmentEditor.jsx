@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ContentVideoManager from '../../../video/ContentVideoManager.jsx'
+import GalleryAttachmentManager from '../../../management/GalleryAttachmentManager.jsx'
 import { managementApis } from '../../../../services/management/index.js'
 import { getWaypointDisplayName } from '../routeMapUtils.js'
 
@@ -144,6 +145,13 @@ function SegmentEditor({ segment, routeId, waypoints, validation, canRegenerate,
         segmentId={segment.id}
         attachedVideoIds={segment.media_ids || []}
         onAttachmentsChange={(nextIds) => onChange({ ...segment, media_ids: nextIds })}
+      />
+      <GalleryAttachmentManager
+        ownerType="RouteSegment"
+        ownerId={segment.id}
+        attachedCollectionIds={segment.image_collection_ids || []}
+        onAttach={(collection) => onChange({ ...segment, image_collection_ids: [...(segment.image_collection_ids || []), collection.id] })}
+        onDetach={(collection) => onChange({ ...segment, image_collection_ids: (segment.image_collection_ids || []).filter((value) => String(value) !== String(collection.id)) })}
       />
     </section>
   )

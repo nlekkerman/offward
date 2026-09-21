@@ -7,6 +7,7 @@ import { getEntityConfig, slugify } from './entityConfig.js'
 import VideoUploadField from './VideoUploadField.jsx'
 import ContentVideoManager from '../video/ContentVideoManager.jsx'
 import ContentImageCollectionManager from './ContentImageCollectionManager.jsx'
+import GalleryAttachmentManager from './GalleryAttachmentManager.jsx'
 import VideoPlayer from '../video/VideoPlayer.jsx'
 import PlaceCoordinatePicker from '../map/components/PlaceCoordinatePicker.jsx'
 import { isValidLatitude, isValidLongitude } from '../map/mapGeometry.js'
@@ -949,6 +950,14 @@ function EntityFormPage({ resourceKey, title }) {
             attachedVideoIds={formData.video_ids || []}
             onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, video_ids: nextIds }))}
           />,
+          <GalleryAttachmentManager
+            key="place-gallery-manager"
+            ownerType="Place"
+            ownerId={id}
+            attachedCollectionIds={formData.image_collection_ids || []}
+            onAttach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: [...(current.image_collection_ids || []), collection.id] }))}
+            onDetach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: (current.image_collection_ids || []).filter((value) => String(value) !== String(collection.id)) }))}
+          />,
         ]
       case 'routes':
         return [
@@ -997,6 +1006,14 @@ function EntityFormPage({ resourceKey, title }) {
             resourceId={id}
             attachedVideoIds={formData.video_ids || []}
             onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, video_ids: nextIds }))}
+          />,
+          <GalleryAttachmentManager
+            key="route-gallery-manager"
+            ownerType="Route"
+            ownerId={id}
+            attachedCollectionIds={formData.image_collection_ids || []}
+            onAttach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: [...(current.image_collection_ids || []), collection.id] }))}
+            onDetach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: (current.image_collection_ids || []).filter((value) => String(value) !== String(collection.id)) }))}
           />,
         ]
       case 'stories':

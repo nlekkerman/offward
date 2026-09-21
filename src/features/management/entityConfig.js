@@ -27,6 +27,7 @@ export const entityConfig = {
       visited_at: '',
       status: 'active',
       video_ids: [],
+      image_collection_ids: [],
     },
   },
   routes: {
@@ -43,6 +44,7 @@ export const entityConfig = {
       path: '',
       places: [],
       video_ids: [],
+      image_collection_ids: [],
     },
   },
   stories: {

@@ -1,9 +1,10 @@
 import { Fragment } from 'react'
 import { getPlaceCoordinates, getWaypointDisplayName } from '../routeMapUtils.js'
 import ContentVideoManager from '../../../video/ContentVideoManager.jsx'
+import GalleryAttachmentManager from '../../../management/GalleryAttachmentManager.jsx'
 import WaypointQuickEditor from './WaypointQuickEditor.jsx'
 
-function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWaypointId, quickEditWaypointId, quickEditSaving, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onOpenMedia, onMediaChange, onMove, onRemove }) {
+function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWaypointId, quickEditWaypointId, quickEditSaving, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onOpenMedia, onMediaChange, onGalleryAttach, onGalleryDetach, onMove, onRemove }) {
   return (
     <section className="route-map-panel">
       <div className="route-map-panel-header">
@@ -90,6 +91,13 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
                       waypointId={waypoint.id}
                       attachedVideoIds={waypoint.media_ids || []}
                       onAttachmentsChange={(nextIds) => onMediaChange(waypoint.id, nextIds)}
+                    />
+                    <GalleryAttachmentManager
+                      ownerType="RouteWaypoint"
+                      ownerId={waypoint.id}
+                      attachedCollectionIds={waypoint.image_collection_ids || []}
+                      onAttach={(collection) => onGalleryAttach(waypoint.id, collection)}
+                      onDetach={(collection) => onGalleryDetach(waypoint.id, collection)}
                     />
                   </section>
                 )}

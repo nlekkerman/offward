@@ -60,6 +60,7 @@ export function normalizeWaypoint(waypoint = {}, index = 0) {
     latitude: latitude === null || latitude === undefined ? '' : String(latitude),
     longitude: longitude === null || longitude === undefined ? '' : String(longitude),
     media_ids: Array.isArray(waypoint.media_ids) ? [...waypoint.media_ids] : Array.isArray(waypoint.mediaIds) ? [...waypoint.mediaIds] : [],
+    image_collection_ids: Array.isArray(waypoint.image_collection_ids) ? [...waypoint.image_collection_ids] : [],
   }
 }
 
@@ -220,6 +221,7 @@ export function buildWaypointPayload(waypoints) {
     label: waypoint.label || '',
     place_id: waypoint.place_id || null,
     media_ids: Array.isArray(waypoint.media_ids) ? [...waypoint.media_ids] : [],
+    image_collection_ids: Array.isArray(waypoint.image_collection_ids) ? [...waypoint.image_collection_ids] : [],
   }))
 }
 
@@ -236,6 +238,7 @@ export function normalizeSegment(segment = {}, index = 0) {
     needs_review: segment.needs_review === true,
     story_ids: Array.isArray(segment.story_ids) ? [...segment.story_ids] : [],
     media_ids: Array.isArray(segment.media_ids) ? [...segment.media_ids] : [],
+    image_collection_ids: Array.isArray(segment.image_collection_ids) ? [...segment.image_collection_ids] : [],
   }
 }
 
@@ -346,5 +349,6 @@ export function buildSegmentPayload(segments) {
     end_waypoint_id: segment.end_waypoint_id,
     story_ids: [...segment.story_ids],
     media_ids: [...segment.media_ids],
+    image_collection_ids: [...(segment.image_collection_ids || [])],
   }))
 }
