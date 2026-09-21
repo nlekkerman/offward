@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import RouteMiniMap from '../map/components/RouteMiniMap.jsx'
 import { formatActivityLabel, formatCountryLabel } from './latestContentFormatting.js'
 
 function LatestRouteCard({ route }) {
@@ -7,6 +8,7 @@ function LatestRouteCard({ route }) {
 
   return (
     <article className="latest-rail-card latest-rail-card-route" aria-label="Latest route">
+      <RouteMiniMap route={route} className="latest-rail-mini-map" />
       <p className="latest-rail-type">Route</p>
       <h3 className="latest-rail-title">{route.title}</h3>
       {route.summary && <p className="latest-rail-excerpt">{route.summary}</p>}

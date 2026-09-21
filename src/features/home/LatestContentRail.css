@@ -66,6 +66,13 @@
   object-fit: cover;
 }
 
+.latest-rail-mini-map {
+  width: calc(100% + 2.5rem);
+  aspect-ratio: 16 / 9;
+  margin: -1.25rem -1.25rem 0;
+  border-bottom: 1px solid #393b31;
+}
+
 .latest-rail-type {
   margin: 0;
   color: #d8b47c;
