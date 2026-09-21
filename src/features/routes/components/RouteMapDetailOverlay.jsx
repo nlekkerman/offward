@@ -1,17 +1,56 @@
-import { collectionCount, collectionPreview } from '../../management/imageCollectionUtils.js'
+import { collectionPreview } from '../../management/imageCollectionUtils.js'
 
-function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, onShowFullRoute, onViewDetails, onPointerEnter, onPointerLeave, loadingGalleryId, galleryErrorByCollectionId }) {
+// Gallery preview image takes priority (first attachment with a usable
+// cover); Video thumbnail/poster is the fallback. Never both, never more
+// than one image - full media consumption lives on the detail page.
+function resolvePreviewImage(videos, imageCollections) {
+  const gallery = imageCollections.find((collection) => collectionPreview(collection))
+  if (gallery) return collectionPreview(gallery)
+
+  const video = videos.find((item) => item.thumbnail_url || item.poster_url)
+  return video ? video.thumbnail_url || video.poster_url : null
+}
+
+function formatMediaCounts(videoCount, galleryCount) {
+  const parts = []
+  if (videoCount > 0) parts.push(`${videoCount} ${videoCount === 1 ? 'video' : 'videos'}`)
+  if (galleryCount > 0) parts.push(`${galleryCount} ${galleryCount === 1 ? 'gallery' : 'galleries'}`)
+  return parts.join(' · ')
+}
+
+function RouteMapDetailOverlay({ detail, onClose, onShowFullRoute, onViewDetails, onPointerEnter, onPointerLeave }) {
   if (!detail) {
     return null
   }
 
   const videos = Array.isArray(detail.videos) ? detail.videos : []
   const imageCollections = Array.isArray(detail.imageCollections) ? detail.imageCollections : []
-  const hasMedia = videos.length > 0 || imageCollections.length > 0
+  const previewImage = resolvePreviewImage(videos, imageCollections)
+  const mediaCounts = formatMediaCounts(videos.length, imageCollections.length)
+
+  const activate = () => onViewDetails(detail)
+  const handleKeyDown = (event) => {
+    // Ignore keydowns bubbling up from nested controls (Close, Show full route).
+    if (event.target !== event.currentTarget) return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      activate()
+    }
+  }
 
   return (
-    <aside className="route-map-detail-overlay" aria-live="polite" aria-label={`${detail.eyebrow}: ${detail.title}`} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
-      <button type="button" className="route-map-detail-close" onClick={onClose} aria-label="Close map details">×</button>
+    <aside
+      className="route-map-detail-overlay"
+      aria-live="polite"
+      aria-label={`${detail.eyebrow}: ${detail.title}. Activate to view details.`}
+      role="button"
+      tabIndex={0}
+      onClick={activate}
+      onKeyDown={handleKeyDown}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+    >
+      <button type="button" className="route-map-detail-close" onClick={(event) => { event.stopPropagation(); onClose() }} aria-label="Close map details">×</button>
       <header className="route-map-detail-header">
         <p className="route-map-detail-eyebrow">{detail.eyebrow}</p>
         <h3>{detail.title}</h3>
@@ -20,70 +59,19 @@ function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, on
 
       {detail.summary && <p className="route-map-detail-summary">{detail.summary}</p>}
 
-      {hasMedia && (
-        <section className="route-map-detail-media" aria-label="Media">
-          <p className="route-map-detail-section-label">Media</p>
-          {videos.length > 0 && (
-            <div className="route-map-detail-media-group">
-              <p>Videos</p>
-              <div className="route-map-detail-rail">
-                {videos.map((video) => (
-                  <article className="route-map-video-preview" key={video.id}>
-                    <div className="route-map-video-thumbnail">
-                      {video.thumbnail_url ? <img src={video.thumbnail_url} alt="" loading="lazy" /> : <span aria-hidden="true">▶</span>}
-                    </div>
-                    <div className="route-map-video-copy">
-                      <strong>{video.title || 'Video'}</strong>
-                      {video.duration && <span>{video.duration}</span>}
-                      <button type="button" onClick={() => onPlayVideo(video)}>Play</button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {imageCollections.length > 0 && (
-            <div className="route-map-detail-media-group">
-              <p>Galleries</p>
-              <div className="route-map-detail-rail">
-                {imageCollections.map((gallery, index) => {
-                  const cover = collectionPreview(gallery)
-                  const imageCount = collectionCount(gallery)
-                  const galleryId = gallery.id ? String(gallery.id) : ''
-                  const isLoading = galleryId && loadingGalleryId === galleryId
-                  const errorMessage = galleryId ? galleryErrorByCollectionId?.[galleryId] : null
-                  return (
-                    <article className="route-map-gallery-preview" key={galleryId || gallery.title || index}>
-                      <span className="route-map-gallery-cover">{cover ? <img src={cover} alt="" loading="lazy" /> : <span aria-hidden="true">▧</span>}</span>
-                      <span className="route-map-gallery-copy">
-                        <strong>{gallery.title || 'Gallery'}</strong>
-                        {imageCount > 0 && <span>{imageCount} {imageCount === 1 ? 'photo' : 'photos'}</span>}
-                        <button
-                          type="button"
-                          className="route-map-gallery-action"
-                          onClick={() => onOpenGallery(gallery)}
-                          disabled={isLoading}
-                          aria-label={`View gallery ${gallery.title || ''}`.trim()}
-                        >
-                          {isLoading ? 'Loading…' : 'View'}
-                        </button>
-                        {errorMessage && <span className="route-map-gallery-error" role="alert">{errorMessage}</span>}
-                      </span>
-                    </article>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </section>
+      {previewImage && (
+        <div className="route-map-detail-preview">
+          <img src={previewImage} alt="" loading="lazy" />
+        </div>
       )}
+
+      {mediaCounts && <p className="route-map-detail-counts">{mediaCounts}</p>}
 
       <div className="route-map-detail-actions">
         {detail.type === 'segment' && (
-          <button type="button" className="route-map-show-route" onClick={onShowFullRoute}>Show full route</button>
+          <button type="button" className="route-map-show-route" onClick={(event) => { event.stopPropagation(); onShowFullRoute() }}>Show full route</button>
         )}
-        <button type="button" className="route-map-view-details" onClick={() => onViewDetails(detail)}>View details</button>
+        <span className="route-map-view-details" aria-hidden="true">View details →</span>
       </div>
     </aside>
   )

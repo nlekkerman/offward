@@ -6,10 +6,7 @@ import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailO
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
 import { getAttachedMediaCount, normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import RouteSections from '../features/routes/components/RouteSections.jsx'
-import VideoPlayerDialog from '../features/video/VideoPlayerDialog.jsx'
-import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import { getCountries } from '../services/countriesApi.js'
-import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import NotFoundPage from './NotFoundPage.jsx'
@@ -83,13 +80,8 @@ function RoutePage() {
   const [selectedSegmentId, setSelectedSegmentId] = useState(null)
   const [openPanel, setOpenPanel] = useState(null)
   const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
-  const [activeVideo, setActiveVideo] = useState(null)
-  const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
-  const [galleryLoadingId, setGalleryLoadingId] = useState(null)
-  const [galleryErrorByCollectionId, setGalleryErrorByCollectionId] = useState({})
   const [routeFocusRequest, setRouteFocusRequest] = useState(0)
   const hoverCloseTimerRef = useRef(null)
-  const galleryCacheRef = useRef(new Map())
   const supportsHover = useHoverCapability()
 
   useEffect(() => () => window.clearTimeout(hoverCloseTimerRef.current), [])
@@ -263,44 +255,6 @@ function RoutePage() {
     setSelectedWaypointId(null)
     setSelectedSegmentId(null)
   }
-  const pinHoveredWaypoint = () => {
-    if (!selectedWaypointId && hoveredWaypointId) setSelectedWaypointId(hoveredWaypointId)
-    clearHoveredWaypoint()
-  }
-  const openVideo = (video) => {
-    pinHoveredWaypoint()
-    setOpenPanel(null)
-    setActiveVideo(video)
-  }
-  // Preview data only carries lightweight ImageCollection summaries. The full
-  // ordered image list is fetched on demand, cached per session, and only
-  // then handed to the existing ImageLightbox.
-  const openGallery = async (galleryPreview) => {
-    const collectionId = galleryPreview?.id ? String(galleryPreview.id) : ''
-    if (!collectionId || galleryLoadingId === collectionId) {
-      return
-    }
-
-    pinHoveredWaypoint()
-    setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: null }))
-
-    const cached = galleryCacheRef.current.get(collectionId)
-    if (cached) {
-      setLightbox({ gallery: cached, index: 0 })
-      return
-    }
-
-    setGalleryLoadingId(collectionId)
-    try {
-      const fullCollection = await getPublicImageCollection(collectionId)
-      galleryCacheRef.current.set(collectionId, fullCollection)
-      setLightbox({ gallery: fullCollection, index: 0 })
-    } catch {
-      setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Unable to load gallery. Try again.' }))
-    } finally {
-      setGalleryLoadingId((current) => (current === collectionId ? null : current))
-    }
-  }
   const handleWaypointVisibilityChange = (isVisible) => {
     if (isVisible) return
     clearHoveredWaypoint()
@@ -311,7 +265,6 @@ function RoutePage() {
     const target = getMapEntityDetailPath(routeSlug, detail)
     if (target) navigate(target)
   }
-  const lightboxImages = lightbox.gallery?.images || []
   const mapRoute = route && route.is_map_renderable === true && isRenderableRoute(route) ? route : null
   const hasMalformedGeometry = route?.geometry && route?.is_map_renderable === true && !mapRoute
   const countryLabel = countryNames.get(route?.country) || route?.country || 'Country pending'
@@ -412,26 +365,13 @@ function RoutePage() {
           <RouteMapDetailOverlay
             detail={mapDetail}
             onClose={closeMapDetail}
-            onPlayVideo={openVideo}
-            onOpenGallery={openGallery}
             onShowFullRoute={showFullRoute}
             onViewDetails={viewMapEntityDetails}
             onPointerEnter={cancelHoverClose}
             onPointerLeave={scheduleHoverClose}
-            loadingGalleryId={galleryLoadingId}
-            galleryErrorByCollectionId={galleryErrorByCollectionId}
           />
         </MapView>
       </section>
-      <VideoPlayerDialog video={activeVideo} onClose={() => setActiveVideo(null)} />
-      <ImageLightbox
-        images={lightboxImages}
-        activeIndex={lightbox.index}
-        isOpen={lightbox.index >= 0}
-        onClose={() => setLightbox({ gallery: null, index: -1 })}
-        onPrevious={() => setLightbox((current) => ({ ...current, index: (current.index - 1 + lightboxImages.length) % lightboxImages.length }))}
-        onNext={() => setLightbox((current) => ({ ...current, index: (current.index + 1) % lightboxImages.length }))}
-      />
     </section>
   )
 }
