@@ -41,7 +41,7 @@ export function toImageMembershipPayload(images) {
 }
 
 export function collectionPreview(collection) {
-  return collection?.preview_image?.url || collection?.preview_image?.image_url || collection?.preview_image_url || imageUrl(collection?.images?.[0])
+  return collection?.preview_image?.thumbnail_url || collection?.preview_image?.url || collection?.preview_image?.image_url || collection?.preview_image_url || imageUrl(collection?.images?.[0])
 }
 
 export function collectionCount(collection) {

@@ -1,6 +1,6 @@
 import { collectionCount, collectionPreview } from '../../management/imageCollectionUtils.js'
 
-function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, onShowFullRoute, onPointerEnter, onPointerLeave, loadingGalleryId, galleryErrorByCollectionId }) {
+function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, onShowFullRoute, onViewDetails, onPointerEnter, onPointerLeave, loadingGalleryId, galleryErrorByCollectionId }) {
   if (!detail) {
     return null
   }
@@ -79,9 +79,12 @@ function RouteMapDetailOverlay({ detail, onClose, onPlayVideo, onOpenGallery, on
         </section>
       )}
 
-      {detail.type === 'segment' && (
-        <button type="button" className="route-map-show-route" onClick={onShowFullRoute}>Show full route</button>
-      )}
+      <div className="route-map-detail-actions">
+        {detail.type === 'segment' && (
+          <button type="button" className="route-map-show-route" onClick={onShowFullRoute}>Show full route</button>
+        )}
+        <button type="button" className="route-map-view-details" onClick={() => onViewDetails(detail)}>View details</button>
+      </div>
     </aside>
   )
 }

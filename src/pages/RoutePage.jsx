@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
@@ -65,8 +65,16 @@ function getWaypointTitle(waypoint) {
   return waypoint?.name || waypoint?.label || waypoint?.place_name || `Waypoint ${waypoint?.order}`
 }
 
+function getMapEntityDetailPath(routeSlug, detail) {
+  if (!routeSlug || !detail?.id) return null
+  if (detail.type === 'waypoint') return `/routes/${encodeURIComponent(routeSlug)}/waypoints/${encodeURIComponent(detail.id)}`
+  if (detail.type === 'segment') return `/routes/${encodeURIComponent(routeSlug)}/segments/${encodeURIComponent(detail.id)}`
+  return null
+}
+
 function RoutePage() {
   const { routeSlug } = useParams()
+  const navigate = useNavigate()
   const [routeResult, setRouteResult] = useState({ slug: null, status: 'loading', route: null })
   const [countries, setCountries] = useState([])
   const [countriesStatus, setCountriesStatus] = useState('loading')
@@ -224,6 +232,7 @@ function RoutePage() {
     const waypoint = waypoints.find((item) => item.id === activeWaypointId)
     if (waypoint) {
       return {
+        id: waypoint.id,
         type: 'waypoint',
         eyebrow: `Waypoint ${waypoint.order}`,
         title: getWaypointTitle(waypoint),
@@ -239,6 +248,7 @@ function RoutePage() {
     const start = waypoints.find((waypointItem) => waypointItem.id === segment.start_waypoint_id)
     const end = waypoints.find((waypointItem) => waypointItem.id === segment.end_waypoint_id)
     return {
+      id: segment.id,
       type: 'segment',
       eyebrow: `Section ${segment.order}`,
       title: segment.title || `${getWaypointTitle(start)} → ${getWaypointTitle(end)}`,
@@ -297,6 +307,10 @@ function RoutePage() {
     setSelectedWaypointId(null)
   }
   const showFullRoute = () => setRouteFocusRequest((current) => current + 1)
+  const viewMapEntityDetails = (detail) => {
+    const target = getMapEntityDetailPath(routeSlug, detail)
+    if (target) navigate(target)
+  }
   const lightboxImages = lightbox.gallery?.images || []
   const mapRoute = route && route.is_map_renderable === true && isRenderableRoute(route) ? route : null
   const hasMalformedGeometry = route?.geometry && route?.is_map_renderable === true && !mapRoute
@@ -401,6 +415,7 @@ function RoutePage() {
             onPlayVideo={openVideo}
             onOpenGallery={openGallery}
             onShowFullRoute={showFullRoute}
+            onViewDetails={viewMapEntityDetails}
             onPointerEnter={cancelHoverClose}
             onPointerLeave={scheduleHoverClose}
             loadingGalleryId={galleryLoadingId}

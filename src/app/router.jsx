@@ -10,10 +10,12 @@ import HomePage from '../pages/HomePage.jsx'
 import NotFoundPage from '../pages/NotFoundPage.jsx'
 import PlacePage from '../pages/PlacePage.jsx'
 import RoutePage from '../pages/RoutePage.jsx'
+import SegmentDetailPage from '../pages/SegmentDetailPage.jsx'
 import StoriesListPage from '../pages/StoriesListPage.jsx'
 import StoryPage from '../pages/StoryPage.jsx'
 import TourPage from '../pages/TourPage.jsx'
 import VideoPage from '../pages/VideoPage.jsx'
+import WaypointDetailPage from '../pages/WaypointDetailPage.jsx'
 import ManageRouter from './manageRouter.jsx'
 
 export const router = createBrowserRouter([
@@ -27,6 +29,8 @@ export const router = createBrowserRouter([
       { path: 'countries/:countrySlug', element: <CountryPage /> },
       { path: 'places/:placeSlug', element: <PlacePage /> },
       { path: 'routes/:routeSlug', element: <RoutePage /> },
+      { path: 'routes/:routeSlug/waypoints/:id', element: <WaypointDetailPage /> },
+      { path: 'routes/:routeSlug/segments/:id', element: <SegmentDetailPage /> },
       { path: 'stories', element: <StoriesListPage /> },
       { path: 'stories/:storySlug', element: <StoryPage /> },
       { path: 'videos/:videoSlug', element: <VideoPage /> },
