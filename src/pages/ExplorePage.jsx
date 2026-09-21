@@ -214,37 +214,17 @@ function ExplorePage() {
           {routesStatus === 'success' && selectedCountry && routes.length === 0 && <p className="explore-status" role="status">No routes match these filters.</p>}
           {selectedCountry && routes.length > 0 && (
             <div className="explore-route-list" aria-label="Routes">
-              {routes.map((route) => {
-                const routeContent = (
-                  <>
-                    <strong>{route.title}</strong>
-                    <span>{countryNames.get(route.country) || route.country} · {route.activity_type}</span>
-                  </>
-                )
-
-                return route.id === activeSelectedRouteId ? (
-                  <Link
-                    key={route.id}
-                    className="explore-route-item is-selected"
-                    to={`/routes/${route.slug}`}
-                    aria-label={`View route details: ${route.title}`}
-                  >
-                    {routeContent}
-                  </Link>
-                ) : (
-                  <button
-                    key={route.id}
-                    type="button"
-                    className="explore-route-item"
-                    onClick={() => {
-                      setSelectedRouteId(route.id)
-                      setSelectedPlaceId(null)
-                    }}
-                  >
-                    {routeContent}
-                  </button>
-                )
-              })}
+              {routes.map((route) => (
+                <Link
+                  key={route.id}
+                  className={route.id === activeSelectedRouteId ? 'explore-route-item is-selected' : 'explore-route-item'}
+                  to={`/routes/${route.slug}`}
+                  aria-label={`View route details: ${route.title}`}
+                >
+                  <strong>{route.title}</strong>
+                  <span>{countryNames.get(route.country) || route.country} · {route.activity_type}</span>
+                </Link>
+              ))}
             </div>
           )}
         </div>
