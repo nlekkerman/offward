@@ -334,8 +334,7 @@ function RoutePage() {
 
       <section className="route-map-section" aria-labelledby="route-map-title">
         <div className="route-map-heading">
-          <p className="eyebrow">MAP</p>
-          <h2 id="route-map-title">Published path</h2>
+          <h2 id="route-map-title">Route Map</h2>
         </div>
         {(!route.geometry || route.is_map_renderable === false) && <p className="route-map-message">This Route does not yet have a published map path.</p>}
         {hasMalformedGeometry && <p className="route-map-message" role="status">The published map path could not be displayed.</p>}

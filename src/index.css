@@ -1064,7 +1064,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   box-sizing: border-box;
   max-width: var(--waypoint-pill-max-width);
   padding: 0.3rem 0.55rem;
-  border-radius: 3px 14px 14px 14px;
+  border-radius: 14px 14px 14px 0;
   border: 1.5px solid var(--waypoint-border);
   background: var(--waypoint-bg);
   color: var(--waypoint-text);
