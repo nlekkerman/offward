@@ -283,7 +283,24 @@ export function createEmptySegment(order, startWaypointId = '', endWaypointId = 
     needs_review: false,
     story_ids: [],
     media_ids: [],
+    image_collection_ids: [],
   }
+}
+
+export function deriveWaypointPairs(waypoints) {
+  if (!Array.isArray(waypoints) || waypoints.length < 2) return []
+
+  const orderedWaypoints = [...waypoints].sort((a, b) => a.order - b.order)
+
+  return orderedWaypoints.slice(0, -1).map((startWaypoint, index) => {
+    const endWaypoint = orderedWaypoints[index + 1]
+    return {
+      key: `${startWaypoint.id}:${endWaypoint.id}`,
+      order: index + 1,
+      start_waypoint_id: startWaypoint.id,
+      end_waypoint_id: endWaypoint.id,
+    }
+  })
 }
 
 export function deriveSegmentGeometry(acceptedGeometry, startWaypoint, endWaypoint) {
@@ -338,6 +355,30 @@ export function buildManualSegmentGeometry(startWaypoint, endWaypoint, intermedi
       [startLongitude, startLatitude],
       ...manualCoordinates,
       [endLongitude, endLatitude],
+    ],
+  }
+}
+
+export function replaceCandidateSectionGeometry(candidateGeometry, startWaypoint, endWaypoint, intermediatePoints = []) {
+  const candidate = normalizeGeometry(candidateGeometry)
+  const replacement = buildManualSegmentGeometry(startWaypoint, endWaypoint, intermediatePoints)
+  if (!candidate || !replacement) return null
+
+  const closestIndex = ([longitude, latitude]) => candidate.coordinates.reduce((closest, coordinate, index) => {
+    const distance = ((coordinate[0] - longitude) ** 2) + ((coordinate[1] - latitude) ** 2)
+    return distance < closest.distance ? { index, distance } : closest
+  }, { index: -1, distance: Number.POSITIVE_INFINITY }).index
+
+  const startIndex = closestIndex(replacement.coordinates[0])
+  const endIndex = closestIndex(replacement.coordinates.at(-1))
+  if (startIndex < 0 || endIndex <= startIndex) return null
+
+  return {
+    type: 'LineString',
+    coordinates: [
+      ...candidate.coordinates.slice(0, startIndex),
+      ...replacement.coordinates,
+      ...candidate.coordinates.slice(endIndex + 1),
     ],
   }
 }

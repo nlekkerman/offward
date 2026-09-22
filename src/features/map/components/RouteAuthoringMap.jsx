@@ -136,8 +136,9 @@ function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeomet
   const waypointLine = validWaypoints.map((item) => item.latLng)
   const accepted = normalizeGeometry(acceptedGeometry)
   const candidate = normalizeGeometry(candidateGeometry)
+  const manualPoints = Array.isArray(manualDrawing?.points) ? manualDrawing.points : []
   const manualDrawingPositions = manualDrawing
-    ? [toLatLng(manualDrawing.startWaypoint), ...manualDrawing.points.map((point) => [point.lat, point.lng]), toLatLng(manualDrawing.endWaypoint)].filter(Boolean)
+    ? [toLatLng(manualDrawing.startWaypoint), ...manualPoints.map((point) => [point.lat, point.lng]), toLatLng(manualDrawing.endWaypoint)].filter(Boolean)
     : []
   const drawingManually = manualDrawingPositions.length >= 2
 
