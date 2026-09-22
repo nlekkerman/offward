@@ -8,6 +8,7 @@ import VideoUploadField from './VideoUploadField.jsx'
 import ContentVideoManager from '../video/ContentVideoManager.jsx'
 import ContentImageCollectionManager from './ContentImageCollectionManager.jsx'
 import GalleryAttachmentManager from './GalleryAttachmentManager.jsx'
+import RelationshipAttachmentManager from './RelationshipAttachmentManager.jsx'
 import VideoPlayer from '../video/VideoPlayer.jsx'
 import PlaceCoordinatePicker from '../map/components/PlaceCoordinatePicker.jsx'
 import { isValidLatitude, isValidLongitude } from '../map/mapGeometry.js'
@@ -63,6 +64,12 @@ function hasVideoLocationValue(location) {
   return Object.values(location || {}).some((value) => value !== '' && value !== null && value !== undefined)
 }
 
+// Accepts bare id arrays, nested-object arrays, or a missing field and always returns id strings.
+function normalizeIdArray(value) {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => (item && typeof item === 'object' ? item.id : item)).filter(Boolean)
+}
+
 function getInitialValues(resourceKey, data = {}) {
   const config = getEntityConfig(resourceKey)
   const base = { ...config.defaultValues }
@@ -78,6 +85,12 @@ function getInitialValues(resourceKey, data = {}) {
       place_id: place.place_id || place.placeId || place.id || '',
       position: place.position || 1,
     }))
+  }
+
+  if (resourceKey === 'stories') {
+    base.place_ids = normalizeIdArray(data.place_ids)
+    base.route_ids = normalizeIdArray(data.route_ids)
+    base.event_ids = normalizeIdArray(data.event_ids)
   }
 
   if (Object.prototype.hasOwnProperty.call(base, 'country')) {
@@ -474,12 +487,9 @@ function EntityFormPage({ resourceKey, title }) {
     }
 
     if (resourceKey === 'stories') {
-      if (Array.isArray(payload.places)) {
-        payload.places = payload.places.map((value) => value)
-      }
-      if (Array.isArray(payload.routes)) {
-        payload.routes = payload.routes.map((value) => value)
-      }
+      payload.place_ids = normalizeIdArray(payload.place_ids)
+      payload.route_ids = normalizeIdArray(payload.route_ids)
+      payload.event_ids = normalizeIdArray(payload.event_ids)
       if (!Array.isArray(payload.image_collection_ids)) {
         payload.image_collection_ids = []
       }
@@ -1021,11 +1031,38 @@ function EntityFormPage({ resourceKey, title }) {
           renderField('body', 'textarea'),
           renderPublishedAt(),
           renderField('status', 'select'),
-          renderField('places', 'multi-select'),
-          renderField('routes', 'multi-select'),
-          renderField('events', 'multi-select'),
-          renderField('tours', 'multi-select'),
-          renderField('videos', 'multi-select'),
+          <RelationshipAttachmentManager
+            key="story-places-manager"
+            title="Places"
+            attachedIds={formData.place_ids || []}
+            availableItems={relationshipOptions.places || []}
+            searchPlaceholder="Search places by name…"
+            emptyText="No places attached yet."
+            onAttach={(placeId) => setFormData((current) => ({ ...current, place_ids: [...(current.place_ids || []), placeId] }))}
+            onDetach={(placeId) => setFormData((current) => ({ ...current, place_ids: (current.place_ids || []).filter((value) => String(value) !== String(placeId)) }))}
+          />,
+          <RelationshipAttachmentManager
+            key="story-routes-manager"
+            title="Routes"
+            attachedIds={formData.route_ids || []}
+            availableItems={relationshipOptions.routes || []}
+            getLabel={(route) => route.title || route.slug || route.id}
+            searchPlaceholder="Search routes by title…"
+            emptyText="No routes attached yet."
+            onAttach={(routeId) => setFormData((current) => ({ ...current, route_ids: [...(current.route_ids || []), routeId] }))}
+            onDetach={(routeId) => setFormData((current) => ({ ...current, route_ids: (current.route_ids || []).filter((value) => String(value) !== String(routeId)) }))}
+          />,
+          <RelationshipAttachmentManager
+            key="story-events-manager"
+            title="Events"
+            attachedIds={formData.event_ids || []}
+            availableItems={relationshipOptions.events || []}
+            getLabel={(event) => event.title || event.slug || event.id}
+            searchPlaceholder="Search events by title…"
+            emptyText="No events attached yet."
+            onAttach={(eventId) => setFormData((current) => ({ ...current, event_ids: [...(current.event_ids || []), eventId] }))}
+            onDetach={(eventId) => setFormData((current) => ({ ...current, event_ids: (current.event_ids || []).filter((value) => String(value) !== String(eventId)) }))}
+          />,
           <ContentVideoManager
             key="story-video-manager"
             resourceKey="story"
