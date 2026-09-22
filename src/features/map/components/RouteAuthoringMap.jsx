@@ -78,10 +78,15 @@ function WaypointMarker({ waypoint, latLng, selected, onWaypointSelect }) {
   )
 }
 
-function MapClickHandler({ addMode, onMapAddWaypoint }) {
+function MapClickHandler({ addMode, drawingManually, onMapAddWaypoint, onManualDrawPoint }) {
   useMapEvents({
     click(event) {
-      if (addMode) {
+      if (drawingManually) {
+        onManualDrawPoint({
+          lat: event.latlng.lat,
+          lng: event.latlng.lng,
+        })
+      } else if (addMode) {
         onMapAddWaypoint({
           latitude: event.latlng.lat,
           longitude: event.latlng.lng,
@@ -126,14 +131,18 @@ const SELECTED_SEGMENT_STYLE = {
   lineJoin: 'round',
 }
 
-function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeometry, segments = [], selectedSegmentId, selectedWaypointId, addMode, onSegmentSelect, onWaypointSelect, onMapAddWaypoint }) {
+function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeometry, segments = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint }) {
   const validWaypoints = useMemo(() => waypoints.map((waypoint) => ({ waypoint, latLng: toLatLng(waypoint) })).filter((item) => item.latLng), [waypoints])
   const waypointLine = validWaypoints.map((item) => item.latLng)
   const accepted = normalizeGeometry(acceptedGeometry)
   const candidate = normalizeGeometry(candidateGeometry)
+  const manualDrawingPositions = manualDrawing
+    ? [toLatLng(manualDrawing.startWaypoint), ...manualDrawing.points.map((point) => [point.lat, point.lng]), toLatLng(manualDrawing.endWaypoint)].filter(Boolean)
+    : []
+  const drawingManually = manualDrawingPositions.length >= 2
 
   return (
-    <div className={addMode ? 'offward-map-container route-authoring-map is-add-mode' : 'offward-map-container route-authoring-map'} aria-label="Route waypoint authoring map">
+    <div className={addMode || drawingManually ? 'offward-map-container route-authoring-map is-add-mode' : 'offward-map-container route-authoring-map'} aria-label="Route waypoint authoring map">
       <MapContainer center={[50, 10]} zoom={4} scrollWheelZoom={true} className="offward-map-inner">
         <TileLayer attribution={MAP_TILE_LAYER.attribution} url={MAP_TILE_LAYER.url} />
         <WaypointMarkerZoomController />
@@ -153,6 +162,7 @@ function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeomet
           )
         })}
         {waypointLine.length > 1 && <Polyline positions={waypointLine} pathOptions={{ color: '#eee0bd', opacity: 0.35, weight: 2, dashArray: '4 7' }} />}
+        {drawingManually && <Polyline positions={manualDrawingPositions} pathOptions={{ color: '#f0d39c', opacity: 1, weight: 6, dashArray: '10 7' }} interactive={false} />}
         {validWaypoints.map(({ waypoint, latLng }) => {
           const selected = waypoint.id === selectedWaypointId
           return (
@@ -166,7 +176,7 @@ function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeomet
           )
         })}
         <AuthoringViewport waypoints={waypoints} acceptedGeometry={accepted} candidateGeometry={candidate} segments={segments} />
-        <MapClickHandler addMode={addMode} onMapAddWaypoint={onMapAddWaypoint} />
+        <MapClickHandler addMode={addMode} drawingManually={drawingManually} onMapAddWaypoint={onMapAddWaypoint} onManualDrawPoint={onManualDrawPoint} />
       </MapContainer>
     </div>
   )

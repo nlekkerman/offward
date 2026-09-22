@@ -9,7 +9,7 @@ function getWaypointLabel(waypoint) {
   return `${waypoint.order} · ${waypoint.type === 'start' ? 'Start' : waypoint.type === 'finish' ? 'Finish' : 'Via'} · ${getWaypointDisplayName(waypoint)}`
 }
 
-function SegmentEditor({ segment, routeId, waypoints, validation, canRegenerate, onChange, onRegenerate, onSave, onGalleryChange, saving = false }) {
+function SegmentEditor({ segment, routeId, waypoints, validation, canRegenerate, canDrawManually, drawingManually, manualPointCount, onChange, onRegenerate, onStartManualDrawing, onUndoManualPoint, onClearManualPoints, onFinishManualDrawing, onCancelManualDrawing, onSave, onGalleryChange, saving = false }) {
   const [stories, setStories] = useState([])
   const [storiesStatus, setStoriesStatus] = useState('loading')
   const [storySearch, setStorySearch] = useState('')
@@ -129,12 +129,26 @@ function SegmentEditor({ segment, routeId, waypoints, validation, canRegenerate,
       </div>
       {!validation.valid && <p className="field-error-text segment-validation-message">{validation.message}</p>}
       <div className="segment-editor-actions">
-        <button type="button" className="secondary-button small-button" onClick={onRegenerate} disabled={!canRegenerate}>Regenerate geometry from accepted Route</button>
+        <button type="button" className="secondary-button small-button" onClick={onRegenerate} disabled={!canRegenerate || drawingManually}>Auto route from accepted Route</button>
+        {!drawingManually && (
+          <button type="button" className="secondary-button small-button" onClick={onStartManualDrawing} disabled={!canDrawManually}>
+            {segment.geometry ? 'Redraw manually' : 'Draw manually'}
+          </button>
+        )}
+        {drawingManually && (
+          <div className="segment-drawing-controls" role="group" aria-label="Manual segment drawing controls">
+            <span className="route-map-muted">Click the map to add intermediate points. Start and end are fixed.</span>
+            <button type="button" className="secondary-button small-button" onClick={onUndoManualPoint} disabled={manualPointCount === 0}>Undo last point</button>
+            <button type="button" className="secondary-button small-button" onClick={onClearManualPoints} disabled={manualPointCount === 0}>Clear points</button>
+            <button type="button" className="primary-button small-button" onClick={onFinishManualDrawing}>Finish</button>
+            <button type="button" className="secondary-button small-button" onClick={onCancelManualDrawing}>Cancel</button>
+          </div>
+        )}
       </div>
-      {startWaypoint && endWaypoint && validation.valid && <p className="route-map-muted">Geometry follows the accepted Route between the selected boundaries.</p>}
+      {startWaypoint && endWaypoint && validation.valid && !drawingManually && <p className="route-map-muted">Geometry connects the selected Waypoint boundaries.</p>}
       <div className="route-map-edit-actions">
         <button type="button" className="secondary-button small-button" onClick={() => onChange({ ...segment, id: segment.id })}>Cancel</button>
-        <button type="button" className="primary-button small-button" onClick={onSave} disabled={saving}>
+        <button type="button" className="primary-button small-button" onClick={onSave} disabled={saving || drawingManually}>
           {saving ? (isNewSegment ? 'Adding Segment...' : 'Saving Segment...') : isNewSegment ? 'Add Segment' : 'Save Segment'}
         </button>
       </div>

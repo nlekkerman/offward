@@ -316,6 +316,32 @@ export function deriveSegmentGeometry(acceptedGeometry, startWaypoint, endWaypoi
   return coordinates.length >= 2 ? { type: 'LineString', coordinates } : null
 }
 
+export function buildManualSegmentGeometry(startWaypoint, endWaypoint, intermediatePoints = []) {
+  const startLatitude = Number(startWaypoint?.latitude ?? startWaypoint?.coordinates?.lat)
+  const startLongitude = Number(startWaypoint?.longitude ?? startWaypoint?.coordinates?.lng)
+  const endLatitude = Number(endWaypoint?.latitude ?? endWaypoint?.coordinates?.lat)
+  const endLongitude = Number(endWaypoint?.longitude ?? endWaypoint?.coordinates?.lng)
+  const boundaries = [startLatitude, startLongitude, endLatitude, endLongitude]
+
+  if (!boundaries.every(Number.isFinite) || !Array.isArray(intermediatePoints)) {
+    return null
+  }
+
+  const manualCoordinates = intermediatePoints.map((point) => [Number(point?.lng), Number(point?.lat)])
+  if (manualCoordinates.some(([longitude, latitude]) => !Number.isFinite(longitude) || !Number.isFinite(latitude))) {
+    return null
+  }
+
+  return {
+    type: 'LineString',
+    coordinates: [
+      [startLongitude, startLatitude],
+      ...manualCoordinates,
+      [endLongitude, endLatitude],
+    ],
+  }
+}
+
 function getWaypointById(waypoints, id) {
   return waypoints.find((waypoint) => waypoint.id === id)
 }

@@ -9,7 +9,7 @@ import SegmentList from '../../../features/routes/routeMap/components/SegmentLis
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
 import ContentVideoManager from '../../../features/video/ContentVideoManager.jsx'
-import { buildWaypointPayload, createEmptySegment, createEmptyWaypoint, deriveSegmentGeometry, getPlaceCoordinates, normalizeGeometry, normalizeRouteMap, normalizeSegments, normalizeWaypoints, reorderWaypoints, validateSegment, validateSegments, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
+import { buildManualSegmentGeometry, buildWaypointPayload, createEmptySegment, createEmptyWaypoint, deriveSegmentGeometry, getPlaceCoordinates, normalizeGeometry, normalizeRouteMap, normalizeSegments, normalizeWaypoints, reorderWaypoints, validateSegment, validateSegments, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
 import { managementApis } from '../../../services/management/index.js'
 import { routeMapApi } from '../../../services/management/routeMapApi.js'
 
@@ -68,6 +68,7 @@ function RouteMapEditorPage() {
   const [persistedSegmentIds, setPersistedSegmentIds] = useState([])
   const [savedSegmentSignature, setSavedSegmentSignature] = useState('[]')
   const [selectedSegmentId, setSelectedSegmentId] = useState('')
+  const [manualDrawing, setManualDrawing] = useState(null)
   const [segmentsLoading, setSegmentsLoading] = useState(true)
   const [segmentsError, setSegmentsError] = useState('')
   const [segmentsSaving, setSegmentsSaving] = useState(false)
@@ -163,6 +164,9 @@ function RouteMapEditorPage() {
   const canCalculate = waypointValidation.valid && !hasUnsavedChanges
   const canAccept = Boolean(candidate?.geometry && mapRevision && !hasUnsavedChanges)
   const selectedSegment = useMemo(() => segments.find((segment) => segment.id === selectedSegmentId), [segments, selectedSegmentId])
+  const manualDrawingSegment = useMemo(() => segments.find((segment) => segment.id === manualDrawing?.segmentId), [manualDrawing?.segmentId, segments])
+  const manualDrawingStartWaypoint = useMemo(() => savedWaypoints.find((waypoint) => waypoint.id === manualDrawingSegment?.start_waypoint_id), [manualDrawingSegment, savedWaypoints])
+  const manualDrawingEndWaypoint = useMemo(() => savedWaypoints.find((waypoint) => waypoint.id === manualDrawingSegment?.end_waypoint_id), [manualDrawingSegment, savedWaypoints])
   const editingContextLabel = useMemo(() => {
     const parts = []
     if (selectedWaypoint) parts.push(`Waypoint ${selectedWaypoint.order}`)
@@ -173,6 +177,10 @@ function RouteMapEditorPage() {
   const segmentValidation = validateSegments(segments, savedWaypoints)
   const canAddSegment = waypointValidation.valid && !hasUnsavedChanges && Boolean(acceptedGeometry)
   const canEditSegments = !hasUnsavedChanges
+  const canDrawSelectedSegment = canEditSegments && Boolean(selectedSegment && buildManualSegmentGeometry(
+    savedWaypoints.find((waypoint) => waypoint.id === selectedSegment.start_waypoint_id),
+    savedWaypoints.find((waypoint) => waypoint.id === selectedSegment.end_waypoint_id),
+  ))
 
   const togglePanel = (panel) => {
     setActivePanel((current) => current === panel ? '' : panel)
@@ -354,6 +362,11 @@ function RouteMapEditorPage() {
       : segment))
   }
 
+  const selectSegment = (segmentId) => {
+    setSelectedSegmentId(segmentId)
+    setManualDrawing((current) => current?.segmentId === segmentId ? current : null)
+  }
+
   const regenerateSegment = () => {
     if (!selectedSegment || !canEditSegments) return
     const startWaypoint = savedWaypoints.find((waypoint) => waypoint.id === selectedSegment.start_waypoint_id)
@@ -361,6 +374,44 @@ function RouteMapEditorPage() {
     changeSegments((current) => current.map((segment) => segment.id === selectedSegment.id
       ? { ...segment, geometry: deriveSegmentGeometry(acceptedGeometry, startWaypoint, endWaypoint) }
       : segment))
+  }
+
+  const startManualSegmentDrawing = () => {
+    if (!selectedSegment || !canDrawSelectedSegment) return
+    setAddMode(false)
+    setManualDrawing({ segmentId: selectedSegment.id, points: [] })
+    setNotice('')
+    setError('')
+  }
+
+  const addManualSegmentPoint = (point) => {
+    setManualDrawing((current) => current ? { ...current, points: [...current.points, point] } : current)
+  }
+
+  const undoManualSegmentPoint = () => {
+    setManualDrawing((current) => current ? { ...current, points: current.points.slice(0, -1) } : current)
+  }
+
+  const clearManualSegmentPoints = () => {
+    setManualDrawing((current) => current ? { ...current, points: [] } : current)
+  }
+
+  const cancelManualSegmentDrawing = () => {
+    setManualDrawing(null)
+  }
+
+  const finishManualSegmentDrawing = () => {
+    if (!manualDrawingSegment) return
+    const geometry = buildManualSegmentGeometry(manualDrawingStartWaypoint, manualDrawingEndWaypoint, manualDrawing.points)
+    if (!geometry) {
+      setError('Unable to draw this Segment because its Waypoint boundaries are invalid.')
+      return
+    }
+
+    setSegments((current) => current.map((segment) => segment.id === manualDrawing.segmentId ? { ...segment, geometry } : segment))
+    setManualDrawing(null)
+    setNotice('Manual Segment geometry is ready to save.')
+    setError('')
   }
 
   const moveSegment = (index, direction) => {
@@ -706,8 +757,16 @@ function RouteMapEditorPage() {
                 waypoints={savedWaypoints}
                 validation={selectedSegmentValidation}
                 canRegenerate={canEditSegments && Boolean(acceptedGeometry) && Boolean(selectedSegment)}
+                canDrawManually={canDrawSelectedSegment}
+                drawingManually={manualDrawing?.segmentId === selectedSegment?.id}
+                manualPointCount={manualDrawing?.segmentId === selectedSegment?.id ? manualDrawing.points.length : 0}
                 onChange={updateSegment}
                 onRegenerate={regenerateSegment}
+                onStartManualDrawing={startManualSegmentDrawing}
+                onUndoManualPoint={undoManualSegmentPoint}
+                onClearManualPoints={clearManualSegmentPoints}
+                onFinishManualDrawing={finishManualSegmentDrawing}
+                onCancelManualDrawing={cancelManualSegmentDrawing}
                 onSave={saveSegments}
                 onGalleryChange={updateSegmentGallery}
                 saving={segmentsSaving}
@@ -753,8 +812,10 @@ function RouteMapEditorPage() {
           selectedWaypointId={selectedWaypointId}
           addMode={addMode}
           onWaypointSelect={selectWaypoint}
-          onSegmentSelect={setSelectedSegmentId}
+          manualDrawing={manualDrawing ? { startWaypoint: manualDrawingStartWaypoint, endWaypoint: manualDrawingEndWaypoint, points: manualDrawing.points } : null}
+          onSegmentSelect={selectSegment}
           onMapAddWaypoint={addWaypointFromMap}
+          onManualDrawPoint={addManualSegmentPoint}
         />
         <RouteGeometryLegend />
       </div>

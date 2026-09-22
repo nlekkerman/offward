@@ -1642,6 +1642,26 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   margin-top: 1rem;
 }
 
+.segment-editor-actions,
+.segment-drawing-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.segment-drawing-controls {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #9a6b2f;
+  border-radius: 0.45rem;
+  background: #29251b;
+}
+
+.segment-drawing-controls .route-map-muted {
+  flex: 1 1 18rem;
+}
+
 .route-map-segments-section {
   display: grid;
   gap: 1rem;
