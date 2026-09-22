@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import AppShell from '../shared/layout/AppShell.jsx'
+import PublicLaunchGate from '../shared/components/PublicLaunchGate.jsx'
 import AboutPage from '../pages/AboutPage.jsx'
 import ContactPage from '../pages/ContactPage.jsx'
 import CountriesListPage from '../pages/CountriesListPage.jsx'
@@ -21,25 +22,30 @@ import ManageRouter from './manageRouter.jsx'
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <AppShell />,
+    element: <PublicLaunchGate />,
     children: [
-      { index: true, element: <HomePage /> },
-      { path: 'explore', element: <ExplorePage /> },
-      { path: 'countries', element: <CountriesListPage /> },
-      { path: 'countries/:countrySlug', element: <CountryPage /> },
-      { path: 'places/:placeSlug', element: <PlacePage /> },
-      { path: 'routes/:routeSlug', element: <RoutePage /> },
-      { path: 'routes/:routeSlug/waypoints/:id', element: <WaypointDetailPage /> },
-      { path: 'routes/:routeSlug/segments/:id', element: <SegmentDetailPage /> },
-      { path: 'stories', element: <StoriesListPage /> },
-      { path: 'stories/:storySlug', element: <StoryPage /> },
-      { path: 'videos/:videoSlug', element: <VideoPage /> },
-      { path: 'tours/:tourSlug', element: <TourPage /> },
-      { path: 'events/:eventSlug', element: <EventPage /> },
-      { path: 'about', element: <AboutPage /> },
-      { path: 'contact', element: <ContactPage /> },
-      { path: 'manage/*', element: <ManageRouter /> },
-      { path: '*', element: <NotFoundPage /> },
+      {
+        element: <AppShell />,
+        children: [
+          { index: true, element: <HomePage /> },
+          { path: 'explore', element: <ExplorePage /> },
+          { path: 'countries', element: <CountriesListPage /> },
+          { path: 'countries/:countrySlug', element: <CountryPage /> },
+          { path: 'places/:placeSlug', element: <PlacePage /> },
+          { path: 'routes/:routeSlug', element: <RoutePage /> },
+          { path: 'routes/:routeSlug/waypoints/:id', element: <WaypointDetailPage /> },
+          { path: 'routes/:routeSlug/segments/:id', element: <SegmentDetailPage /> },
+          { path: 'stories', element: <StoriesListPage /> },
+          { path: 'stories/:storySlug', element: <StoryPage /> },
+          { path: 'videos/:videoSlug', element: <VideoPage /> },
+          { path: 'tours/:tourSlug', element: <TourPage /> },
+          { path: 'events/:eventSlug', element: <EventPage /> },
+          { path: 'about', element: <AboutPage /> },
+          { path: 'contact', element: <ContactPage /> },
+          { path: 'manage/*', element: <ManageRouter /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 ])

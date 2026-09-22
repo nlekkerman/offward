@@ -41,6 +41,21 @@ nav a { color: #aaa99e; text-decoration: none; }
 
 nav a.is-active { color: #f3efe6; font-weight: 700; }
 
+.launch-gate-loading {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #121310;
+}
+
+.launch-gate-brand {
+  color: #d8b47c;
+  font: 700 0.9rem/1 sans-serif;
+  letter-spacing: 0.32em;
+  opacity: 0.85;
+}
+
 .page-placeholder {
   max-width: 1180px;
   margin: 0 auto;
