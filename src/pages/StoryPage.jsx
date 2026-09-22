@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import VideoPlayer from '../features/video/VideoPlayer.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
+import { collectionCount, collectionPreview } from '../features/management/imageCollectionUtils.js'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicPlaces } from '../services/placesApi.js'
 import { getPublicRoutes } from '../services/routesApi.js'
@@ -36,6 +37,23 @@ function getImageUrl(image) {
 
 function getCollectionImages(collection) {
   return Array.isArray(collection?.images) ? collection.images : []
+}
+
+// Best-effort preview from data already present on the lightweight public
+// Place/Route list items - never fetches per-item detail.
+function getEntityPreviewUrl(entity) {
+  const heroUrl = getImageUrl(entity?.hero_image)
+  if (heroUrl) {
+    return heroUrl
+  }
+
+  const firstCollection = Array.isArray(entity?.image_collections) ? entity.image_collections[0] : null
+  const collectionUrl = collectionPreview(firstCollection)
+  if (collectionUrl) {
+    return collectionUrl
+  }
+
+  return getImageUrl(entity?.preview_image) || getImageUrl(entity?.image) || getImageUrl(entity?.thumbnail) || ''
 }
 
 function StoryPage() {
@@ -216,6 +234,7 @@ function StoryPage() {
   }, [mediaIds, videoCatalog.videos])
 
   const showVideosSection = mediaIds.length > 0 && (videoCatalog.status !== 'error' || attachedVideos.length > 0)
+  const hasGalleries = Array.isArray(story?.image_collections) && story.image_collections.length > 0
 
   if (storyStatus === 'loading') {
     return <section className="story-detail-page"><p className="story-detail-status" role="status">Loading story...</p></section>
@@ -264,113 +283,126 @@ function StoryPage() {
 
       {story.body && <div className="story-detail-body">{story.body}</div>}
 
-      {showVideosSection && (
-        <section className="story-detail-videos" aria-label="Story videos">
-          <p className="eyebrow">{attachedVideos.length > 1 ? 'Videos' : 'Video'}</p>
-          {attachedVideos.length === 0 && (
-            <p className="story-detail-video-loading" role="status">Loading video...</p>
-          )}
-          {attachedVideos.length > 0 && (
-            <div className={attachedVideos.length === 1 ? 'story-detail-video-list story-detail-video-list-single' : 'story-detail-video-list'}>
-              {attachedVideos.map((video) => (
-                <div className="story-detail-video-item" key={video.id}>
-                  <div className="story-media-video">
-                    <VideoPlayer playbackUrl={video.playback_url} thumbnailUrl={video.thumbnail_url} title={video.title} />
-                    {video.title && <p className="story-detail-video-caption">{video.title}</p>}
-                  </div>
+      {(showVideosSection || hasGalleries) && (
+        <section className="story-detail-media" aria-label="Story media">
+          <p className="eyebrow">Media</p>
+
+          {showVideosSection && (
+            <div className="story-detail-media-group">
+              <p className="story-detail-media-group-label">{attachedVideos.length > 1 ? 'Videos' : 'Video'}</p>
+              {attachedVideos.length === 0 ? (
+                <p className="story-detail-video-loading" role="status">Loading video...</p>
+              ) : (
+                <div className="story-detail-media-grid">
+                  {attachedVideos.map((video) => (
+                    <article className="story-media-card" key={video.id}>
+                      <VideoPlayer playbackUrl={video.playback_url} thumbnailUrl={video.thumbnail_url} title={video.title} className="story-media-card-video" />
+                      {video.title && <p className="story-media-card-caption">{video.title}</p>}
+                    </article>
+                  ))}
                 </div>
-              ))}
+              )}
+            </div>
+          )}
+
+          {hasGalleries && (
+            <div className="story-detail-media-group">
+              <p className="story-detail-media-group-label">{story.image_collections.length > 1 ? 'Galleries' : 'Gallery'}</p>
+              <div className="story-detail-gallery-grid">
+                {story.image_collections.map((collection) => {
+                  const collectionKey = collection.id || collection.title
+                  const images = getCollectionImages(collection)
+                  return (
+                    <article className="story-gallery-card" key={collectionKey}>
+                      {(collection.title || collection.description) && (
+                        <header className="story-gallery-card-header">
+                          {collection.title && <h2>{collection.title}</h2>}
+                          {collection.description && <p className="story-detail-gallery-description">{collection.description}</p>}
+                          <span className="story-gallery-card-count">{collectionCount(collection)} {collectionCount(collection) === 1 ? 'photo' : 'photos'}</span>
+                        </header>
+                      )}
+                      <div className="story-detail-image-grid">
+                        {images.map((image, index) => (
+                          <figure key={image.id || image.image_id || `${collectionKey}-${index}`}>
+                            {getImageUrl(image) ? (
+                              <button
+                                type="button"
+                                className="story-detail-image-button"
+                                onClick={() => setLightbox({ collectionKey, index })}
+                                aria-label={`Open image ${index + 1} of ${images.length}${collection.title ? ` from ${collection.title}` : ''}`}
+                              >
+                                <img src={getImageUrl(image)} alt={image.alt_text || image.caption || `${collection.title || 'Gallery'} image ${index + 1}`} loading="lazy" />
+                                <span className="story-detail-image-index">{index + 1}</span>
+                              </button>
+                            ) : null}
+                          </figure>
+                        ))}
+                      </div>
+                      {lightbox.collectionKey === collectionKey && (
+                        <ImageLightbox
+                          images={images}
+                          activeIndex={lightbox.index}
+                          isOpen={lightbox.index >= 0}
+                          onClose={() => setLightbox({ collectionKey: null, index: -1 })}
+                          onPrevious={() => setLightbox((current) => ({ ...current, index: (current.index - 1 + images.length) % images.length }))}
+                          onNext={() => setLightbox((current) => ({ ...current, index: (current.index + 1) % images.length }))}
+                        />
+                      )}
+                    </article>
+                  )
+                })}
+              </div>
             </div>
           )}
         </section>
       )}
 
-      {Array.isArray(story.image_collections) && story.image_collections.length > 0 && (
-        <section className="story-detail-galleries" aria-label="Story image galleries">
-          <p className="eyebrow">Images</p>
-          {story.image_collections.map((collection) => (
-            <section className="story-detail-gallery" key={collection.id || collection.title}>
-              {collection.title && <h2>{collection.title}</h2>}
-              {collection.description && <p className="story-detail-gallery-description">{collection.description}</p>}
-              <div className="story-detail-image-grid">
-                {getCollectionImages(collection).map((image, index) => {
-                  const collectionKey = collection.id || collection.title
-                  return (
-                    <figure key={image.id || image.image_id || `${collection.id}-${index}`}>
-                      {getImageUrl(image) ? (
-                        <button
-                          type="button"
-                          className="story-detail-image-button"
-                          onClick={() => setLightbox({ collectionKey, index })}
-                          aria-label={`Open image ${index + 1} of ${getCollectionImages(collection).length}${collection.title ? ` from ${collection.title}` : ''}`}
-                        >
-                          <img src={getImageUrl(image)} alt={image.alt_text || image.caption || `${collection.title || 'Gallery'} image ${index + 1}`} loading="lazy" />
-                          <span className="story-detail-image-index">{index + 1}</span>
-                        </button>
-                      ) : null}
-                      <figcaption>{image.caption || `Image ${index + 1}`}</figcaption>
-                    </figure>
-                  )
-                })}
-              </div>
-              {lightbox.collectionKey === (collection.id || collection.title) && (
-                <ImageLightbox
-                  images={getCollectionImages(collection)}
-                  activeIndex={lightbox.index}
-                  isOpen={lightbox.index >= 0}
-                  onClose={() => setLightbox({ collectionKey: null, index: -1 })}
-                  onPrevious={() => setLightbox((current) => {
-                    const images = getCollectionImages(collection)
-                    return { ...current, index: (current.index - 1 + images.length) % images.length }
-                  })}
-                  onNext={() => setLightbox((current) => {
-                    const images = getCollectionImages(collection)
-                    return { ...current, index: (current.index + 1) % images.length }
-                  })}
-                />
-              )}
-            </section>
-          ))}
+      {relatedPlaces.length > 0 && (
+        <section className="story-detail-related-group" aria-label="Related places">
+          <p className="eyebrow">{relatedPlaces.length > 1 ? 'Related Places' : 'Related Place'}</p>
+          <div className="story-related-grid">
+            {relatedPlaces.map((place) => {
+              const previewUrl = getEntityPreviewUrl(place)
+              const countryLabel = place.country ? (countryNames.get(place.country) || place.country) : null
+              return (
+                <Link to={`/places/${place.slug}`} className="story-related-card" key={place.id}>
+                  <span className="story-related-card-media">
+                    {previewUrl ? <img src={previewUrl} alt="" loading="lazy" /> : <span className="story-related-card-fallback" aria-hidden="true">◈</span>}
+                  </span>
+                  <span className="story-related-card-body">
+                    <span className="story-related-card-eyebrow">Place</span>
+                    <span className="story-related-card-title">{place.name}</span>
+                    {countryLabel && <span className="story-related-card-meta">{countryLabel}</span>}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
         </section>
       )}
 
-      {(relatedPlaces.length > 0 || relatedRoutes.length > 0) && (
-        <div className="story-detail-related">
-          {relatedPlaces.length > 0 && (
-            <section className="story-detail-related-group" aria-label="Related places">
-              <p className="eyebrow">{relatedPlaces.length > 1 ? 'Related Places' : 'Related Place'}</p>
-              <ul>
-                {relatedPlaces.map((place) => (
-                  <li key={place.id}>
-                    <Link to={`/places/${place.slug}`}>
-                      <span className="story-detail-related-title">{place.name}</span>
-                      {place.country && <span className="story-detail-related-meta">{countryNames.get(place.country) || place.country}</span>}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {relatedRoutes.length > 0 && (
-            <section className="story-detail-related-group" aria-label="Related routes">
-              <p className="eyebrow">{relatedRoutes.length > 1 ? 'Related Routes' : 'Related Route'}</p>
-              <ul>
-                {relatedRoutes.map((route) => (
-                  <li key={route.id}>
-                    <Link to={`/routes/${route.slug}`}>
-                      <span className="story-detail-related-title">{route.title}</span>
-                      {(route.country || route.activity_type) && (
-                        <span className="story-detail-related-meta">
-                          {[countryNames.get(route.country) || route.country, formatActivity(route.activity_type)].filter(Boolean).join(' · ')}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
+      {relatedRoutes.length > 0 && (
+        <section className="story-detail-related-group" aria-label="Related routes">
+          <p className="eyebrow">{relatedRoutes.length > 1 ? 'Related Routes' : 'Related Route'}</p>
+          <div className="story-related-grid">
+            {relatedRoutes.map((route) => {
+              const previewUrl = getEntityPreviewUrl(route)
+              const metaLabel = [countryNames.get(route.country) || route.country, formatActivity(route.activity_type)].filter(Boolean).join(' · ')
+              return (
+                <Link to={`/routes/${route.slug}`} className="story-related-card" key={route.id}>
+                  <span className="story-related-card-media">
+                    {previewUrl ? <img src={previewUrl} alt="" loading="lazy" /> : <span className="story-related-card-fallback" aria-hidden="true">⤳</span>}
+                  </span>
+                  <span className="story-related-card-body">
+                    <span className="story-related-card-eyebrow">Route</span>
+                    <span className="story-related-card-title">{route.title}</span>
+                    {metaLabel && <span className="story-related-card-meta">{metaLabel}</span>}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
       )}
     </section>
   )
