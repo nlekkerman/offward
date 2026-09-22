@@ -1743,7 +1743,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 .story-list-card-media {
-  aspect-ratio: 16 / 9;
+  height: 220px;
   overflow: hidden;
   background: #222820;
 }
@@ -1754,6 +1754,18 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   height: 100%;
   object-fit: cover;
   transition: transform 0.35s ease;
+}
+
+@media (min-width: 768px) {
+  .story-list-card-media {
+    height: 240px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .story-list-card-media {
+    height: 280px;
+  }
 }
 
 .story-list-card:hover .story-list-card-media img,
