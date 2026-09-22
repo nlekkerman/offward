@@ -68,6 +68,96 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .page-placeholder p { color: #aaa99e; }
 
+.contact-page {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(320px, 1fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 5rem 2rem 6rem;
+}
+
+.contact-intro h1 {
+  max-width: 11ch;
+  margin: 0.5rem 0 1.1rem;
+  color: #f3efe6;
+  font-size: clamp(2.6rem, 6vw, 5rem);
+  font-weight: 400;
+  line-height: 1.04;
+}
+
+.contact-intro p:not(.eyebrow) {
+  max-width: 34rem;
+  margin: 0;
+  color: #aaa99e;
+  font: 1rem/1.7 sans-serif;
+}
+
+.contact-form {
+  display: grid;
+  gap: 1.1rem;
+  align-self: start;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid #32382f;
+  background: #171a15;
+}
+
+.contact-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.contact-field {
+  display: grid;
+  gap: 0.45rem;
+  color: #e1ddd1;
+  font: 600 0.78rem/1.2 sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.contact-message-input {
+  min-height: 12rem;
+  resize: vertical;
+}
+
+.contact-alert {
+  padding: 0.85rem 1rem;
+  border: 1px solid transparent;
+  font: 0.9rem/1.45 sans-serif;
+}
+
+.contact-alert-success {
+  border-color: #4f8a3c;
+  background: #182018;
+  color: #dfe8d6;
+}
+
+.contact-alert-error {
+  border-color: #7f4444;
+  background: #211716;
+  color: #f2c0c0;
+}
+
+.contact-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.contact-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .home-hero {
   position: relative;
   min-height: clamp(32rem, 72svh, 48rem);
@@ -2930,6 +3020,10 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .home-hero-image { object-position: 58% center; }
   .home-hero-actions { flex-direction: column; align-items: stretch; }
   .home-hero-actions .primary-button, .home-hero-actions .secondary-button { width: 100%; }
+  .contact-page { grid-template-columns: 1fr; padding: 3rem 1.25rem 4rem; }
+  .contact-intro h1 { max-width: 12ch; }
+  .contact-form-grid { grid-template-columns: 1fr; }
+  .contact-actions .primary-button { width: 100%; }
   .management-content { padding: 1rem; }
   .management-related-actions { flex-direction: column; align-items: flex-start; }
   .video-location-fields { grid-template-columns: 1fr; }
