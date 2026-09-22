@@ -85,14 +85,14 @@ function SegmentEditor({ segment, routeId, waypoints, validation, canRegenerate,
         </div>
         <div className="form-field">
           <label htmlFor="segment-start">Start Waypoint</label>
-          <select id="segment-start" value={segment.start_waypoint_id} onChange={(event) => update('start_waypoint_id', event.target.value)} className="form-input">
+          <select id="segment-start" value={segment.start_waypoint_id} onChange={(event) => update('start_waypoint_id', event.target.value)} className="form-input" disabled={drawingManually}>
             <option value="">Select start</option>
             {waypoints.map((waypoint) => <option key={waypoint.id} value={waypoint.id}>{getWaypointLabel(waypoint)}</option>)}
           </select>
         </div>
         <div className="form-field">
           <label htmlFor="segment-end">End Waypoint</label>
-          <select id="segment-end" value={segment.end_waypoint_id} onChange={(event) => update('end_waypoint_id', event.target.value)} className="form-input">
+          <select id="segment-end" value={segment.end_waypoint_id} onChange={(event) => update('end_waypoint_id', event.target.value)} className="form-input" disabled={drawingManually}>
             <option value="">Select end</option>
             {waypoints.map((waypoint) => <option key={waypoint.id} value={waypoint.id}>{getWaypointLabel(waypoint)}</option>)}
           </select>

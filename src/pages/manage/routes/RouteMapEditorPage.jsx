@@ -49,6 +49,24 @@ function getSegmentSignature(segments) {
   return JSON.stringify(segments)
 }
 
+function segmentNeedsReviewAfterWaypointChange(segment, previousWaypoints, nextWaypoints) {
+  const previousStart = previousWaypoints.find((waypoint) => waypoint.id === segment.start_waypoint_id)
+  const previousEnd = previousWaypoints.find((waypoint) => waypoint.id === segment.end_waypoint_id)
+  const nextStart = nextWaypoints.find((waypoint) => waypoint.id === segment.start_waypoint_id)
+  const nextEnd = nextWaypoints.find((waypoint) => waypoint.id === segment.end_waypoint_id)
+
+  if (!previousStart || !previousEnd || !nextStart || !nextEnd) return true
+
+  const coordinatesChanged = Number(previousStart.latitude) !== Number(nextStart.latitude)
+    || Number(previousStart.longitude) !== Number(nextStart.longitude)
+    || Number(previousEnd.latitude) !== Number(nextEnd.latitude)
+    || Number(previousEnd.longitude) !== Number(nextEnd.longitude)
+  const orderChanged = previousStart.order !== nextStart.order || previousEnd.order !== nextEnd.order
+  const boundariesInvalid = nextStart.order >= nextEnd.order || nextEnd.order !== nextStart.order + 1
+
+  return coordinatesChanged || (orderChanged && boundariesInvalid)
+}
+
 function RouteMapEditorPage() {
   const { routeId } = useParams()
   const [route, setRoute] = useState(null)
@@ -177,10 +195,11 @@ function RouteMapEditorPage() {
   const segmentValidation = validateSegments(segments, savedWaypoints)
   const canAddSegment = waypointValidation.valid && !hasUnsavedChanges && Boolean(acceptedGeometry)
   const canEditSegments = !hasUnsavedChanges
-  const canDrawSelectedSegment = canEditSegments && Boolean(selectedSegment && buildManualSegmentGeometry(
-    savedWaypoints.find((waypoint) => waypoint.id === selectedSegment.start_waypoint_id),
-    savedWaypoints.find((waypoint) => waypoint.id === selectedSegment.end_waypoint_id),
-  ))
+  const selectedSegmentStartWaypoint = savedWaypoints.find((waypoint) => waypoint.id === selectedSegment?.start_waypoint_id)
+  const selectedSegmentEndWaypoint = savedWaypoints.find((waypoint) => waypoint.id === selectedSegment?.end_waypoint_id)
+  const canDrawSelectedSegment = canEditSegments
+    && selectedSegmentEndWaypoint?.order === selectedSegmentStartWaypoint?.order + 1
+    && Boolean(buildManualSegmentGeometry(selectedSegmentStartWaypoint, selectedSegmentEndWaypoint))
 
   const togglePanel = (panel) => {
     setActivePanel((current) => current === panel ? '' : panel)
@@ -210,7 +229,12 @@ function RouteMapEditorPage() {
   }
 
   const changeWaypoints = (updater) => {
-    setWaypoints((current) => normalizeWaypoints(typeof updater === 'function' ? updater(current) : updater))
+    const nextWaypoints = normalizeWaypoints(typeof updater === 'function' ? updater(waypoints) : updater)
+    setWaypoints(nextWaypoints)
+    setSegments((current) => current.map((segment) => segmentNeedsReviewAfterWaypointChange(segment, waypoints, nextWaypoints)
+      ? { ...segment, needs_review: true }
+      : segment))
+    setManualDrawing(null)
     setCandidate(null)
     setNotice('')
     setError('')
@@ -433,6 +457,7 @@ function RouteMapEditorPage() {
     if (selectedSegmentId === segmentId) {
       setSelectedSegmentId(nextSegments[Math.min(index, nextSegments.length - 1)]?.id || '')
     }
+    if (manualDrawing?.segmentId === segmentId) setManualDrawing(null)
   }
 
   const saveSegments = async () => {
@@ -486,7 +511,12 @@ function RouteMapEditorPage() {
   }
 
   const moveWaypoint = (index, direction) => {
-    setWaypoints((current) => reorderWaypoints(current, index, direction))
+    const nextWaypoints = reorderWaypoints(waypoints, index, direction)
+    setWaypoints(nextWaypoints)
+    setSegments((current) => current.map((segment) => segmentNeedsReviewAfterWaypointChange(segment, waypoints, nextWaypoints)
+      ? { ...segment, needs_review: true }
+      : segment))
+    setManualDrawing(null)
     setCandidate(null)
     setNotice('')
     setError('')
@@ -750,7 +780,7 @@ function RouteMapEditorPage() {
           {segmentsError && <div className="management-error" role="alert">{segmentsError}</div>}
           {!segmentsLoading && (
             <>
-              <SegmentList segments={segments} waypoints={savedWaypoints} selectedSegmentId={selectedSegmentId} canAdd={canAddSegment} onAdd={addSegment} onSelect={setSelectedSegmentId} onMove={moveSegment} onRemove={removeSegment} />
+              <SegmentList segments={segments} waypoints={savedWaypoints} selectedSegmentId={selectedSegmentId} canAdd={canAddSegment} onAdd={addSegment} onSelect={selectSegment} onMove={moveSegment} onRemove={removeSegment} />
               <SegmentEditor
                 segment={selectedSegment}
                 routeId={routeId}
