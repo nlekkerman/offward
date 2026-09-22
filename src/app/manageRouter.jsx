@@ -8,6 +8,8 @@ import RouteMapEditorPage from '../pages/manage/routes/RouteMapEditorPage.jsx'
 import GalleryCreatePage from '../pages/manage/galleries/GalleryCreatePage.jsx'
 import GalleryEditPage from '../pages/manage/galleries/GalleryEditPage.jsx'
 import GalleryListPage from '../pages/manage/galleries/GalleryListPage.jsx'
+import ContactMessageDetailPage from '../pages/manage/contactMessages/ContactMessageDetailPage.jsx'
+import ContactMessagesListPage from '../pages/manage/contactMessages/ContactMessagesListPage.jsx'
 
 import EntityListPage from '../features/management/EntityListPage.jsx'
 import EntityFormPage from '../features/management/EntityFormPage.jsx'
@@ -41,6 +43,9 @@ function ManageRouter() {
           <Route path="galleries" element={<GalleryListPage />} />
           <Route path="galleries/new" element={<GalleryCreatePage />} />
           <Route path="galleries/:id/edit" element={<GalleryEditPage />} />
+
+          <Route path="contact-messages" element={<ContactMessagesListPage />} />
+          <Route path="contact-messages/:id" element={<ContactMessageDetailPage />} />
 
           <Route path="videos" element={<EntityListPage resourceKey="videos" title="Videos" />} />
           <Route path="videos/new" element={<EntityFormPage resourceKey="videos" title="Create Video" />} />

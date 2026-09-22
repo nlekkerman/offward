@@ -744,6 +744,74 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   text-transform: uppercase;
 }
 
+.management-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #171a17;
+  border: 1px solid #30362f;
+  border-radius: 1rem;
+}
+
+.management-notice {
+  margin: 1rem 0;
+  padding: 1rem;
+  color: #b7d7a3;
+  background: #172114;
+  border: 1px solid #3d6234;
+  border-radius: 0.75rem;
+}
+
+.message-detail-panel {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: #171b18;
+  border: 1px solid #30362f;
+  border-radius: 1rem;
+}
+
+.message-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.message-detail-field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.message-detail-field dt {
+  color: #d8b47c;
+  font: 700 0.75rem/1 sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.message-detail-field dd {
+  margin: 0;
+  color: #f0efe9;
+  overflow-wrap: anywhere;
+}
+
+.message-detail-message {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #2d312d;
+}
+
+.message-detail-message p:last-child {
+  margin: 0;
+  color: #e1ddd1;
+  white-space: pre-wrap;
+}
+
 .gallery-list-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));

@@ -6,6 +6,7 @@ const cards = [
   { label: 'Routes', href: '/manage/routes' },
   { label: 'Stories', href: '/manage/stories' },
   { label: 'Galleries', href: '/manage/galleries' },
+  { label: 'Messages', href: '/manage/contact-messages' },
   { label: 'Videos', href: '/manage/videos' },
   { label: 'Tours', href: '/manage/tours' },
   { label: 'Events', href: '/manage/events' },
