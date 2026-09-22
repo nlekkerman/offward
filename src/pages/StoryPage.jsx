@@ -3,8 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import VideoPlayer from '../features/video/VideoPlayer.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import { getCountries } from '../services/countriesApi.js'
-import { getPublicPlaceBySlug } from '../services/placesApi.js'
-import { getPublicRouteBySlug } from '../services/routesApi.js'
+import { getPublicPlaces } from '../services/placesApi.js'
+import { getPublicRoutes } from '../services/routesApi.js'
 import { getPublicStoryBySlug } from '../services/storiesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import NotFoundPage from './NotFoundPage.jsx'
@@ -22,53 +22,12 @@ function formatPublishedDate(value) {
   return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-// Story relations may arrive as nested objects or as bare slugs; resolve bare
-// slugs through the existing public detail endpoints so we never render raw IDs.
-function useResolvedRelations(items, fetchBySlug) {
-  const [resolved, setResolved] = useState([])
-  const list = Array.isArray(items) ? items : []
-  const key = list.map((item) => (item && typeof item === 'object' ? item.slug || item.id : item)).join(',')
+function formatActivity(value) {
+  if (!value || typeof value !== 'string') {
+    return null
+  }
 
-  useEffect(() => {
-    if (list.length === 0) {
-      return undefined
-    }
-
-    let isCurrent = true
-
-    async function resolve() {
-      const results = await Promise.all(
-        list.map(async (item) => {
-          if (item && typeof item === 'object') {
-            return item
-          }
-
-          if (typeof item === 'string') {
-            try {
-              return await fetchBySlug(item)
-            } catch {
-              return null
-            }
-          }
-
-          return null
-        }),
-      )
-
-      if (isCurrent) {
-        setResolved(results.filter(Boolean))
-      }
-    }
-
-    resolve()
-
-    return () => {
-      isCurrent = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, fetchBySlug])
-
-  return list.length === 0 ? [] : resolved
+  return value.replace(/[_-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
 function getImageUrl(image) {
@@ -84,6 +43,8 @@ function StoryPage() {
   const [storyResult, setStoryResult] = useState({ slug: null, status: 'loading', story: null })
   const [countries, setCountries] = useState([])
   const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
+  const [placeCatalog, setPlaceCatalog] = useState({ status: 'idle', places: [] })
+  const [routeCatalog, setRouteCatalog] = useState({ status: 'idle', routes: [] })
   // Lightbox state is scoped to a single collection key so previous/next never crosses collections.
   const [lightbox, setLightbox] = useState({ collectionKey: null, index: -1 })
 
@@ -134,6 +95,8 @@ function StoryPage() {
   const storyStatus = storyResult.slug === storySlug ? storyResult.status : 'loading'
   const story = storyResult.slug === storySlug ? storyResult.story : null
   const mediaIds = useMemo(() => (Array.isArray(story?.media_ids) ? story.media_ids : []), [story])
+  const placeIds = useMemo(() => (Array.isArray(story?.place_ids) ? story.place_ids : []), [story])
+  const routeIds = useMemo(() => (Array.isArray(story?.route_ids) ? story.route_ids : []), [story])
 
   // Videos load independently so Story text never waits on this fetch. The
   // public Story response only exposes attached Video UUIDs (`media_ids`), and
@@ -165,9 +128,82 @@ function StoryPage() {
     }
   }, [mediaIds])
 
+  // The public Story response only exposes attached Place UUIDs (`place_ids`),
+  // and the public Place detail endpoint is slug-based, so we resolve IDs
+  // against the public Place list (one request) instead of one request per ID.
+  useEffect(() => {
+    if (placeIds.length === 0) {
+      return undefined
+    }
+
+    let isCurrent = true
+
+    async function loadPlaces() {
+      try {
+        const data = await getPublicPlaces()
+        if (isCurrent) {
+          setPlaceCatalog({ status: 'success', places: data })
+        }
+      } catch {
+        if (isCurrent) {
+          setPlaceCatalog({ status: 'error', places: [] })
+        }
+      }
+    }
+
+    loadPlaces()
+    return () => {
+      isCurrent = false
+    }
+  }, [placeIds])
+
+  // Same pattern as Places: resolve the Story's direct Route IDs against the
+  // public Route list instead of fetching per-Route (and geometry-heavy) detail.
+  useEffect(() => {
+    if (routeIds.length === 0) {
+      return undefined
+    }
+
+    let isCurrent = true
+
+    async function loadRoutes() {
+      try {
+        const data = await getPublicRoutes({ includeGeometry: false })
+        if (isCurrent) {
+          setRouteCatalog({ status: 'success', routes: data })
+        }
+      } catch {
+        if (isCurrent) {
+          setRouteCatalog({ status: 'error', routes: [] })
+        }
+      }
+    }
+
+    loadRoutes()
+    return () => {
+      isCurrent = false
+    }
+  }, [routeIds])
+
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
-  const relatedPlaces = useResolvedRelations(story?.places, getPublicPlaceBySlug)
-  const relatedRoutes = useResolvedRelations(story?.routes, getPublicRouteBySlug)
+
+  const relatedPlaces = useMemo(() => {
+    if (placeIds.length === 0) {
+      return []
+    }
+
+    const placeById = new Map(placeCatalog.places.map((place) => [place.id, place]))
+    return placeIds.map((id) => placeById.get(id)).filter(Boolean)
+  }, [placeIds, placeCatalog.places])
+
+  const relatedRoutes = useMemo(() => {
+    if (routeIds.length === 0) {
+      return []
+    }
+
+    const routeById = new Map(routeCatalog.routes.map((route) => [route.id, route]))
+    return routeIds.map((id) => routeById.get(id)).filter(Boolean)
+  }, [routeIds, routeCatalog.routes])
 
   // Only Videos explicitly attached to this Story (via media_ids) are shown.
   const attachedVideos = useMemo(() => {
@@ -298,18 +334,40 @@ function StoryPage() {
         </section>
       )}
 
-      {(relatedRoutes.length > 0 || relatedPlaces.length > 0) && (
+      {(relatedPlaces.length > 0 || relatedRoutes.length > 0) && (
         <div className="story-detail-related">
+          {relatedPlaces.length > 0 && (
+            <section className="story-detail-related-group" aria-label="Related places">
+              <p className="eyebrow">{relatedPlaces.length > 1 ? 'Related Places' : 'Related Place'}</p>
+              <ul>
+                {relatedPlaces.map((place) => (
+                  <li key={place.id}>
+                    <Link to={`/places/${place.slug}`}>
+                      <span className="story-detail-related-title">{place.name}</span>
+                      {place.country && <span className="story-detail-related-meta">{countryNames.get(place.country) || place.country}</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {relatedRoutes.length > 0 && (
             <section className="story-detail-related-group" aria-label="Related routes">
               <p className="eyebrow">{relatedRoutes.length > 1 ? 'Related Routes' : 'Related Route'}</p>
-              <ul>{relatedRoutes.map((route) => <li key={route.slug || route.id}>{route.slug ? <Link to={`/routes/${route.slug}`}>{route.title || route.slug}</Link> : (route.title || 'Untitled route')}</li>)}</ul>
-            </section>
-          )}
-          {relatedPlaces.length > 0 && (
-            <section className="story-detail-related-group" aria-label="Related places">
-              <p className="eyebrow">Places</p>
-              <ul>{relatedPlaces.map((place) => <li key={place.slug || place.id}>{place.slug ? <Link to={`/places/${place.slug}`}>{place.name || place.slug}</Link> : (place.name || 'Untitled place')}</li>)}</ul>
+              <ul>
+                {relatedRoutes.map((route) => (
+                  <li key={route.id}>
+                    <Link to={`/routes/${route.slug}`}>
+                      <span className="story-detail-related-title">{route.title}</span>
+                      {(route.country || route.activity_type) && (
+                        <span className="story-detail-related-meta">
+                          {[countryNames.get(route.country) || route.country, formatActivity(route.activity_type)].filter(Boolean).join(' · ')}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
         </div>
