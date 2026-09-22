@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom'
 import RouteMiniMap from '../map/components/RouteMiniMap.jsx'
+import CountryFlag from '../../shared/components/CountryFlag.jsx'
+import { findCountry } from '../../shared/utils/country.js'
 import { formatActivityLabel, formatCountryLabel } from './latestContentFormatting.js'
 
-function LatestRouteCard({ route }) {
+function LatestRouteCard({ route, countryRecords = [] }) {
   const activityLabel = formatActivityLabel(route.activity_type)
   const countryLabel = formatCountryLabel(route.country)
+  const country = findCountry(countryRecords, route.country)
 
   const cardContent = (
     <>
@@ -14,7 +17,7 @@ function LatestRouteCard({ route }) {
       {route.summary && <p className="latest-rail-excerpt">{route.summary}</p>}
       <div className="latest-rail-meta-row">
         {activityLabel && <span>{activityLabel}</span>}
-        {countryLabel && <span>{countryLabel}</span>}
+        {countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{country?.name || countryLabel}</span>}
       </div>
     </>
   )

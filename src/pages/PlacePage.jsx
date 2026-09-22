@@ -5,11 +5,14 @@ import RelatedStories from '../features/routes/components/RelatedStories.jsx'
 import { normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderablePlace } from '../features/map/mapGeometry.js'
+import { getCountries } from '../services/countriesApi.js'
 import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import { getPublicPlaceBySlug } from '../services/placesApi.js'
 import { getPublicStories } from '../services/storiesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
+import CountryFlag from '../shared/components/CountryFlag.jsx'
+import { countryName, findCountry } from '../shared/utils/country.js'
 
 function formatCountrySlug(value) {
   if (!value || typeof value !== 'string') {
@@ -22,6 +25,7 @@ function formatCountrySlug(value) {
 function PlacePage() {
   const { placeSlug } = useParams()
   const [placeResult, setPlaceResult] = useState({ slug: null, status: 'loading', place: null })
+  const [countries, setCountries] = useState([])
   const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
   const [storyCatalog, setStoryCatalog] = useState({ status: 'idle', stories: [] })
   const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
@@ -50,6 +54,14 @@ function PlacePage() {
       isCurrent = false
     }
   }, [placeSlug])
+
+  useEffect(() => {
+    let isCurrent = true
+    getCountries()
+      .then((data) => { if (isCurrent) setCountries(data) })
+      .catch(() => { if (isCurrent) setCountries([]) })
+    return () => { isCurrent = false }
+  }, [])
 
   const place = placeResult.slug === placeSlug ? placeResult.place : null
   const mediaIds = useMemo(() => normalizeMediaIds(place?.media_ids), [place])
@@ -138,6 +150,8 @@ function PlacePage() {
   }
 
   const hasCoordinates = isRenderablePlace(place)
+  const country = findCountry(countries, place.country)
+  const countryLabel = countryName(country, formatCountrySlug(place.country))
   const lightboxImages = lightbox.gallery?.images || []
 
   return (
@@ -146,7 +160,10 @@ function PlacePage() {
       <header className="place-detail-header">
         <p className="eyebrow">PUBLIC PLACE</p>
         <h1>{place.name}</h1>
-        <div className="route-detail-meta" aria-label="Place metadata"><span>{formatCountrySlug(place.country)}</span>{place.visited_at && <span>Visited {place.visited_at}</span>}</div>
+        <div className="route-detail-meta" aria-label="Place metadata">
+          <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
+          {place.visited_at && <span>Visited {place.visited_at}</span>}
+        </div>
         {place.summary && <p className="route-detail-summary">{place.summary}</p>}
       </header>
       <div className="place-detail-layout">

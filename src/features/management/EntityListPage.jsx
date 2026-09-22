@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { managementApis } from '../../services/management/index.js'
+import CountryFlag from '../../shared/components/CountryFlag.jsx'
+import { findCountry } from '../../shared/utils/country.js'
 import { getEntityConfig, normalizeDisplayValue } from './entityConfig.js'
 
 function getCountryLabel(item, countryRecords) {
@@ -37,6 +39,17 @@ function getSummaryValue(item, fieldName, countryRecords = []) {
   }
 
   return normalizeDisplayValue(value)
+}
+
+function CountryIdentity({ country, fallback }) {
+  const name = country?.name || country?.title || fallback || '—'
+
+  return (
+    <span className="management-country-identity">
+      <CountryFlag code={country?.code} countryName={name !== '—' ? name : undefined} size="medium" />
+      <span>{name}</span>
+    </span>
+  )
 }
 
 function EntityListPage({ resourceKey, title }) {
@@ -179,9 +192,20 @@ function EntityListPage({ resourceKey, title }) {
             <tbody>
               {items.map((item) => (
                 <tr key={item.id}>
-                  {tableHeaders.map((field) => (
-                    <td key={`${item.id}-${field}`}>{getSummaryValue(item, field, countryRecords)}</td>
-                  ))}
+                  {tableHeaders.map((field) => {
+                    const isCountryName = resourceKey === 'countries' && field === 'name'
+                    const relatedCountry = field === 'country' ? findCountry(countryRecords, item.country || item.country_id) : null
+
+                    return (
+                      <td key={`${item.id}-${field}`}>
+                        {isCountryName
+                          ? <CountryIdentity country={item} />
+                          : field === 'country'
+                            ? <CountryIdentity country={relatedCountry || (typeof item.country === 'object' ? item.country : null)} fallback={getCountryLabel(item, countryRecords)} />
+                            : getSummaryValue(item, field, countryRecords)}
+                      </td>
+                    )
+                  })}
                   <td>
                     <div className="table-actions">
                       <Link to={`/manage/${resourceKey}/${item.id}/edit`} className="secondary-button small-button">

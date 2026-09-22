@@ -5,6 +5,8 @@ import { getPublicPlaces } from '../services/placesApi.js'
 import { getPublicRoutes } from '../services/routesApi.js'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderablePlace } from '../features/map/mapGeometry.js'
+import CountryFlag from '../shared/components/CountryFlag.jsx'
+import { findCountry } from '../shared/utils/country.js'
 import ExploreCategoryNav from './ExploreCategoryNav.jsx'
 
 function ExplorePage() {
@@ -107,7 +109,7 @@ function ExplorePage() {
     setSelectedRouteId(null)
   }
 
-  const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
+  const countryBySlug = useMemo(() => new Map(countries.map((country) => [country.slug, country])), [countries])
   const availableActivities = useMemo(() => [...new Set(routes.map((route) => route.activity_type).filter(Boolean))].sort(), [routes])
   const routeSelectionEnabled = activeView === 'routes' && Boolean(selectedCountry)
   const activeSelectedRouteId = routeSelectionEnabled && routes.some((route) => route.id === selectedRouteId) ? selectedRouteId : null
@@ -209,17 +211,23 @@ function ExplorePage() {
           {routesStatus === 'success' && selectedCountry && routes.length === 0 && <p className="explore-status" role="status">No routes match these filters.</p>}
           {selectedCountry && routes.length > 0 && (
             <div className="explore-route-list" aria-label="Routes">
-              {routes.map((route) => (
-                <Link
-                  key={route.id}
-                  className={route.id === activeSelectedRouteId ? 'explore-route-item is-selected' : 'explore-route-item'}
-                  to={`/routes/${route.slug}`}
-                  aria-label={`View route details: ${route.title}`}
-                >
-                  <strong>{route.title}</strong>
-                  <span>{countryNames.get(route.country) || route.country} · {route.activity_type}</span>
-                </Link>
-              ))}
+              {routes.map((route) => {
+                const country = countryBySlug.get(route.country) || findCountry(countries, route.country)
+                return (
+                  <Link
+                    key={route.id}
+                    className={route.id === activeSelectedRouteId ? 'explore-route-item is-selected' : 'explore-route-item'}
+                    to={`/routes/${route.slug}`}
+                    aria-label={`View route details: ${route.title}`}
+                  >
+                    <strong>{route.title}</strong>
+                    <span className="country-identity-inline">
+                      <CountryFlag code={country?.code} decorative />
+                      <span>{country?.name || route.country} · {route.activity_type}</span>
+                    </span>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </div>
@@ -260,17 +268,23 @@ function ExplorePage() {
             {placesStatus === 'success' && places.length === 0 && <p className="explore-status" role="status">No places match this country.</p>}
             {places.length > 0 && (
               <div className="explore-place-list" aria-label="Places">
-                {places.map((place) => (
-                  <Link
-                    key={place.id}
-                    className="explore-route-item"
-                    to={`/places/${encodeURIComponent(place.slug)}`}
-                  >
-                    <strong>{place.name}</strong>
-                    <span>{countryNames.get(place.country) || place.country}{!isRenderablePlace(place) && ' · Not mapped'}</span>
-                    {place.summary && <span>{place.summary}</span>}
-                  </Link>
-                ))}
+                {places.map((place) => {
+                  const country = countryBySlug.get(place.country) || findCountry(countries, place.country)
+                  return (
+                    <Link
+                      key={place.id}
+                      className="explore-route-item"
+                      to={`/places/${encodeURIComponent(place.slug)}`}
+                    >
+                      <strong>{place.name}</strong>
+                      <span className="country-identity-inline">
+                        <CountryFlag code={country?.code} decorative />
+                        <span>{country?.name || place.country}{!isRenderablePlace(place) && ' · Not mapped'}</span>
+                      </span>
+                      {place.summary && <span>{place.summary}</span>}
+                    </Link>
+                  )
+                })}
               </div>
             )}
           </>

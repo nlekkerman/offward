@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import NotFoundPage from './NotFoundPage.jsx'
 import { getCountryBySlug } from '../services/countriesApi.js'
+import CountryFlag from '../shared/components/CountryFlag.jsx'
 
 function CountryPage() {
   const { countrySlug } = useParams()
@@ -48,8 +49,13 @@ function CountryPage() {
 
   return (
     <section className="page-placeholder">
-      <p className="eyebrow">{country.code}</p>
-      <h1>{country.name}</h1>
+      <div className="country-detail-identity">
+        <CountryFlag code={country.code} countryName={country.name} size="medium" />
+        <div>
+          <p className="eyebrow">{country.code}</p>
+          <h1>{country.name}</h1>
+        </div>
+      </div>
       <p>{country.summary}</p>
       <p>Status: {country.status}</p>
     </section>

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatCountryLabel, formatPublishedDate } from '../features/home/latestContentFormatting.js'
+import { getCountries } from '../services/countriesApi.js'
 import { getPublicStories } from '../services/storiesApi.js'
+import CountryFlag from '../shared/components/CountryFlag.jsx'
+import { findCountry } from '../shared/utils/country.js'
 
 function getImageUrl(image) {
   return image?.url || image?.image_url || image?.thumbnail_url || image?.image?.url || image?.image?.image_url || ''
@@ -25,6 +28,7 @@ function getStoryPreviewUrl(story) {
 function StoriesListPage() {
   const [status, setStatus] = useState('loading')
   const [stories, setStories] = useState([])
+  const [countries, setCountries] = useState([])
 
   useEffect(() => {
     let isCurrent = true
@@ -48,6 +52,14 @@ function StoriesListPage() {
     return () => {
       isCurrent = false
     }
+  }, [])
+
+  useEffect(() => {
+    let isCurrent = true
+    getCountries()
+      .then((data) => { if (isCurrent) setCountries(data) })
+      .catch(() => { if (isCurrent) setCountries([]) })
+    return () => { isCurrent = false }
   }, [])
 
   return (
@@ -75,6 +87,7 @@ function StoriesListPage() {
           {stories.map((story) => {
             const previewUrl = getStoryPreviewUrl(story)
             const countryLabel = formatCountryLabel(story.country)
+            const country = findCountry(countries, story.country)
             const publishedLabel = formatPublishedDate(story.published_at)
 
             return (
@@ -90,7 +103,7 @@ function StoriesListPage() {
                   {story.excerpt && <p className="story-list-card-excerpt">{story.excerpt}</p>}
                   {(countryLabel || publishedLabel) && (
                     <div className="story-list-card-meta" aria-label="Story metadata">
-                      {countryLabel && <span>{countryLabel}</span>}
+                      {countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{country?.name || countryLabel}</span>}
                       {publishedLabel && <span>{publishedLabel}</span>}
                     </div>
                   )}

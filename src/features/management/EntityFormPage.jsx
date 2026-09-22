@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiClient } from '../../services/apiClient.js'
 import { managementApis } from '../../services/management/index.js'
 import { routeMapApi } from '../../services/management/routeMapApi.js'
+import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { getEntityConfig, getRelationshipOptions, slugify } from './entityConfig.js'
 import VideoUploadField from './VideoUploadField.jsx'
 import ContentVideoManager from '../video/ContentVideoManager.jsx'
@@ -895,6 +896,33 @@ function EntityFormPage({ resourceKey, title }) {
     </div>
   )
 
+  const renderCountryCode = () => {
+    const fieldError = fieldErrors.code
+
+    return (
+      <div key="code" className="form-field country-code-field">
+        <label htmlFor="code">code</label>
+        <div className="country-code-control">
+          <input
+            id="code"
+            name="code"
+            value={formData.code || ''}
+            onChange={handleTextChange}
+            className={fieldError ? 'form-input field-error' : 'form-input'}
+            placeholder="ISO alpha-2 code"
+            maxLength="2"
+            autoCapitalize="characters"
+          />
+          <div className="country-flag-preview">
+            <CountryFlag code={formData.code} countryName={formData.name || undefined} size="medium" />
+            <span>Flag preview</span>
+          </div>
+        </div>
+        {fieldError && <span className="field-error-text">{fieldError}</span>}
+      </div>
+    )
+  }
+
   const renderVideoProviderFields = () => {
     if (isEdit) {
       return [renderField('provider'), renderField('provider_id')]
@@ -926,7 +954,7 @@ function EntityFormPage({ resourceKey, title }) {
         return [
           renderField('name'),
           renderField('slug'),
-          renderField('code'),
+          renderCountryCode(),
           renderField('summary', 'textarea'),
           renderField('status', 'select'),
           renderField('hero_media_id'),

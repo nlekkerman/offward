@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getCountries } from '../../services/countriesApi.js'
 import { getLatestPublicStory } from '../../services/storiesApi.js'
 import { getPublicRoutes } from '../../services/routesApi.js'
 import { getPublicVideos } from '../../services/videosApi.js'
@@ -37,10 +38,11 @@ function LatestContentRail() {
     let isCurrent = true
 
     async function loadLatest() {
-      const [videoResult, storyResult, routeResult] = await Promise.allSettled([
+      const [videoResult, storyResult, routeResult, countriesResult] = await Promise.allSettled([
         loadLatestVideo(),
         getLatestPublicStory(),
         loadLatestRoute(),
+        getCountries(),
       ])
 
       if (!isCurrent) {
@@ -48,17 +50,18 @@ function LatestContentRail() {
       }
 
       const nextItems = []
+      const countries = countriesResult.status === 'fulfilled' ? countriesResult.value : []
 
       if (videoResult.status === 'fulfilled' && videoResult.value) {
         nextItems.push({ key: `video-${videoResult.value.id}`, type: 'video', data: videoResult.value })
       }
 
       if (storyResult.status === 'fulfilled' && storyResult.value) {
-        nextItems.push({ key: `story-${storyResult.value.id}`, type: 'story', data: storyResult.value })
+        nextItems.push({ key: `story-${storyResult.value.id}`, type: 'story', data: storyResult.value, countries })
       }
 
       if (routeResult.status === 'fulfilled' && routeResult.value) {
-        nextItems.push({ key: `route-${routeResult.value.id}`, type: 'route', data: routeResult.value })
+        nextItems.push({ key: `route-${routeResult.value.id}`, type: 'route', data: routeResult.value, countries })
       }
 
       setItems(nextItems)
@@ -100,8 +103,8 @@ function LatestContentRail() {
         {items.map((item) => (
           <li className="latest-rail-item" key={item.key}>
             {item.type === 'video' && <LatestVideoCard video={item.data} />}
-            {item.type === 'story' && <LatestStoryCard story={item.data} />}
-            {item.type === 'route' && <LatestRouteCard route={item.data} />}
+            {item.type === 'story' && <LatestStoryCard story={item.data} countryRecords={item.countries} />}
+            {item.type === 'route' && <LatestRouteCard route={item.data} countryRecords={item.countries} />}
           </li>
         ))}
       </ul>

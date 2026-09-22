@@ -139,7 +139,7 @@ a.latest-rail-card {
   letter-spacing: 0.02em;
 }
 
-.latest-rail-meta-row span + span::before {
+.latest-rail-meta-row > span + span::before {
   content: '·';
   margin-right: 0.85rem;
   color: #4a4c41;

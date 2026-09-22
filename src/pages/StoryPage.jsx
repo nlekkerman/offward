@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import VideoPlayer from '../features/video/VideoPlayer.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
+import CountryFlag from '../shared/components/CountryFlag.jsx'
+import { countryName, findCountry } from '../shared/utils/country.js'
 import { collectionCount, collectionPreview } from '../features/management/imageCollectionUtils.js'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicPlaces } from '../services/placesApi.js'
@@ -257,7 +259,8 @@ function StoryPage() {
     )
   }
 
-  const countryLabel = story.country ? (countryNames.get(story.country) || story.country) : null
+  const country = findCountry(countries, story.country)
+  const countryLabel = story.country ? countryName(country, countryNames.get(story.country) || story.country) : null
   const publishedLabel = formatPublishedDate(story.published_at)
 
   return (
@@ -268,7 +271,7 @@ function StoryPage() {
         <h1>{story.title}</h1>
         {(countryLabel || publishedLabel) && (
           <div className="story-detail-meta" aria-label="Story metadata">
-            {countryLabel && <span>{countryLabel}</span>}
+            {countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>}
             {publishedLabel && <span>{publishedLabel}</span>}
           </div>
         )}
@@ -363,7 +366,8 @@ function StoryPage() {
           <div className="story-related-grid">
             {relatedPlaces.map((place) => {
               const previewUrl = getEntityPreviewUrl(place)
-              const countryLabel = place.country ? (countryNames.get(place.country) || place.country) : null
+              const relatedCountry = findCountry(countries, place.country)
+              const countryLabel = place.country ? countryName(relatedCountry, countryNames.get(place.country) || place.country) : null
               return (
                 <Link to={`/places/${place.slug}`} className="story-related-card" key={place.id}>
                   <span className="story-related-card-media">
@@ -372,7 +376,7 @@ function StoryPage() {
                   <span className="story-related-card-body">
                     <span className="story-related-card-eyebrow">Place</span>
                     <span className="story-related-card-title">{place.name}</span>
-                    {countryLabel && <span className="story-related-card-meta">{countryLabel}</span>}
+                    {countryLabel && <span className="story-related-card-meta country-identity-inline"><CountryFlag code={relatedCountry?.code} decorative />{countryLabel}</span>}
                   </span>
                 </Link>
               )
@@ -387,7 +391,9 @@ function StoryPage() {
           <div className="story-related-grid">
             {relatedRoutes.map((route) => {
               const previewUrl = getEntityPreviewUrl(route)
-              const metaLabel = [countryNames.get(route.country) || route.country, formatActivity(route.activity_type)].filter(Boolean).join(' · ')
+              const relatedCountry = findCountry(countries, route.country)
+              const relatedCountryName = countryName(relatedCountry, countryNames.get(route.country) || route.country)
+              const metaLabel = [relatedCountryName, formatActivity(route.activity_type)].filter(Boolean).join(' · ')
               return (
                 <Link to={`/routes/${route.slug}`} className="story-related-card" key={route.id}>
                   <span className="story-related-card-media">
@@ -396,7 +402,7 @@ function StoryPage() {
                   <span className="story-related-card-body">
                     <span className="story-related-card-eyebrow">Route</span>
                     <span className="story-related-card-title">{route.title}</span>
-                    {metaLabel && <span className="story-related-card-meta">{metaLabel}</span>}
+                    {metaLabel && <span className="story-related-card-meta country-identity-inline"><CountryFlag code={relatedCountry?.code} decorative />{metaLabel}</span>}
                   </span>
                 </Link>
               )

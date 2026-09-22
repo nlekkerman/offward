@@ -9,6 +9,8 @@ import RouteSections from '../features/routes/components/RouteSections.jsx'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
+import CountryFlag from '../shared/components/CountryFlag.jsx'
+import { countryName, findCountry } from '../shared/utils/country.js'
 import NotFoundPage from './NotFoundPage.jsx'
 
 const ROUTE_DETAIL_LINE_STYLE = {
@@ -267,7 +269,8 @@ function RoutePage() {
   }
   const mapRoute = route && route.is_map_renderable === true && isRenderableRoute(route) ? route : null
   const hasMalformedGeometry = route?.geometry && route?.is_map_renderable === true && !mapRoute
-  const countryLabel = countryNames.get(route?.country) || route?.country || 'Country pending'
+  const country = findCountry(countries, route?.country)
+  const countryLabel = countryName(country, countryNames.get(route?.country) || route?.country || 'Country pending')
   const activityLabel = formatActivity(route?.activity_type)
 
   if (routeStatus === 'loading') {
@@ -300,7 +303,7 @@ function RoutePage() {
           <h1>{route.title}</h1>
         </div>
         <div className="route-detail-meta" aria-label="Route metadata">
-          <span>{countryLabel}</span>
+          <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
           <span>{activityLabel}</span>
         </div>
         {route.summary && <p className="route-detail-summary">{route.summary}</p>}

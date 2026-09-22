@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCountries } from '../services/countriesApi.js'
+import CountryFlag from '../shared/components/CountryFlag.jsx'
 
 function CountriesListPage() {
   const [status, setStatus] = useState('loading')
@@ -54,7 +55,13 @@ function CountriesListPage() {
         <div className="explore-route-list" aria-label="Countries">
           {countries.map((country) => (
             <Link key={country.id || country.slug} to={`/countries/${country.slug}`} className="explore-route-item">
-              <strong>{country.name}</strong>
+              <span className="country-card-identity">
+                <CountryFlag code={country.code} countryName={country.name} size="medium" />
+                <span>
+                  <strong>{country.name}</strong>
+                  {country.code && <small>{country.code.toUpperCase()}</small>}
+                </span>
+              </span>
               {country.summary && <span>{country.summary}</span>}
             </Link>
           ))}
