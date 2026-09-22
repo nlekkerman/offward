@@ -1731,7 +1731,6 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 .route-detail-page {
-  width: min(100%, 1120px);
   margin: 0 auto;
   padding: 2.5rem 2rem 4.5rem;
 }
