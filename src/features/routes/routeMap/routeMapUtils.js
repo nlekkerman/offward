@@ -93,6 +93,23 @@ export function normalizeWaypoints(waypoints) {
     }))
 }
 
+export function reorderWaypoints(waypoints, index, direction) {
+  const targetIndex = index + direction
+  if (!Array.isArray(waypoints) || targetIndex < 0 || targetIndex >= waypoints.length) {
+    return waypoints
+  }
+
+  const reordered = [...waypoints]
+  const movingWaypoint = reordered[index]
+  reordered[index] = reordered[targetIndex]
+  reordered[targetIndex] = movingWaypoint
+
+  return reordered.map((waypoint, waypointIndex) => ({
+    ...waypoint,
+    order: waypointIndex + 1,
+  }))
+}
+
 export function getWaypointTypeForPosition(type, index, length) {
   if (index === 0) {
     return 'start'
@@ -209,7 +226,7 @@ export function normalizeCandidate(data = {}) {
 // media_ids is always sent explicitly so unrelated Waypoint edits preserve current attachments
 // and an explicit detach-all is distinguishable from omission.
 export function buildWaypointPayload(waypoints) {
-  return normalizeWaypoints(waypoints).map((waypoint, index) => ({
+  return waypoints.map((waypoint, index) => ({
     ...(String(waypoint.id).startsWith('new-') ? {} : { id: waypoint.id }),
     order: index + 1,
     type: waypoint.type,

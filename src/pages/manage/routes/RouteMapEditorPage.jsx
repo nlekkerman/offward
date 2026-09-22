@@ -9,7 +9,7 @@ import SegmentList from '../../../features/routes/routeMap/components/SegmentLis
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
 import ContentVideoManager from '../../../features/video/ContentVideoManager.jsx'
-import { buildWaypointPayload, createEmptySegment, createEmptyWaypoint, deriveSegmentGeometry, getPlaceCoordinates, normalizeGeometry, normalizeRouteMap, normalizeSegments, normalizeWaypoints, validateSegment, validateSegments, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
+import { buildWaypointPayload, createEmptySegment, createEmptyWaypoint, deriveSegmentGeometry, getPlaceCoordinates, normalizeGeometry, normalizeRouteMap, normalizeSegments, normalizeWaypoints, reorderWaypoints, validateSegment, validateSegments, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
 import { managementApis } from '../../../services/management/index.js'
 import { routeMapApi } from '../../../services/management/routeMapApi.js'
 
@@ -435,17 +435,10 @@ function RouteMapEditorPage() {
   }
 
   const moveWaypoint = (index, direction) => {
-    changeWaypoints((current) => {
-      const targetIndex = index + direction
-      if (targetIndex < 0 || targetIndex >= current.length) {
-        return current
-      }
-      const nextWaypoints = [...current]
-      const movingWaypoint = nextWaypoints[index]
-      nextWaypoints[index] = nextWaypoints[targetIndex]
-      nextWaypoints[targetIndex] = movingWaypoint
-      return nextWaypoints
-    })
+    setWaypoints((current) => reorderWaypoints(current, index, direction))
+    setCandidate(null)
+    setNotice('')
+    setError('')
   }
 
   const saveRouteMap = async () => {
