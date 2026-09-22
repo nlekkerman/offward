@@ -189,14 +189,12 @@ export function slugify(value) {
 
 export function getRelationshipOptions(resourceKey) {
   const mapping = {
-    country: ['countries'],
-    countries: ['countries'],
-    places: ['places'],
-    routes: ['routes'],
-    events: ['events'],
-    partners: ['partners'],
-    tours: ['tours'],
-    videos: ['videos'],
+    places: ['country'],
+    routes: ['country', 'places'],
+    stories: ['country', 'places', 'routes', 'events', 'tours', 'videos'],
+    videos: ['places', 'routes'],
+    tours: ['country', 'routes', 'places', 'videos'],
+    events: ['country', 'routes', 'places', 'partners', 'videos'],
   }
 
   return mapping[resourceKey] || []

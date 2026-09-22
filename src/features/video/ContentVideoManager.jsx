@@ -118,6 +118,7 @@ function ContentVideoManager({
       } catch {
         if (active) {
           setAllVideos([])
+          setError('Unable to load the Video catalog.')
         }
       } finally {
         if (active) {
@@ -406,6 +407,7 @@ function ContentVideoManager({
           <div className="content-video-empty">No videos attached yet.</div>
         )}
       </div>
+      {error && !isPanelOpen && <div className="management-error" role="alert">{error}</div>}
 
       {previewVideoId && (
         <div className="content-video-preview-box">

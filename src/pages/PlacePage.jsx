@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
+import RelatedStories from '../features/routes/components/RelatedStories.jsx'
+import { normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderablePlace } from '../features/map/mapGeometry.js'
+import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import { getPublicPlaceBySlug } from '../services/placesApi.js'
+import { getPublicStories } from '../services/storiesApi.js'
+import { getPublicVideos } from '../services/videosApi.js'
+import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 
 function formatCountrySlug(value) {
   if (!value || typeof value !== 'string') {
@@ -15,6 +22,12 @@ function formatCountrySlug(value) {
 function PlacePage() {
   const { placeSlug } = useParams()
   const [placeResult, setPlaceResult] = useState({ slug: null, status: 'loading', place: null })
+  const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
+  const [storyCatalog, setStoryCatalog] = useState({ status: 'idle', stories: [] })
+  const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
+  const [galleryLoadingId, setGalleryLoadingId] = useState(null)
+  const [galleryErrorByCollectionId, setGalleryErrorByCollectionId] = useState({})
+  const galleryCacheRef = useRef(new Map())
 
   useEffect(() => {
     let isCurrent = true
@@ -38,8 +51,70 @@ function PlacePage() {
     }
   }, [placeSlug])
 
-  const placeStatus = placeResult.slug === placeSlug ? placeResult.status : 'loading'
   const place = placeResult.slug === placeSlug ? placeResult.place : null
+  const mediaIds = useMemo(() => normalizeMediaIds(place?.media_ids), [place])
+
+  useEffect(() => {
+    if (mediaIds.length === 0) {
+      setVideoCatalog({ status: 'idle', videos: [] })
+      return undefined
+    }
+    let isCurrent = true
+    setVideoCatalog({ status: 'loading', videos: [] })
+    getPublicVideos().then((videos) => {
+      if (isCurrent) setVideoCatalog({ status: 'success', videos })
+    }).catch(() => {
+      if (isCurrent) setVideoCatalog({ status: 'error', videos: [] })
+    })
+    return () => { isCurrent = false }
+  }, [mediaIds])
+
+  useEffect(() => {
+    const storyIds = Array.isArray(place?.story_ids) ? place.story_ids : []
+    if (storyIds.length === 0) {
+      setStoryCatalog({ status: 'idle', stories: [] })
+      return undefined
+    }
+    let isCurrent = true
+    setStoryCatalog({ status: 'loading', stories: [] })
+    getPublicStories().then((stories) => {
+      if (isCurrent) setStoryCatalog({ status: 'success', stories })
+    }).catch(() => {
+      if (isCurrent) setStoryCatalog({ status: 'error', stories: [] })
+    })
+    return () => { isCurrent = false }
+  }, [place])
+
+  const videoById = useMemo(() => new Map(videoCatalog.videos.map((video) => [String(video.id), video])), [videoCatalog.videos])
+  const videos = useMemo(() => resolveAttachedVideos(place, videoById), [place, videoById])
+  const galleries = useMemo(() => resolveImageCollections(place), [place])
+  const relatedStories = useMemo(() => {
+    const ids = new Set((place?.story_ids || []).map((storyId) => String(storyId)))
+    return storyCatalog.stories.filter((story) => ids.has(String(story.id)))
+  }, [place, storyCatalog.stories])
+
+  const openGallery = async (galleryPreview) => {
+    const collectionId = galleryPreview?.id ? String(galleryPreview.id) : ''
+    if (!collectionId || galleryLoadingId === collectionId) return
+    setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: null }))
+    const cached = galleryCacheRef.current.get(collectionId)
+    if (cached) {
+      setLightbox({ gallery: cached, index: 0 })
+      return
+    }
+    setGalleryLoadingId(collectionId)
+    try {
+      const fullCollection = await getPublicImageCollection(collectionId)
+      galleryCacheRef.current.set(collectionId, fullCollection)
+      setLightbox({ gallery: fullCollection, index: 0 })
+    } catch {
+      setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Unable to load gallery. Try again.' }))
+    } finally {
+      setGalleryLoadingId((current) => (current === collectionId ? null : current))
+    }
+  }
+
+  const placeStatus = placeResult.slug === placeSlug ? placeResult.status : 'loading'
 
   if (placeStatus === 'loading') {
     return <section className="place-detail-page"><p className="place-detail-status" role="status">Loading place...</p></section>
@@ -63,6 +138,7 @@ function PlacePage() {
   }
 
   const hasCoordinates = isRenderablePlace(place)
+  const lightboxImages = lightbox.gallery?.images || []
 
   return (
     <section className="place-detail-page">
@@ -88,8 +164,19 @@ function PlacePage() {
           )}
         </section>
       </div>
+      {videoCatalog.status === 'error' && <p className="place-detail-secondary-error" role="alert">Unable to load Place videos.</p>}
+      <EntityMediaSection videos={videos} galleries={galleries} onOpenGallery={openGallery} loadingGalleryId={galleryLoadingId} galleryErrorByCollectionId={galleryErrorByCollectionId} />
+      {storyCatalog.status === 'error' && <p className="place-detail-secondary-error" role="alert">Unable to load related Stories.</p>}
+      <RelatedStories stories={relatedStories} />
+      <ImageLightbox
+        images={lightboxImages}
+        activeIndex={lightbox.index}
+        isOpen={lightbox.index >= 0}
+        onClose={() => setLightbox({ gallery: null, index: -1 })}
+        onPrevious={() => setLightbox((current) => ({ ...current, index: (current.index - 1 + lightboxImages.length) % lightboxImages.length }))}
+        onNext={() => setLightbox((current) => ({ ...current, index: (current.index + 1) % lightboxImages.length }))}
+      />
     </section>
   )
 }
-
 export default PlacePage

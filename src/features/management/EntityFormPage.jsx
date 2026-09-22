@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiClient } from '../../services/apiClient.js'
 import { managementApis } from '../../services/management/index.js'
 import { routeMapApi } from '../../services/management/routeMapApi.js'
-import { getEntityConfig, slugify } from './entityConfig.js'
+import { getEntityConfig, getRelationshipOptions, slugify } from './entityConfig.js'
 import VideoUploadField from './VideoUploadField.jsx'
 import ContentVideoManager from '../video/ContentVideoManager.jsx'
 import ContentImageCollectionManager from './ContentImageCollectionManager.jsx'
@@ -116,12 +116,8 @@ function EntityFormPage({ resourceKey, title }) {
   const [videoUploadStatus, setVideoUploadStatus] = useState('idle')
 
   const relationshipNames = useMemo(() => {
-    const names = []
-    Object.keys(relationshipFields).forEach((key) => {
-      names.push(key)
-    })
-    return names
-  }, [])
+    return getRelationshipOptions(resourceKey)
+  }, [resourceKey])
 
   useEffect(() => {
     let active = true

@@ -2442,6 +2442,12 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   gap: 1rem;
 }
 
+.place-detail-secondary-error {
+  margin: 1rem 0 0;
+  color: #e6a49a;
+  font: 0.9rem/1.5 sans-serif;
+}
+
 .place-detail-map {
   height: 420px;
 }

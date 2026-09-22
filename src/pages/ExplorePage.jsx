@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicPlaces } from '../services/placesApi.js'
 import { getPublicRoutes } from '../services/routesApi.js'
@@ -9,6 +9,7 @@ import ExploreCategoryNav from './ExploreCategoryNav.jsx'
 
 function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const rawView = searchParams.get('view')
   const activeView = rawView === 'places' ? 'places' : 'routes'
 
@@ -21,7 +22,6 @@ function ExplorePage() {
   const [selectedCountry, setSelectedCountry] = useState('')
   const [selectedActivity, setSelectedActivity] = useState('')
   const [selectedRouteId, setSelectedRouteId] = useState(null)
-  const [selectedPlaceId, setSelectedPlaceId] = useState(null)
 
   useEffect(() => {
     let isCurrent = true
@@ -51,6 +51,7 @@ function ExplorePage() {
     let isCurrent = true
 
     async function loadRoutes() {
+      if (activeView !== 'routes') return
       try {
         const data = await getPublicRoutes({
           country: selectedCountry || undefined,
@@ -74,7 +75,7 @@ function ExplorePage() {
     return () => {
       isCurrent = false
     }
-  }, [selectedActivity, selectedCountry])
+  }, [activeView, selectedActivity, selectedCountry])
 
   useEffect(() => {
     let isCurrent = true
@@ -104,16 +105,13 @@ function ExplorePage() {
   if (prevActiveView !== activeView) {
     setPrevActiveView(activeView)
     setSelectedRouteId(null)
-    setSelectedPlaceId(null)
   }
 
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
   const availableActivities = useMemo(() => [...new Set(routes.map((route) => route.activity_type).filter(Boolean))].sort(), [routes])
   const routeSelectionEnabled = activeView === 'routes' && Boolean(selectedCountry)
   const activeSelectedRouteId = routeSelectionEnabled && routes.some((route) => route.id === selectedRouteId) ? selectedRouteId : null
-  const activeSelectedPlaceId = activeView === 'places' && places.some((place) => place.id === selectedPlaceId) ? selectedPlaceId : null
   const selectedRoute = activeView === 'routes' ? routes.find((route) => route.id === activeSelectedRouteId) : null
-  const selectedPlace = activeView === 'places' ? places.find((place) => place.id === activeSelectedPlaceId) : null
   const renderableRouteCount = routes.filter((route) => route.is_map_renderable === true).length
   const renderablePlaceCount = places.filter(isRenderablePlace).length
   const visibleCountryOptions = countries.filter((country) => country.status === 'active' || country.status === 'upcoming')
@@ -125,12 +123,11 @@ function ExplorePage() {
 
   const hasActiveFilterOrSelection = activeView === 'routes'
     ? Boolean(selectedCountry || selectedActivity || activeSelectedRouteId)
-    : Boolean(selectedCountry || activeSelectedPlaceId)
+    : Boolean(selectedCountry)
 
   const handleCategoryChange = (newCategory) => {
     if (newCategory === activeView) return
     setSelectedRouteId(null)
-    setSelectedPlaceId(null)
     setSearchParams({ view: newCategory })
   }
 
@@ -157,7 +154,6 @@ function ExplorePage() {
               setRoutesStatus('loading')
               setPlacesStatus('loading')
               setSelectedRouteId(null)
-              setSelectedPlaceId(null)
               setSelectedCountry(event.target.value)
             }}
           >
@@ -199,7 +195,6 @@ function ExplorePage() {
               setSelectedCountry('')
               setSelectedActivity('')
               setSelectedRouteId(null)
-              setSelectedPlaceId(null)
             }}
           >
             Clear selection and filters
@@ -236,14 +231,13 @@ function ExplorePage() {
           routes={visibleRoutes}
           places={visiblePlaces}
           selectedRouteId={activeSelectedRouteId}
-          selectedPlaceId={activeSelectedPlaceId}
+          selectedPlaceId={null}
           onRouteSelect={routeSelectionEnabled ? (routeId) => {
             setSelectedRouteId(routeId)
-            setSelectedPlaceId(null)
           } : undefined}
           onPlaceSelect={(placeId) => {
-            setSelectedPlaceId(placeId)
-            setSelectedRouteId(null)
+            const place = places.find((item) => item.id === placeId)
+            if (place?.slug) navigate(`/places/${encodeURIComponent(place.slug)}`)
           }}
           initialCenter={[50, 10]}
           initialZoom={4}
@@ -256,19 +250,6 @@ function ExplorePage() {
         )}
       </div>
 
-      {selectedPlace && (
-        <div className="explore-preview">
-          <p className="eyebrow">SELECTED PLACE</p>
-          <h2>{selectedPlace.name}</h2>
-          <p>{countryNames.get(selectedPlace.country) || selectedPlace.country}</p>
-          {selectedPlace.summary && <p>{selectedPlace.summary}</p>}
-          <div className="explore-preview-actions">
-            <Link className="primary-button" to={`/places/${selectedPlace.slug}`}>View Place</Link>
-            <button type="button" className="secondary-button" onClick={() => setSelectedPlaceId(null)}>Deselect</button>
-          </div>
-        </div>
-      )}
-
       <div className="explore-results">
         {countriesStatus === 'loading' && <p className="explore-status" role="status">Loading countries...</p>}
         {countriesStatus === 'error' && <p className="explore-status" role="status">Unable to load country filters.</p>}
@@ -280,19 +261,15 @@ function ExplorePage() {
             {places.length > 0 && (
               <div className="explore-place-list" aria-label="Places">
                 {places.map((place) => (
-                  <button
+                  <Link
                     key={place.id}
-                    type="button"
-                    className={place.id === activeSelectedPlaceId ? 'explore-route-item is-selected' : 'explore-route-item'}
-                    onClick={() => {
-                      setSelectedPlaceId(place.id)
-                      setSelectedRouteId(null)
-                    }}
+                    className="explore-route-item"
+                    to={`/places/${encodeURIComponent(place.slug)}`}
                   >
                     <strong>{place.name}</strong>
                     <span>{countryNames.get(place.country) || place.country}{!isRenderablePlace(place) && ' · Not mapped'}</span>
                     {place.summary && <span>{place.summary}</span>}
-                  </button>
+                  </Link>
                 ))}
               </div>
             )}
