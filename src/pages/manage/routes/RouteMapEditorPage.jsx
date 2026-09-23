@@ -619,22 +619,24 @@ function RouteMapEditorPage() {
         <section className="route-map-editor-panel">
           <div className="route-map-panel-header"><div><p className="eyebrow">Route status</p><h2>Route geometry</h2></div></div>
           <RouteCandidateSummary acceptedGeometry={acceptedGeometry} candidate={candidate} mapRevision={mapRevision} updatedAt={updatedAt} />
+          {candidate?.geometry && (
+            <SegmentList
+              pairs={waypointPairs}
+              waypoints={savedWaypoints}
+              selectedPairKey={selectedPairKey}
+              canDrawManually={canDrawCandidateSections}
+              manualDrawing={manualDrawing}
+              onStartManualDrawing={startManualCandidateDrawing}
+              onUndoManualPoint={undoManualCandidatePoint}
+              onFinishManualDrawing={finishManualCandidateDrawing}
+              onCancelManualDrawing={cancelManualCandidateDrawing}
+            />
+          )}
           <RouteMapActions calculating={calculating} saving={saving} accepting={accepting} canCalculate={canCalculate} canAccept={canAccept} hasUnsavedChanges={hasUnsavedChanges} onSave={saveRouteMap} onCalculate={calculateCandidate} onAccept={acceptCandidate} showSave={false} />
         </section>
       )}
 
       <div className="route-map-main-column">
-        <SegmentList
-          pairs={waypointPairs}
-          waypoints={savedWaypoints}
-          selectedPairKey={selectedPairKey}
-          canDrawManually={canDrawCandidateSections}
-          manualDrawing={manualDrawing}
-          onStartManualDrawing={startManualCandidateDrawing}
-          onUndoManualPoint={undoManualCandidatePoint}
-          onFinishManualDrawing={finishManualCandidateDrawing}
-          onCancelManualDrawing={cancelManualCandidateDrawing}
-        />
         <RouteAuthoringMap
           waypoints={waypoints}
           acceptedGeometry={acceptedGeometry}
