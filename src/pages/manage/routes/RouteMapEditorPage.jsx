@@ -4,7 +4,6 @@ import RouteAuthoringMap from '../../../features/map/components/RouteAuthoringMa
 import RouteCandidateSummary from '../../../features/routes/routeMap/components/RouteCandidateSummary.jsx'
 import RouteGeometryLegend from '../../../features/routes/routeMap/components/RouteGeometryLegend.jsx'
 import RouteMapActions from '../../../features/routes/routeMap/components/RouteMapActions.jsx'
-import SegmentEditor from '../../../features/routes/routeMap/components/SegmentEditor.jsx'
 import SegmentList from '../../../features/routes/routeMap/components/SegmentList.jsx'
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
@@ -148,7 +147,7 @@ function RouteMapEditorPage() {
     if (selectedPair) parts.push(`Section ${selectedPair.order} → ${selectedPair.order + 1}`)
     return parts.length ? parts.join(' · ') : 'No selection'
   }, [selectedPair, selectedWaypoint])
-  const canDrawSelectedPair = Boolean(selectedPair && candidate?.geometry && !hasUnsavedChanges)
+  const canDrawCandidateSections = Boolean(candidate?.geometry && !hasUnsavedChanges)
 
   const togglePanel = (panel) => {
     setActivePanel((current) => current === panel ? '' : panel)
@@ -302,15 +301,12 @@ function RouteMapEditorPage() {
     if (mediaWaypointId === waypointId) setMediaWaypointId('')
   }
 
-  const selectPair = (pairKey) => {
-    setSelectedPairKey(pairKey)
-    setManualDrawing((current) => current?.pairKey === pairKey ? current : null)
-  }
-
-  const startManualCandidateDrawing = () => {
-    if (!selectedPair || !canDrawSelectedPair) return
+  const startManualCandidateDrawing = (pairKey) => {
+    const pair = waypointPairs.find((candidatePair) => candidatePair.key === pairKey)
+    if (!pair || !canDrawCandidateSections) return
+    setSelectedPairKey(pair.key)
     setAddMode(false)
-    setManualDrawing({ pairKey: selectedPair.key, points: [] })
+    setManualDrawing({ pairKey: pair.key, points: [] })
     setNotice('')
     setError('')
   }
@@ -547,9 +543,6 @@ function RouteMapEditorPage() {
         <button type="button" className={activePanel === 'waypoints' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('waypoints')} aria-expanded={activePanel === 'waypoints'}>
           Waypoints <span>{waypoints.length}</span>
         </button>
-        <button type="button" className={activePanel === 'segments' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('segments')} aria-expanded={activePanel === 'segments'}>
-          Candidate sections <span>{waypointPairs.length}</span>
-        </button>
         <button type="button" className={activePanel === 'videos' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('videos')} aria-expanded={activePanel === 'videos'}>
           + Add video
         </button>
@@ -604,23 +597,6 @@ function RouteMapEditorPage() {
         </section>
       )}
 
-      {activePanel === 'segments' && (
-        <section className="route-map-editor-panel route-map-segments-section">
-          <SegmentList pairs={waypointPairs} waypoints={savedWaypoints} selectedPairKey={selectedPairKey} onSelect={selectPair} />
-          <SegmentEditor
-            pair={selectedPair}
-            waypoints={savedWaypoints}
-            canDrawManually={canDrawSelectedPair}
-            drawingManually={manualDrawing?.pairKey === selectedPair?.key}
-            manualPointCount={manualDrawing?.pairKey === selectedPair?.key ? manualDrawing.points.length : 0}
-            onStartManualDrawing={startManualCandidateDrawing}
-            onUndoManualPoint={undoManualCandidatePoint}
-            onFinishManualDrawing={finishManualCandidateDrawing}
-            onCancelManualDrawing={cancelManualCandidateDrawing}
-          />
-        </section>
-      )}
-
       {activePanel === 'videos' && (
         <section className="route-map-editor-panel">
           <div className="route-map-panel-header">
@@ -648,6 +624,17 @@ function RouteMapEditorPage() {
       )}
 
       <div className="route-map-main-column">
+        <SegmentList
+          pairs={waypointPairs}
+          waypoints={savedWaypoints}
+          selectedPairKey={selectedPairKey}
+          canDrawManually={canDrawCandidateSections}
+          manualDrawing={manualDrawing}
+          onStartManualDrawing={startManualCandidateDrawing}
+          onUndoManualPoint={undoManualCandidatePoint}
+          onFinishManualDrawing={finishManualCandidateDrawing}
+          onCancelManualDrawing={cancelManualCandidateDrawing}
+        />
         <RouteAuthoringMap
           waypoints={waypoints}
           acceptedGeometry={acceptedGeometry}
