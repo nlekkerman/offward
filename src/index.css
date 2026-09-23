@@ -1450,6 +1450,10 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   text-overflow: ellipsis;
 }
 
+.route-authoring-waypoint-marker .route-waypoint-name {
+  display: inline-block;
+}
+
 .route-waypoint-marker.is-selected .route-waypoint-name {
   color: var(--waypoint-selected-text);
 }
