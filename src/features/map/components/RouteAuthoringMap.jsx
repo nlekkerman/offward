@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { GeoJSON, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import MapErrorBoundary from './MapErrorBoundary.jsx'
 import { MAP_TILE_LAYER } from '../tileConfig.js'
-import { getWaypointDisplayName, normalizeGeometry } from '../../routes/routeMap/routeMapUtils.js'
+import { normalizeGeometry } from '../../routes/routeMap/routeMapUtils.js'
 import { createWaypointMarkerIcon, WaypointMarkerZoomController } from '../waypointMarkerIcon.js'
 import '../map.css'
 
@@ -61,8 +61,20 @@ function AuthoringViewport({ waypoints, acceptedGeometry, candidateGeometry, seg
   return null
 }
 
-function WaypointMarker({ waypoint, latLng, selected, onWaypointSelect }) {
-  const displayName = getWaypointDisplayName(waypoint)
+function getMarkerDisplayName(waypoint, places) {
+  const label = typeof waypoint?.label === 'string' ? waypoint.label.trim() : ''
+  if (label) return label
+
+  const name = typeof waypoint?.name === 'string' ? waypoint.name.trim() : ''
+  if (name) return name
+
+  const linkedPlace = places.find((place) => String(place.id) === String(waypoint?.place_id))
+  const placeName = linkedPlace?.name || linkedPlace?.title || waypoint?.place_name
+  return typeof placeName === 'string' ? placeName.trim() : ''
+}
+
+function WaypointMarker({ waypoint, places, latLng, selected, onWaypointSelect }) {
+  const displayName = getMarkerDisplayName(waypoint, places)
   const icon = useMemo(
     () => createWaypointMarkerIcon({ order: waypoint.order, displayName, selected, extraClassNames: ['route-authoring-waypoint-marker'] }),
     [displayName, selected, waypoint.order],
@@ -72,7 +84,7 @@ function WaypointMarker({ waypoint, latLng, selected, onWaypointSelect }) {
     <Marker
       position={latLng}
       icon={icon}
-      title={`${waypoint.order} · ${displayName}`}
+      title={displayName ? `${waypoint.order} · ${displayName}` : String(waypoint.order)}
       eventHandlers={{ click: () => onWaypointSelect(waypoint.id) }}
     />
   )
@@ -131,7 +143,7 @@ const SELECTED_SEGMENT_STYLE = {
   lineJoin: 'round',
 }
 
-function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeometry, segments = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint }) {
+function RouteAuthoringMapContent({ waypoints, places = [], acceptedGeometry, candidateGeometry, segments = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint }) {
   const validWaypoints = useMemo(() => waypoints.map((waypoint) => ({ waypoint, latLng: toLatLng(waypoint) })).filter((item) => item.latLng), [waypoints])
   const waypointLine = validWaypoints.map((item) => item.latLng)
   const accepted = normalizeGeometry(acceptedGeometry)
@@ -170,6 +182,7 @@ function RouteAuthoringMapContent({ waypoints, acceptedGeometry, candidateGeomet
             <WaypointMarker
               key={waypoint.id}
               waypoint={waypoint}
+              places={places}
               latLng={latLng}
               selected={selected}
               onWaypointSelect={onWaypointSelect}

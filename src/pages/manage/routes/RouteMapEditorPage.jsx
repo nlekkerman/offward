@@ -639,6 +639,7 @@ function RouteMapEditorPage() {
       <div className="route-map-main-column">
         <RouteAuthoringMap
           waypoints={waypoints}
+          places={places}
           acceptedGeometry={acceptedGeometry}
           candidateGeometry={candidate?.geometry}
           selectedWaypointId={selectedWaypointId}
