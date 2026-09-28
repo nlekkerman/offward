@@ -631,11 +631,6 @@ function RouteMapEditorPage() {
       <div className="management-page-header route-map-editor-header">
         <div>
           <p className="eyebrow">Management / Routes</p>
-          {candidate?.source === 'gpx' && waypoints.length === 0 && (
-            <button type="button" className="secondary-button" onClick={createGpxEndpoints} disabled={creatingGpxWaypoints || accepting || calculating}>
-              {creatingGpxWaypoints ? 'Creating start & finish...' : 'Create start & finish from GPX'}
-            </button>
-          )}
           <h1>{route?.title || 'Route map'}</h1>
         </div>
         <div className="route-map-header-actions">
@@ -743,6 +738,11 @@ function RouteMapEditorPage() {
             />
           )}
           <RouteMapActions calculating={calculating} saving={saving} accepting={accepting} importingGpx={importingGpx} canCalculate={canCalculate} canAccept={canAccept} hasUnsavedChanges={hasUnsavedChanges} onSave={saveRouteMap} onCalculate={calculateCandidate} onAccept={acceptCandidate} onImportGpx={() => gpxFileInputRef.current?.click()} showSave={false} />
+          {candidate?.geometry && candidate.source === 'gpx' && savedWaypoints.length === 0 && (
+            <button type="button" className="secondary-button" onClick={createGpxEndpoints} disabled={creatingGpxWaypoints || accepting || calculating}>
+              {creatingGpxWaypoints ? 'Creating start & finish...' : 'Create start & finish from GPX'}
+            </button>
+          )}
           <input ref={gpxFileInputRef} className="route-map-gpx-file-input" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" onChange={importGpxFile} aria-label="Choose GPX file" />
           {gpxError && <div className="management-error" role="alert">{gpxError}</div>}
           {gpxPreview && (
