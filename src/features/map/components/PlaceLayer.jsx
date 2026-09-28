@@ -1,5 +1,5 @@
 import L from 'leaflet'
-import { Marker } from 'react-leaflet'
+import { Marker, Tooltip } from 'react-leaflet'
 
 function createPlaceIcon(selected) {
   const markerClass = ['public-place-marker', selected ? 'is-selected' : ''].filter(Boolean).join(' ')
@@ -12,7 +12,7 @@ function createPlaceIcon(selected) {
   })
 }
 
-function PlaceLayer({ places, selectedPlaceId, onPlaceSelect }) {
+function PlaceLayer({ places, selectedPlaceId, onPlaceSelect, showPlaceLabel = false }) {
   return places.map((place) => {
     const selected = place.id === selectedPlaceId
     return (
@@ -23,7 +23,9 @@ function PlaceLayer({ places, selectedPlaceId, onPlaceSelect }) {
         title={place.name}
         alt={place.name}
         eventHandlers={onPlaceSelect ? { click: () => onPlaceSelect(place.id) } : undefined}
-      />
+      >
+        {showPlaceLabel && <Tooltip permanent direction="top" offset={[0, -12]} className="place-detail-marker-label">{place.name}</Tooltip>}
+      </Marker>
     )
   })
 }

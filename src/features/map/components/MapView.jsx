@@ -24,6 +24,7 @@ function MapViewContent({
   selectedWaypointId = null,
   places = [],
   selectedPlaceId = null,
+  showPlaceLabel = false,
   onRouteSelect,
   onWaypointSelect,
   onWaypointHoverStart,
@@ -89,7 +90,7 @@ function MapViewContent({
           onWaypointHoverStart={onWaypointHoverStart}
           onWaypointHoverEnd={onWaypointHoverEnd}
         />
-        <PlaceLayer places={validPlaces} selectedPlaceId={selectedPlaceId} onPlaceSelect={onPlaceSelect} />
+        <PlaceLayer places={validPlaces} selectedPlaceId={selectedPlaceId} onPlaceSelect={onPlaceSelect} showPlaceLabel={showPlaceLabel} />
         {(resetViewWhenRoutesEmpty || validRoutes.length > 0 || validSegments.length > 0 || validWaypoints.length > 0 || validPlaces.length > 0) && (
           <MapViewportController validRoutes={validRoutes} validSegments={validSegments} validWaypoints={validWaypoints} validPlaces={validPlaces} selectedRouteId={selectedRouteId} selectedSegmentId={selectedSegmentId} selectedWaypointId={selectedWaypointId} selectedPlaceId={selectedPlaceId} routeFocusRequest={routeFocusRequest} resetViewWhenRoutesEmpty={resetViewWhenRoutesEmpty} initialCenter={center} initialZoom={zoom} />
         )}

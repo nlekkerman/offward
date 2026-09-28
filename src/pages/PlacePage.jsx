@@ -175,7 +175,7 @@ function PlacePage() {
         <section className="place-detail-map-section" aria-labelledby="place-map-title">
           <div className="route-map-heading"><p className="eyebrow">MAP</p><h2 id="place-map-title">Place location</h2></div>
           {hasCoordinates ? (
-            <MapView className="place-detail-map" places={[place]} selectedPlaceId={place.id} initialCenter={[place.latitude, place.longitude]} initialZoom={10} />
+            <MapView className="place-detail-map" places={[place]} selectedPlaceId={place.id} showPlaceLabel initialCenter={[place.latitude, place.longitude]} initialZoom={10} />
           ) : (
             <p className="route-map-message" role="status">Map location is unavailable for this Place.</p>
           )}
