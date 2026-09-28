@@ -16,11 +16,11 @@ function withAutoplay(url) {
  * (playbackUrl/thumbnailUrl/title) so it can be reused for Video management
  * preview, Story, Route, Place, Event, Reel, and future Live surfaces.
  */
-function VideoPlayer({ playbackUrl, thumbnailUrl, title, className = '' }) {
-  const [isActivated, setIsActivated] = useState(false)
-  const [isFrameLoading, setIsFrameLoading] = useState(false)
-
+function VideoPlayer({ playbackUrl, thumbnailUrl, title, className = '', autoPlay = false }) {
   const hasPlayback = Boolean(playbackUrl)
+  const [isActivated, setIsActivated] = useState(autoPlay && hasPlayback)
+  const [isFrameLoading, setIsFrameLoading] = useState(autoPlay && hasPlayback)
+
   const accessibleTitle = title?.trim() || 'Video'
 
   const handleActivate = useCallback(() => {
@@ -80,7 +80,7 @@ function VideoPlayer({ playbackUrl, thumbnailUrl, title, className = '' }) {
               src={withAutoplay(playbackUrl)}
               title={accessibleTitle}
               loading="lazy"
-              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
               allowFullScreen
               onLoad={handleFrameLoad}
             />
