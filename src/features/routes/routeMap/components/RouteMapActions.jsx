@@ -1,8 +1,11 @@
-function RouteMapActions({ calculating, saving, accepting, canCalculate, canAccept, hasUnsavedChanges, onSave, onCalculate, onAccept, showSave = false }) {
+function RouteMapActions({ calculating, saving, accepting, importingGpx, canCalculate, canAccept, hasUnsavedChanges, onSave, onCalculate, onAccept, onImportGpx, showSave = false }) {
   return (
     <div className="route-map-actions" aria-label="Route map actions">
       <button type="button" className="secondary-button" onClick={onCalculate} disabled={!canCalculate || calculating || saving || accepting}>
         {calculating ? 'Calculating...' : 'Calculate candidate'}
+      </button>
+      <button type="button" className="secondary-button" onClick={onImportGpx} disabled={calculating || saving || accepting || importingGpx}>
+        {importingGpx ? 'Importing GPX...' : 'Import GPX'}
       </button>
       <button type="button" className="secondary-button" onClick={onAccept} disabled={!canAccept || calculating || saving || accepting}>
         {accepting ? 'Accepting...' : 'Accept candidate'}

@@ -26,11 +26,12 @@ function geometryBounds(geometry) {
   return normalized.coordinates.map(([lng, lat]) => [lat, lng])
 }
 
-function getMapBounds({ waypoints, acceptedGeometry, candidateGeometry, segments }) {
+function getMapBounds({ waypoints, acceptedGeometry, candidateGeometry, previewGeometry, segments }) {
   const points = [
     ...waypoints.map(toLatLng).filter(Boolean),
     ...geometryBounds(acceptedGeometry),
     ...geometryBounds(candidateGeometry),
+    ...geometryBounds(previewGeometry),
     ...segments.flatMap((segment) => geometryBounds(segment.geometry)),
   ]
 
@@ -41,22 +42,22 @@ function getMapBounds({ waypoints, acceptedGeometry, candidateGeometry, segments
   return points
 }
 
-function AuthoringViewport({ waypoints, acceptedGeometry, candidateGeometry, segments }) {
+function AuthoringViewport({ waypoints, acceptedGeometry, candidateGeometry, previewGeometry, segments }) {
   const map = useMap()
   const signatureRef = useRef('')
 
   useEffect(() => {
-    const signature = JSON.stringify({ waypoints, acceptedGeometry, candidateGeometry, segments })
+    const signature = JSON.stringify({ waypoints, acceptedGeometry, candidateGeometry, previewGeometry, segments })
     if (signatureRef.current === signature) {
       return
     }
 
     signatureRef.current = signature
-    const bounds = getMapBounds({ waypoints, acceptedGeometry, candidateGeometry, segments })
+    const bounds = getMapBounds({ waypoints, acceptedGeometry, candidateGeometry, previewGeometry, segments })
     if (bounds) {
       map.fitBounds(bounds, { padding: [44, 44], maxZoom: 14, animate: false })
     }
-  }, [acceptedGeometry, candidateGeometry, map, segments, waypoints])
+  }, [acceptedGeometry, candidateGeometry, map, previewGeometry, segments, waypoints])
 
   return null
 }
@@ -127,6 +128,15 @@ const CANDIDATE_STYLE = {
   lineJoin: 'round',
 }
 
+const PREVIEW_STYLE = {
+  color: '#2d9db2',
+  weight: 5,
+  opacity: 0.95,
+  dashArray: '3 7',
+  lineCap: 'round',
+  lineJoin: 'round',
+}
+
 const SEGMENT_STYLE = {
   color: '#c4b9a2',
   weight: 5,
@@ -143,11 +153,12 @@ const SELECTED_SEGMENT_STYLE = {
   lineJoin: 'round',
 }
 
-function RouteAuthoringMapContent({ waypoints, places = [], acceptedGeometry, candidateGeometry, segments = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint }) {
+function RouteAuthoringMapContent({ waypoints, places = [], acceptedGeometry, candidateGeometry, previewGeometry, segments = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint }) {
   const validWaypoints = useMemo(() => waypoints.map((waypoint) => ({ waypoint, latLng: toLatLng(waypoint) })).filter((item) => item.latLng), [waypoints])
   const waypointLine = validWaypoints.map((item) => item.latLng)
   const accepted = normalizeGeometry(acceptedGeometry)
   const candidate = normalizeGeometry(candidateGeometry)
+  const preview = normalizeGeometry(previewGeometry)
   const manualPoints = Array.isArray(manualDrawing?.points) ? manualDrawing.points : []
   const manualDrawingPositions = manualDrawing
     ? [toLatLng(manualDrawing.startWaypoint), ...manualPoints.map((point) => [point.lat, point.lng]), toLatLng(manualDrawing.endWaypoint)].filter(Boolean)
@@ -161,6 +172,7 @@ function RouteAuthoringMapContent({ waypoints, places = [], acceptedGeometry, ca
         <WaypointMarkerZoomController />
         {accepted && <GeoJSON key={`accepted-${JSON.stringify(accepted.coordinates)}`} data={{ type: 'Feature', geometry: accepted, properties: {} }} style={ACCEPTED_STYLE} />}
         {candidate && <GeoJSON key={`candidate-${JSON.stringify(candidate.coordinates)}`} data={{ type: 'Feature', geometry: candidate, properties: {} }} style={CANDIDATE_STYLE} />}
+        {preview && <GeoJSON key={`gpx-preview-${JSON.stringify(preview.coordinates)}`} data={{ type: 'Feature', geometry: preview, properties: {} }} style={PREVIEW_STYLE} />}
         {segments.map((segment) => {
           const geometry = normalizeGeometry(segment.geometry)
           if (!geometry) return null
@@ -189,7 +201,7 @@ function RouteAuthoringMapContent({ waypoints, places = [], acceptedGeometry, ca
             />
           )
         })}
-        <AuthoringViewport waypoints={waypoints} acceptedGeometry={accepted} candidateGeometry={candidate} segments={segments} />
+        <AuthoringViewport waypoints={waypoints} acceptedGeometry={accepted} candidateGeometry={candidate} previewGeometry={preview} segments={segments} />
         <MapClickHandler addMode={addMode} drawingManually={drawingManually} onMapAddWaypoint={onMapAddWaypoint} onManualDrawPoint={onManualDrawPoint} />
       </MapContainer>
     </div>

@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tmcw/togeojson": "^7.1.2",
+    "@turf/simplify": "^7.4.0",
     "axios": "^1.13.2",
     "leaflet": "^1.9.4",
     "react": "^19.2.8",

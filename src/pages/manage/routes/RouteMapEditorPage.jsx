@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import RouteAuthoringMap from '../../../features/map/components/RouteAuthoringMap.jsx'
 import RouteCandidateSummary from '../../../features/routes/routeMap/components/RouteCandidateSummary.jsx'
@@ -7,6 +7,7 @@ import RouteMapActions from '../../../features/routes/routeMap/components/RouteM
 import SegmentList from '../../../features/routes/routeMap/components/SegmentList.jsx'
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
+import { GPX_SIMPLIFICATION_LEVELS, parseGpxTrack, simplifyGpxTrack } from '../../../features/routes/routeMap/gpxImport.js'
 import ContentVideoManager from '../../../features/video/ContentVideoManager.jsx'
 import { buildWaypointPayload, createEmptyWaypoint, deriveWaypointPairs, getPlaceCoordinates, normalizeGeometry, normalizeRouteMap, normalizeWaypoints, reorderWaypoints, replaceCandidateSectionGeometry, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
 import { managementApis } from '../../../services/management/index.js'
@@ -51,6 +52,10 @@ function RouteMapEditorPage() {
   const [waypoints, setWaypoints] = useState([])
   const [acceptedGeometry, setAcceptedGeometry] = useState(null)
   const [candidate, setCandidate] = useState(null)
+  const [gpxPreview, setGpxPreview] = useState(null)
+  const [gpxError, setGpxError] = useState('')
+  const [importingGpx, setImportingGpx] = useState(false)
+  const gpxFileInputRef = useRef(null)
   const [mapRevision, setMapRevision] = useState('')
   const [updatedAt, setUpdatedAt] = useState('')
   const [selectedWaypointId, setSelectedWaypointId] = useState('')
@@ -469,6 +474,61 @@ function RouteMapEditorPage() {
     }
   }
 
+  const importGpxFile = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    setImportingGpx(true)
+    setGpxError('')
+    try {
+      if (!file.name.toLowerCase().endsWith('.gpx')) {
+        throw new Error('Choose a .gpx file to import.')
+      }
+      const { geometry, rawPointCount } = parseGpxTrack(await file.text())
+      const level = 'normal'
+      const simplifiedGeometry = simplifyGpxTrack(geometry, level)
+      setGpxPreview({
+        fileName: file.name,
+        rawGeometry: geometry,
+        geometry: simplifiedGeometry,
+        rawPointCount,
+        simplifiedPointCount: simplifiedGeometry.coordinates.length,
+        level,
+      })
+    } catch (err) {
+      setGpxPreview(null)
+      setGpxError(err instanceof Error ? err.message : 'Unable to import this GPX file.')
+    } finally {
+      setImportingGpx(false)
+    }
+  }
+
+  const changeGpxSimplification = (level) => {
+    if (!gpxPreview) return
+    try {
+      const geometry = simplifyGpxTrack(gpxPreview.rawGeometry, level)
+      setGpxPreview((current) => current ? {
+        ...current,
+        geometry,
+        simplifiedPointCount: geometry.coordinates.length,
+        level,
+      } : current)
+      setGpxError('')
+    } catch (err) {
+      setGpxError(err instanceof Error ? err.message : 'Unable to simplify this GPX track.')
+    }
+  }
+
+  const useGpxAsCandidate = () => {
+    if (!gpxPreview) return
+    setCandidate({ geometry: gpxPreview.geometry })
+    setManualDrawing(null)
+    setGpxPreview(null)
+    setGpxError('')
+    setNotice('Imported GPX is the current candidate. Accept the candidate to persist this route geometry.')
+  }
+
   const acceptCandidate = async () => {
     if (!candidate?.geometry) {
       return
@@ -632,7 +692,29 @@ function RouteMapEditorPage() {
               onCancelManualDrawing={cancelManualCandidateDrawing}
             />
           )}
-          <RouteMapActions calculating={calculating} saving={saving} accepting={accepting} canCalculate={canCalculate} canAccept={canAccept} hasUnsavedChanges={hasUnsavedChanges} onSave={saveRouteMap} onCalculate={calculateCandidate} onAccept={acceptCandidate} showSave={false} />
+          <RouteMapActions calculating={calculating} saving={saving} accepting={accepting} importingGpx={importingGpx} canCalculate={canCalculate} canAccept={canAccept} hasUnsavedChanges={hasUnsavedChanges} onSave={saveRouteMap} onCalculate={calculateCandidate} onAccept={acceptCandidate} onImportGpx={() => gpxFileInputRef.current?.click()} showSave={false} />
+          <input ref={gpxFileInputRef} className="route-map-gpx-file-input" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" onChange={importGpxFile} aria-label="Choose GPX file" />
+          {gpxError && <div className="management-error" role="alert">{gpxError}</div>}
+          {gpxPreview && (
+            <div className="route-map-gpx-preview" aria-label="GPX track preview">
+              <div className="route-map-gpx-preview-heading">
+                <div>
+                  <p className="eyebrow">GPX preview</p>
+                  <strong>{gpxPreview.fileName}</strong>
+                  <p>{gpxPreview.rawPointCount} raw points · {gpxPreview.simplifiedPointCount} simplified points</p>
+                </div>
+                <div className="route-map-gpx-levels" role="group" aria-label="Track detail">
+                  {GPX_SIMPLIFICATION_LEVELS.map((level) => (
+                    <button key={level.id} type="button" className={gpxPreview.level === level.id ? 'is-active' : ''} aria-pressed={gpxPreview.level === level.id} onClick={() => changeGpxSimplification(level.id)}>{level.label}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="route-map-gpx-preview-actions">
+                <button type="button" className="primary-button" onClick={useGpxAsCandidate}>Use as candidate</button>
+                <button type="button" className="secondary-button" onClick={() => { setGpxPreview(null); setGpxError('') }}>Cancel</button>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -642,6 +724,7 @@ function RouteMapEditorPage() {
           places={places}
           acceptedGeometry={acceptedGeometry}
           candidateGeometry={candidate?.geometry}
+          previewGeometry={gpxPreview?.geometry}
           selectedWaypointId={selectedWaypointId}
           addMode={addMode}
           onWaypointSelect={selectWaypoint}

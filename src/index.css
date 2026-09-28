@@ -1254,6 +1254,56 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   gap: 0.75rem;
 }
 
+.route-map-gpx-file-input {
+  display: none;
+}
+
+.route-map-gpx-preview {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.9rem;
+  border: 1px solid #326f78;
+  background: #101819;
+}
+
+.route-map-gpx-preview-heading,
+.route-map-gpx-preview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.route-map-gpx-preview-heading p {
+  margin: 0.3rem 0 0;
+  color: #aebcba;
+}
+
+.route-map-gpx-levels {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.route-map-gpx-levels button {
+  border: 1px solid #3d5555;
+  padding: 0.45rem 0.6rem;
+  background: transparent;
+  color: #c7d1cf;
+  cursor: pointer;
+}
+
+.route-map-gpx-levels button.is-active {
+  border-color: #58a2a7;
+  background: #1c383b;
+  color: #f0fbfa;
+}
+
+.route-map-gpx-preview-actions {
+  justify-content: flex-start;
+}
+
 .route-authoring-map {
   min-height: 420px;
 }
