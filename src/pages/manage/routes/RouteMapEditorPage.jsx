@@ -55,6 +55,7 @@ function RouteMapEditorPage() {
   const [gpxPreview, setGpxPreview] = useState(null)
   const [gpxError, setGpxError] = useState('')
   const [importingGpx, setImportingGpx] = useState(false)
+  const [creatingGpxWaypoints, setCreatingGpxWaypoints] = useState(false)
   const gpxFileInputRef = useRef(null)
   const [mapRevision, setMapRevision] = useState('')
   const [updatedAt, setUpdatedAt] = useState('')
@@ -522,11 +523,55 @@ function RouteMapEditorPage() {
 
   const useGpxAsCandidate = () => {
     if (!gpxPreview) return
-    setCandidate({ geometry: gpxPreview.geometry })
+    setCandidate({ geometry: gpxPreview.geometry, source: 'gpx' })
     setManualDrawing(null)
     setGpxPreview(null)
     setGpxError('')
     setNotice('Imported GPX is the current candidate. Accept the candidate to persist this route geometry.')
+  }
+
+  const createGpxEndpoints = async () => {
+    const geometry = candidate?.geometry
+    const coordinates = geometry?.type === 'LineString' ? geometry.coordinates : []
+    if (candidate?.source !== 'gpx' || waypoints.length > 0 || coordinates.length < 2) return
+
+    const firstCoordinate = coordinates[0]
+    const lastCoordinate = coordinates[coordinates.length - 1]
+    const nextWaypoints = normalizeWaypoints([
+      {
+        ...createEmptyWaypoint(1, {
+          name: 'Start',
+          label: 'Start',
+          latitude: firstCoordinate[1],
+          longitude: firstCoordinate[0],
+        }),
+        type: 'start',
+      },
+      {
+        ...createEmptyWaypoint(2, {
+          name: 'Finish',
+          label: 'Finish',
+          latitude: lastCoordinate[1],
+          longitude: lastCoordinate[0],
+        }),
+        type: 'finish',
+      },
+    ])
+
+    try {
+      setCreatingGpxWaypoints(true)
+      setError('')
+      setNotice('')
+      const routeMapData = await routeMapApi.updateWaypoints(routeId, nextWaypoints)
+      applyRouteMap(routeMapData)
+      setCandidate({ geometry, source: 'gpx' })
+      setSelectedWaypointId(routeMapData.waypoints?.[0]?.id || '')
+      setNotice('Start and Finish waypoints created. Accept the candidate to persist the route geometry.')
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to create Start and Finish waypoints from this GPX.'))
+    } finally {
+      setCreatingGpxWaypoints(false)
+    }
   }
 
   const acceptCandidate = async () => {
@@ -586,6 +631,11 @@ function RouteMapEditorPage() {
       <div className="management-page-header route-map-editor-header">
         <div>
           <p className="eyebrow">Management / Routes</p>
+          {candidate?.source === 'gpx' && waypoints.length === 0 && (
+            <button type="button" className="secondary-button" onClick={createGpxEndpoints} disabled={creatingGpxWaypoints || accepting || calculating}>
+              {creatingGpxWaypoints ? 'Creating start & finish...' : 'Create start & finish from GPX'}
+            </button>
+          )}
           <h1>{route?.title || 'Route map'}</h1>
         </div>
         <div className="route-map-header-actions">
