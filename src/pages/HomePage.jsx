@@ -24,7 +24,10 @@ function HomeHero() {
       />
       <div className="home-hero-content">
         <p className="eyebrow">OFFWARD</p>
-        <h1>Routes, places and stories from the road.</h1>
+        <div className="home-hero-heading-row">
+          <h1>Not lost. Just Offward.</h1>
+          <img className="home-hero-logo" src="/favicon.svg" alt="" aria-hidden="true" />
+        </div>
         <div className="home-hero-actions">
           <Link to="/explore?view=routes" className="primary-button">Explore routes</Link>
           <Link to="/explore?view=places" className="secondary-button">Explore places</Link>
