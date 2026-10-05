@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { getOffwardAccess } from '../../services/authApi.js'
+import desktopLogo from '../../assets/images/home/logo_offward.webp'
+import mobileLogo from '../../assets/images/home/logo_arrow_only.webp'
 
 const NAV_LINKS = [
   { section: 'stories', label: 'Stories', to: '/stories' },
@@ -48,9 +50,14 @@ function AppShell() {
   }, [])
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${pathname === '/' ? ' app-shell-home' : ''}`}>
       <header className="app-header">
-        <Link to="/" className="brand">OFFWARD</Link>
+        <Link to="/" className="brand" aria-label="Offward home">
+          <picture>
+            <source media="(max-width: 600px)" srcSet={mobileLogo} />
+            <img className="brand-logo" src={desktopLogo} alt="Offward" />
+          </picture>
+        </Link>
         <nav aria-label="Primary navigation">
           {NAV_LINKS.map((link) => (
             <Link

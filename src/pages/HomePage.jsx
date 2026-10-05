@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import heroImage from '../assets/images/home/off-hero.webp'
-import arrowLogo from '../assets/images/home/logo_offward.webp'
 import LatestContentRail from '../features/home/LatestContentRail.jsx'
 
 function HomePage() {
@@ -14,7 +13,7 @@ function HomePage() {
 
 function HomeHero() {
   return (
-    <section className="home-hero">
+    <section className="home-hero" aria-labelledby="home-hero-title">
       <img
         className="home-hero-image"
         src={heroImage}
@@ -25,10 +24,7 @@ function HomeHero() {
       />
       <div className="home-hero-content">
         <p className="eyebrow">OFFWARD</p>
-        <div className="home-hero-heading-row">
-          <h1>Not lost. Just Offward.</h1>
-          <img className="home-hero-logo" src={arrowLogo} alt="" aria-hidden="true" />
-        </div>
+        <h1 id="home-hero-title"><span>Not lost.</span> <span>Just Offward.</span></h1>
         <div className="home-hero-actions">
           <Link to="/explore?view=routes" className="primary-button">Explore routes</Link>
           <Link to="/explore?view=places" className="secondary-button">Explore places</Link>
