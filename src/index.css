@@ -3569,7 +3569,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
     position: absolute; inset: 100% 0 auto; display: flex; flex-direction: column;
     flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; gap: 0;
     padding: 0.75rem 1.5rem 1.25rem; max-height: calc(100dvh - 81px);
-    overflow-y: auto; overscroll-behavior: contain; background: #202220;
+    overflow-y: auto; overscroll-behavior: contain; background: rgb(32 34 32 / 50%);
     border-bottom: 1px solid #3c3e3b; font-size: 1.2rem; line-height: 1.4;
     opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-8px);
     transition: opacity 240ms ease, transform 240ms ease, visibility 240ms;
