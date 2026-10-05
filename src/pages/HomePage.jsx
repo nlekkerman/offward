@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import heroImage from '../assets/images/home/off-hero.webp'
-import arrowLogo from '../assets/images/home/arrow-logo.webp'
+import arrowLogo from '../assets/images/home/logo_offward.webp'
 import LatestContentRail from '../features/home/LatestContentRail.jsx'
 
 function HomePage() {
