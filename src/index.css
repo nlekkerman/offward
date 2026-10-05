@@ -286,9 +286,9 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .home-hero-logo {
   display: block;
-  flex: 0 0 48px;
-  width: 48px;
-  height: 46px;
+  flex: 0 0 96px;
+  width: 96px;
+  height: 92px;
   object-fit: contain;
 }
 
@@ -3447,7 +3447,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
     padding: 5rem 1.25rem 2.5rem;
   }
   .home-hero-heading-row { gap: 0.75rem; }
-  .home-hero-logo { flex-basis: 40px; width: 40px; height: 39px; }
+  .home-hero-logo { flex-basis: 80px; width: 80px; height: 78px; }
   .home-hero::after { background: linear-gradient(180deg, rgba(10, 12, 9, 0.56) 0%, rgba(10, 12, 9, 0.78) 100%); }
   .home-hero-image { object-position: 58% center; }
   .home-hero-actions { flex-direction: column; align-items: stretch; }
