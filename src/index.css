@@ -54,7 +54,7 @@ button, input, select, textarea { font: inherit; }
   border-bottom-color: rgba(243, 239, 230, 0.2);
 }
 
-.app-header nav { justify-content: flex-end; gap: 0.5rem 1.5rem; letter-spacing: 0; }
+.app-header nav { justify-content: flex-end; gap: 0.5rem 1.5rem; font-family: 'Trebuchet MS', sans-serif; letter-spacing: 0; }
 .app-header nav a {
   position: relative;
   padding: 0.75rem 0;
@@ -392,6 +392,9 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .brand-logo { width: 150px; height: 60px; }
   .home-hero { padding-inline: 1.5rem; }
   .home-hero h1 { font-size: 4.75rem; }
+}
+@media (max-width: 380px) {
+  .app-shell-home .home-hero h1 { font-size: 2.75rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .home-hero-image, .home-hero .eyebrow, .home-hero h1,
