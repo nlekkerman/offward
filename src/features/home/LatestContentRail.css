@@ -158,6 +158,10 @@ a.latest-rail-card {
 }
 
 @media (max-width: 640px) {
+  .latest-content-rail-track {
+    flex-direction: column;
+  }
+
   .latest-content-rail {
     padding: 2rem 1.25rem 3rem;
   }
