@@ -5,6 +5,7 @@ import desktopLogo from '../../assets/images/home/logo_offward.webp'
 import mobileLogo from '../../assets/images/home/logo_arrow_only.webp'
 
 const NAV_LINKS = [
+  { section: 'home', label: 'Home', to: '/' },
   { section: 'stories', label: 'Stories', to: '/stories' },
   { section: 'places', label: 'Places', to: '/explore?view=places' },
   { section: 'routes', label: 'Routes', to: '/explore?view=routes' },
@@ -14,6 +15,7 @@ const NAV_LINKS = [
 ]
 
 function getActiveSection(pathname, search) {
+  if (pathname === '/') return 'home'
   if (pathname.startsWith('/stories')) return 'stories'
   if (pathname.startsWith('/places')) return 'places'
   if (pathname.startsWith('/routes')) return 'routes'
