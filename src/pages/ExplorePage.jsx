@@ -1,295 +1,64 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { getCountries } from '../services/countriesApi.js'
-import { getPublicPlaces } from '../services/placesApi.js'
-import { getPublicRoutes } from '../services/routesApi.js'
-import MapView from '../features/map/components/MapView.jsx'
-import { isRenderablePlace } from '../features/map/mapGeometry.js'
-import CountryFlag from '../shared/components/CountryFlag.jsx'
-import { findCountry } from '../shared/utils/country.js'
+import { lazy, Suspense, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import ExploreCategoryNav from './ExploreCategoryNav.jsx'
+import ExploreFilters from '../features/explore/ExploreFilters.jsx'
+import ExploreResults from '../features/explore/ExploreResults.jsx'
+import useExploreData from '../features/explore/useExploreData.js'
+import { EXPLORE_BATCH_SIZE } from '../features/explore/exploreUtils.js'
+import '../features/explore/explore.css'
+
+const ExploreMapBrowser = lazy(() => import('../features/explore/ExploreMapBrowser.jsx'))
+
+function ExploreHeader({ mapMode, onMapChange }) {
+  return (
+    <header className="explore-discovery-heading">
+      <div><p className="explore-discovery-eyebrow">Offward / Discovery</p><h1>Explore</h1></div>
+      <button type="button" className="explore-discovery-button" aria-pressed={mapMode} onClick={() => onMapChange(!mapMode)}>{mapMode ? 'Back to discovery' : 'View on map'}</button>
+    </header>
+  )
+}
+
+function ExploreLanding({ title, children }) {
+  return <section className="explore-discovery-landing" aria-labelledby="explore-results-title"><h2 id="explore-results-title">{title}</h2>{children}</section>
+}
 
 function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const rawView = searchParams.get('view')
-  const activeView = rawView === 'places' ? 'places' : 'routes'
+  const mode = searchParams.get('view') === 'places' ? 'places' : 'routes'
+  const [mapMode, setMapMode] = useState(false)
+  const [filters, setFilters] = useState({ country: '', activity: '' })
+  const [selection, setSelection] = useState(null)
+  const [visibleCount, setVisibleCount] = useState(EXPLORE_BATCH_SIZE)
+  const activity = mode === 'routes' ? filters.activity : ''
+  const { countries, countriesStatus, items, status, retry } = useExploreData({ mode, country: filters.country, activity, mapMode })
+  const visibleItems = items.slice(0, visibleCount)
+  const selectedId = status === 'success' && visibleItems.some((item) => item.id === selection) ? selection : null
+  const filtered = Boolean(filters.country || activity)
+  const title = filtered || mapMode ? `${mode === 'routes' ? 'Routes' : 'Places'}${filters.country ? ` in ${countries.find((country) => country.slug === filters.country)?.name || filters.country}` : ''}` : mode === 'routes' ? 'Latest Routes' : 'Places to Explore'
 
-  const [countries, setCountries] = useState([])
-  const [countriesStatus, setCountriesStatus] = useState('loading')
-  const [routes, setRoutes] = useState([])
-  const [routesStatus, setRoutesStatus] = useState('loading')
-  const [places, setPlaces] = useState([])
-  const [placesStatus, setPlacesStatus] = useState('loading')
-  const [selectedCountry, setSelectedCountry] = useState('')
-  const [selectedActivity, setSelectedActivity] = useState('')
-  const [selectedRouteId, setSelectedRouteId] = useState(null)
-
-  useEffect(() => {
-    let isCurrent = true
-
-    async function loadCountries() {
-      try {
-        const data = await getCountries()
-        if (isCurrent) {
-          setCountries(data)
-          setCountriesStatus('success')
-        }
-      } catch {
-        if (isCurrent) {
-          setCountriesStatus('error')
-        }
-      }
-    }
-
-    loadCountries()
-
-    return () => {
-      isCurrent = false
-    }
-  }, [])
-
-  useEffect(() => {
-    let isCurrent = true
-
-    async function loadRoutes() {
-      if (activeView !== 'routes') return
-      try {
-        const data = await getPublicRoutes({
-          country: selectedCountry || undefined,
-          activityType: selectedActivity || undefined,
-          status: 'active',
-          includeGeometry: true,
-        })
-        if (isCurrent) {
-          setRoutes(data)
-          setRoutesStatus('success')
-        }
-      } catch {
-        if (isCurrent) {
-          setRoutes([])
-          setRoutesStatus('error')
-        }
-      }
-    }
-
-    loadRoutes()
-    return () => {
-      isCurrent = false
-    }
-  }, [activeView, selectedActivity, selectedCountry])
-
-  useEffect(() => {
-    let isCurrent = true
-
-    async function loadPlaces() {
-      try {
-        const data = await getPublicPlaces({ country: selectedCountry || undefined })
-        if (isCurrent) {
-          setPlaces(data)
-          setPlacesStatus('success')
-        }
-      } catch {
-        if (isCurrent) {
-          setPlaces([])
-          setPlacesStatus('error')
-        }
-      }
-    }
-
-    loadPlaces()
-    return () => {
-      isCurrent = false
-    }
-  }, [selectedCountry])
-
-  const [prevActiveView, setPrevActiveView] = useState(activeView)
-  if (prevActiveView !== activeView) {
-    setPrevActiveView(activeView)
-    setSelectedRouteId(null)
+  function resetResults() {
+    setSelection(null)
+    setVisibleCount(EXPLORE_BATCH_SIZE)
   }
 
-  const countryBySlug = useMemo(() => new Map(countries.map((country) => [country.slug, country])), [countries])
-  const availableActivities = useMemo(() => [...new Set(routes.map((route) => route.activity_type).filter(Boolean))].sort(), [routes])
-  const routeSelectionEnabled = activeView === 'routes' && Boolean(selectedCountry)
-  const activeSelectedRouteId = routeSelectionEnabled && routes.some((route) => route.id === selectedRouteId) ? selectedRouteId : null
-  const selectedRoute = activeView === 'routes' ? routes.find((route) => route.id === activeSelectedRouteId) : null
-  const renderableRouteCount = routes.filter((route) => route.is_map_renderable === true).length
-  const renderablePlaceCount = places.filter(isRenderablePlace).length
-  const visibleCountryOptions = countries.filter((country) => country.status === 'active' || country.status === 'upcoming')
-  const visibleRoutes = selectedRoute ? [selectedRoute] : []
-  const visiblePlaces = activeView === 'places' ? places : []
-
-  const activeCount = activeView === 'routes' ? renderableRouteCount : renderablePlaceCount
-  const activeCountLabel = activeView === 'routes' ? (renderableRouteCount === 1 ? 'route' : 'routes') : (renderablePlaceCount === 1 ? 'place' : 'places')
-
-  const hasActiveFilterOrSelection = activeView === 'routes'
-    ? Boolean(selectedCountry || selectedActivity || activeSelectedRouteId)
-    : Boolean(selectedCountry)
-
-  const handleCategoryChange = (newCategory) => {
-    if (newCategory === activeView) return
-    setSelectedRouteId(null)
-    setSearchParams({ view: newCategory })
-  }
+  const results = <ExploreResults items={visibleItems} total={items.length} mode={mode} countries={countries} status={status} onRetry={retry} onMore={() => setVisibleCount((count) => count + EXPLORE_BATCH_SIZE)} selectedId={selectedId} onSelect={mapMode && filters.country ? setSelection : undefined} />
 
   return (
-    <section className="explore-page">
-      <div className="explore-heading">
-        <div>
-          <p className="eyebrow">{activeView === 'routes' ? 'PUBLIC ROUTES' : 'PUBLIC PLACES'}</p>
-          <h1>Explore</h1>
-        </div>
-        <p className="explore-count" aria-live="polite">
-          {activeCount} mapped {activeCountLabel}
-        </p>
-      </div>
-
-      <ExploreCategoryNav activeView={activeView} onViewChange={handleCategoryChange} />
-
-      <div className="explore-toolbar" aria-label="Explore filters">
-        <label className="explore-field">
-          <span>Country</span>
-          <select
-            value={selectedCountry}
-            onChange={(event) => {
-              setRoutesStatus('loading')
-              setPlacesStatus('loading')
-              setSelectedRouteId(null)
-              setSelectedCountry(event.target.value)
-            }}
-          >
-            <option value="">All countries</option>
-            {visibleCountryOptions.map((country) => (
-              <option key={country.id} value={country.slug}>
-                {country.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {activeView === 'routes' && (
-          <label className="explore-field">
-            <span>Activity</span>
-            <select
-              value={selectedActivity}
-              onChange={(event) => {
-                setRoutesStatus('loading')
-                setSelectedRouteId(null)
-                setSelectedActivity(event.target.value)
-              }}
-            >
-              <option value="">All activities</option>
-              {availableActivities.map((activity) => (
-                <option key={activity} value={activity}>
-                  {activity}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {hasActiveFilterOrSelection && (
-          <button
-            type="button"
-            className="explore-clear"
-            onClick={() => {
-              setRoutesStatus('loading')
-              setPlacesStatus('loading')
-              setSelectedCountry('')
-              setSelectedActivity('')
-              setSelectedRouteId(null)
-            }}
-          >
-            Clear selection and filters
-          </button>
-        )}
-      </div>
-
-      {activeView === 'routes' && (
-        <div className="explore-route-results">
-          {routesStatus === 'loading' && <p className="explore-status" role="status">Loading routes...</p>}
-          {routesStatus === 'error' && <p className="explore-status" role="status">Unable to load routes. The map remains available.</p>}
-          {routesStatus === 'success' && selectedCountry && routes.length === 0 && <p className="explore-status" role="status">No routes match these filters.</p>}
-          {selectedCountry && routes.length > 0 && (
-            <div className="explore-route-list" aria-label="Routes">
-              {routes.map((route) => {
-                const country = countryBySlug.get(route.country) || findCountry(countries, route.country)
-                return (
-                  <Link
-                    key={route.id}
-                    className={route.id === activeSelectedRouteId ? 'explore-route-item is-selected' : 'explore-route-item'}
-                    to={`/routes/${route.slug}`}
-                    aria-label={`View route details: ${route.title}`}
-                  >
-                    <strong>{route.title}</strong>
-                    <span className="country-identity-inline">
-                      <CountryFlag code={country?.code} decorative />
-                      <span>{country?.name || route.country} · {route.activity_type}</span>
-                    </span>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="explore-map-wrap">
-        <MapView
-          className="explore-map"
-          routes={visibleRoutes}
-          places={visiblePlaces}
-          selectedRouteId={activeSelectedRouteId}
-          selectedPlaceId={null}
-          onRouteSelect={routeSelectionEnabled ? (routeId) => {
-            setSelectedRouteId(routeId)
-          } : undefined}
-          onPlaceSelect={(placeId) => {
-            const place = places.find((item) => item.id === placeId)
-            if (place?.slug) navigate(`/places/${encodeURIComponent(place.slug)}`)
-          }}
-          initialCenter={[50, 10]}
-          initialZoom={4}
-          resetViewWhenRoutesEmpty
-        />
-        {activeView === 'routes' && routesStatus === 'success' && routes.length > 0 && renderableRouteCount === 0 && (
-          <p className="explore-map-notice" role="status">
-            Published routes are not currently map-renderable.
-          </p>
-        )}
-      </div>
-
-      <div className="explore-results">
-        {countriesStatus === 'loading' && <p className="explore-status" role="status">Loading countries...</p>}
-        {countriesStatus === 'error' && <p className="explore-status" role="status">Unable to load country filters.</p>}
-        {activeView === 'places' && (
-          <>
-            {placesStatus === 'loading' && <p className="explore-status" role="status">Loading places...</p>}
-            {placesStatus === 'error' && <p className="explore-status" role="status">Unable to load places. The map remains available.</p>}
-            {placesStatus === 'success' && places.length === 0 && <p className="explore-status" role="status">No places match this country.</p>}
-            {places.length > 0 && (
-              <div className="explore-place-list" aria-label="Places">
-                {places.map((place) => {
-                  const country = countryBySlug.get(place.country) || findCountry(countries, place.country)
-                  return (
-                    <Link
-                      key={place.id}
-                      className="explore-route-item"
-                      to={`/places/${encodeURIComponent(place.slug)}`}
-                    >
-                      <strong>{place.name}</strong>
-                      <span className="country-identity-inline">
-                        <CountryFlag code={country?.code} decorative />
-                        <span>{country?.name || place.country}{!isRenderablePlace(place) && ' · Not mapped'}</span>
-                      </span>
-                      {place.summary && <span>{place.summary}</span>}
-                    </Link>
-                  )
-                })}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+    <section className="explore-page explore-discovery">
+      <ExploreHeader mapMode={mapMode} onMapChange={(value) => { resetResults(); setMapMode(value) }} />
+      <ExploreCategoryNav activeView={mode} onViewChange={(view) => {
+        if (view === mode) return
+        resetResults()
+        setSearchParams((previous) => { const next = new URLSearchParams(previous); next.set('view', view); return next })
+      }} />
+      <ExploreFilters mode={mode} countries={countries} countriesStatus={countriesStatus} country={filters.country} activity={activity} onChange={(changes) => { resetResults(); setFilters((previous) => ({ ...previous, ...changes })) }} onRetry={retry} />
+      {mapMode ? (
+        <Suspense fallback={<p className="explore-discovery-status" role="status">Loading map browser...</p>}>
+          <ExploreMapBrowser mode={mode} items={visibleItems} country={filters.country} status={status} selectedId={selectedId} onSelect={setSelection} onReset={() => setSelection(null)}>
+            <ExploreLanding title={title}>{results}</ExploreLanding>
+          </ExploreMapBrowser>
+        </Suspense>
+      ) : <ExploreLanding title={title}>{results}</ExploreLanding>}
     </section>
   )
 }

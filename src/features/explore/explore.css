@@ -1,0 +1,284 @@
+.explore-discovery {
+  --explore-red: #d9232e;
+  --explore-text: #f3efe6;
+  --explore-muted: #b7bcb2;
+  --explore-border: #354039;
+  color: var(--explore-text);
+}
+
+.explore-discovery-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.explore-discovery-eyebrow {
+  margin: 0 0 0.75rem;
+  color: var(--explore-muted);
+  font: 600 0.75rem/1.4 'Trebuchet MS', sans-serif;
+  text-transform: uppercase;
+}
+
+.explore-discovery-eyebrow::before {
+  display: inline-block;
+  width: 2rem;
+  height: 2px;
+  margin-right: 0.75rem;
+  background: var(--explore-red);
+  vertical-align: middle;
+  content: '';
+}
+
+.explore-discovery-heading h1 {
+  margin: 0;
+  font: 400 3.5rem/1.05 Georgia, serif;
+}
+
+.explore-discovery-button {
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--explore-red);
+  border-radius: 4px;
+  background: #151c19;
+  color: var(--explore-text);
+  font: 600 0.85rem/1.3 'Trebuchet MS', sans-serif;
+  cursor: pointer;
+}
+
+.explore-discovery .explore-category-nav {
+  gap: 2rem;
+  margin: 0;
+  border-bottom: 1px solid var(--explore-border);
+}
+
+.explore-discovery .explore-category-button {
+  min-height: 48px;
+  padding: 0.75rem 0;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--explore-muted);
+  font: 600 1rem/1.3 'Trebuchet MS', sans-serif;
+}
+
+.explore-discovery .explore-category-button.is-active {
+  border-bottom-color: var(--explore-red);
+  background: transparent;
+  color: var(--explore-text);
+}
+
+.explore-discovery-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+  padding: 1.25rem 0 1.75rem;
+}
+
+.explore-discovery-field {
+  display: grid;
+  gap: 0.5rem;
+  width: 220px;
+  max-width: 100%;
+  font: 600 0.75rem/1.3 'Trebuchet MS', sans-serif;
+  color: var(--explore-muted);
+}
+
+.explore-discovery-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.65rem;
+  border: 1px solid var(--explore-border);
+  border-radius: 4px;
+  background: #151c19;
+  color: var(--explore-text);
+  font: 400 0.9rem/1.3 'Trebuchet MS', sans-serif;
+}
+
+.explore-discovery-field select.is-filtered { border-color: var(--explore-red); }
+
+.explore-text-action {
+  min-height: 44px;
+  padding: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: #ff6b72;
+  font: 600 0.85rem/1.4 'Trebuchet MS', sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.explore-discovery-landing h2 {
+  margin: 0 0 1.25rem;
+  font: 400 1.75rem/1.25 Georgia, serif;
+  overflow-wrap: anywhere;
+}
+
+.explore-discovery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 1.25rem;
+}
+
+.explore-discovery-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--explore-border);
+  border-top: 2px solid var(--explore-red);
+  border-radius: 4px;
+  background: linear-gradient(130deg, #1c2620, #151c19);
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.explore-discovery-card:hover,
+.explore-discovery-card:focus-within,
+.explore-discovery-card.is-selected {
+  border-color: var(--explore-red);
+  transform: translateY(-2px);
+}
+
+.explore-discovery-card-link {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+}
+
+.explore-discovery-media { aspect-ratio: 16 / 10; overflow: hidden; }
+.explore-discovery-media img { width: 100%; height: 100%; object-fit: cover; }
+
+.explore-discovery-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.4rem;
+  min-height: 250px;
+}
+
+.explore-discovery-card-kind {
+  margin: 0;
+  color: #ff6b72;
+  font: 600 0.7rem/1.3 'Trebuchet MS', sans-serif;
+  text-transform: uppercase;
+}
+
+.explore-discovery-card h3 {
+  margin: 0;
+  font: 400 1.6rem/1.2 Georgia, serif;
+  overflow-wrap: anywhere;
+}
+
+.explore-discovery-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  color: var(--explore-muted);
+  font: 400 0.8rem/1.4 'Trebuchet MS', sans-serif;
+}
+
+.explore-discovery-summary {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  color: var(--explore-muted);
+  font: 400 0.9rem/1.55 'Trebuchet MS', sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.explore-discovery-card-detail {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  font: 600 0.8rem/1.4 'Trebuchet MS', sans-serif;
+}
+
+.explore-discovery-card-detail > span { color: #ff6b72; }
+
+.explore-card-map-action {
+  min-height: 44px;
+  border: 0;
+  border-top: 1px solid var(--explore-border);
+  padding: 0.65rem 1.4rem;
+  background: transparent;
+  color: #ff6b72;
+  font: 600 0.8rem/1.4 'Trebuchet MS', sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.explore-discovery-status,
+.explore-discovery-result-count {
+  margin: 1rem 0;
+  color: var(--explore-muted);
+  font: 400 0.85rem/1.5 'Trebuchet MS', sans-serif;
+}
+
+.explore-load-more { display: block; margin: 1.5rem auto 0; }
+
+.explore-discovery-browser {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.85fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: 1.75rem;
+}
+
+.explore-browser-results { min-width: 0; }
+.explore-browser-results .explore-discovery-grid { grid-template-columns: 1fr; }
+.explore-browser-results .explore-discovery-card-body { min-height: 180px; }
+.explore-browser-results .explore-discovery-media { aspect-ratio: 2 / 1; }
+.explore-browser-map { position: sticky; top: 6rem; min-width: 0; }
+
+.explore-discovery-map,
+.explore-map-empty {
+  width: 100%;
+  height: min(72svh, 760px);
+  min-height: 400px;
+  border: 1px solid var(--explore-border);
+  border-radius: 4px;
+}
+
+.explore-map-empty {
+  display: grid;
+  place-items: center;
+  background: repeating-linear-gradient(45deg, transparent, transparent 28px, #ffffff03 28px, #ffffff03 29px), #151c19;
+}
+
+.explore-map-empty h3 { padding: 1rem; color: var(--explore-muted); font: 400 1.5rem/1.3 Georgia, serif; }
+.explore-map-reset { display: block; margin: 0.75rem auto 0; }
+.explore-discovery .public-place-marker > span { background: var(--explore-red); border-color: #fff6ef; }
+.explore-discovery .public-place-marker.is-selected > span { background: #ff3838; }
+
+.explore-discovery button:hover { color: #fff; }
+.explore-discovery .explore-discovery-button:hover { background: #252422; }
+.explore-discovery :is(button, select, a):focus-visible { outline: 2px solid #ff3838; outline-offset: 3px; }
+.explore-discovery .explore-discovery-card-link:focus-visible { outline-offset: -4px; }
+
+@media (max-width: 760px) {
+  .explore-discovery-heading { align-items: start; }
+  .explore-discovery-heading h1 { font-size: 2.75rem; }
+  .explore-discovery-heading .explore-discovery-button { max-width: 145px; }
+  .explore-discovery-field { flex: 1; min-width: 135px; }
+  .explore-discovery-browser { display: flex; flex-direction: column; }
+  .explore-browser-map { position: static; order: -1; width: 100%; }
+  .explore-discovery-map, .explore-map-empty { height: 45svh; min-height: 300px; }
+  .explore-browser-results { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explore-discovery-card { transition: none; }
+  .explore-discovery-card:hover, .explore-discovery-card:focus-within { transform: none; }
+}
