@@ -1,7 +1,11 @@
 import { apiClient } from './apiClient.js'
+import { normalizePaginatedResponse } from './pagination.js'
 
-export async function getPublicPlaces({ country } = {}) {
-  const params = {}
+export async function getPublicPlaces({ country, page = 1, pageSize = 12 } = {}) {
+  const params = {
+    page,
+    page_size: pageSize,
+  }
 
   if (country) {
     params.country = country
@@ -9,11 +13,7 @@ export async function getPublicPlaces({ country } = {}) {
 
   const { data } = await apiClient.get('/api/offward/places/', { params })
 
-  if (!Array.isArray(data)) {
-    throw new Error('Public places response must be a bare array.')
-  }
-
-  return data
+  return normalizePaginatedResponse(data, 'Public places')
 }
 
 export async function getPublicPlaceBySlug(slug) {

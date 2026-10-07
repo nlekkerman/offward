@@ -13,7 +13,7 @@ import NotFoundPage from './NotFoundPage.jsx'
 function WaypointDetailPage() {
   const { routeSlug, id } = useParams()
   const [routeResult, setRouteResult] = useState({ slug: null, status: 'loading', route: null })
-  const [placeContext, setPlaceContext] = useState(null)
+  const [placeLookup, setPlaceLookup] = useState({ id: null, status: 'idle', place: null, hasMore: false })
   const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
   const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
   const [galleryLoadingId, setGalleryLoadingId] = useState(null)
@@ -52,21 +52,21 @@ function WaypointDetailPage() {
 
   useEffect(() => {
     if (!waypoint?.place_id) {
-      setPlaceContext(null)
       return undefined
     }
 
     let isCurrent = true
+    const placeId = String(waypoint.place_id)
 
     async function loadPlaceContext() {
       try {
-        const places = await getPublicPlaces()
+        const page = await getPublicPlaces({ page: 1, pageSize: 24 })
         if (!isCurrent) return
-        const match = places.find((place) => String(place.id) === String(waypoint.place_id))
-        setPlaceContext(match || null)
+        const match = page.results.find((place) => String(place.id) === placeId)
+        setPlaceLookup({ id: placeId, status: 'success', place: match || null, hasMore: page.next !== null })
       } catch {
         if (isCurrent) {
-          setPlaceContext(null)
+          setPlaceLookup({ id: placeId, status: 'error', place: null, hasMore: false })
         }
       }
     }
@@ -76,6 +76,12 @@ function WaypointDetailPage() {
       isCurrent = false
     }
   }, [waypoint])
+
+  const placeId = waypoint?.place_id ? String(waypoint.place_id) : null
+  const currentPlaceLookup = placeId
+    ? placeLookup.id === placeId ? placeLookup : { status: 'loading', place: null, hasMore: false }
+    : { status: 'idle', place: null, hasMore: false }
+  const placeContext = currentPlaceLookup.place
 
   const mediaIds = useMemo(() => normalizeMediaIds(waypoint?.media_ids ?? waypoint?.video_ids), [waypoint])
 
@@ -196,7 +202,13 @@ function WaypointDetailPage() {
       {waypoint.place_id && !placeContext && (
         <section className="route-detail-place-context" aria-label="Linked place status">
           <p className="eyebrow">Place</p>
-          <p className="route-detail-place-unavailable">This waypoint is linked to a Place reference, but the public Place detail could not be resolved.</p>
+          <p className="route-detail-place-unavailable" role={currentPlaceLookup.status === 'error' ? 'alert' : 'status'}>
+            {currentPlaceLookup.status === 'error'
+              ? 'Unable to check the linked Place right now.'
+              : currentPlaceLookup.hasMore
+                ? 'This Place was not found on the first public Place page. The list is paginated, so this reference may be on another page.'
+                : 'This waypoint is linked to a Place reference, but the public Place detail could not be resolved.'}
+          </p>
         </section>
       )}
 

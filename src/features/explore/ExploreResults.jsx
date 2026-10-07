@@ -43,7 +43,7 @@ function ExploreCard({ item, mode, countries, selectedId, onSelect }) {
   )
 }
 
-export default function ExploreResults({ items, total, mode, countries, status, onRetry, onMore, selectedId, onSelect }) {
+export default function ExploreResults({ items, total, hasMore, loadingMore, moreError, mode, countries, status, onRetry, onMore, selectedId, onSelect }) {
   return (
     <div className="explore-discovery-results" aria-busy={status === 'loading'}>
       {status === 'loading' && <p className="explore-discovery-status" role="status">Loading {mode}...</p>}
@@ -53,7 +53,8 @@ export default function ExploreResults({ items, total, mode, countries, status, 
         {items.map((item) => <ExploreCard key={item.id} item={item} mode={mode} countries={countries} selectedId={selectedId} onSelect={onSelect} />)}
       </div>
       {status === 'success' && items.length > 0 && <p className="explore-discovery-result-count" role="status">Showing {items.length} of {total} {mode}</p>}
-      {items.length < total && <button type="button" className="explore-discovery-button explore-load-more" onClick={onMore}>Show more {mode}</button>}
+      {moreError && <p className="explore-discovery-status" role="alert">Unable to load more {mode}.</p>}
+      {hasMore && status === 'success' && <button type="button" className="explore-discovery-button explore-load-more" onClick={onMore} disabled={loadingMore}>{loadingMore ? `Loading more ${mode}...` : moreError ? `Retry loading more ${mode}` : `Show more ${mode}`}</button>}
     </div>
   )
 }

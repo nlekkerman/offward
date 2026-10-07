@@ -1,9 +1,19 @@
 import { apiClient } from './apiClient.js'
+import { normalizePaginatedResponse } from './pagination.js'
 
-export async function getPublicRoutes({ country, status = 'active', activityType, includeGeometry = true } = {}) {
+export async function getPublicRoutes({
+  country,
+  status = 'active',
+  activityType,
+  includeGeometry = false,
+  page = 1,
+  pageSize = 12,
+} = {}) {
   const params = {
     status,
     include_geometry: includeGeometry,
+    page,
+    page_size: pageSize,
   }
 
   if (country) {
@@ -18,11 +28,7 @@ export async function getPublicRoutes({ country, status = 'active', activityType
     params,
   })
 
-  if (!Array.isArray(data)) {
-    throw new Error('Public routes response must be a bare array.')
-  }
-
-  return data
+  return normalizePaginatedResponse(data, 'Public routes')
 }
 
 export async function getRoutes(options) {

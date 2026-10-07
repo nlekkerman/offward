@@ -18,12 +18,10 @@ async function loadLatestVideo() {
 }
 
 async function loadLatestRoute() {
-  // Public Route summary contract has no timestamp field (see
-  // OFFWARD_MAP_API_IMPLEMENTATION_CONTRACT.md), so "newest" defers to the
-  // public list's existing deterministic ordering. includeGeometry is on so
-  // the mini map can render without an extra per-card detail request.
-  const routes = await getPublicRoutes({ status: 'active', includeGeometry: true })
-  return routes[0] || null
+  // Route summaries have no timestamp, so this uses the API's current ordering.
+  // Geometry is requested only for the single Route shown with its mini-map.
+  const page = await getPublicRoutes({ status: 'active', includeGeometry: true, page: 1, pageSize: 1 })
+  return page.results[0] || null
 }
 
 /**

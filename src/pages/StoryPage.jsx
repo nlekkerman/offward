@@ -63,8 +63,8 @@ function StoryPage() {
   const [storyResult, setStoryResult] = useState({ slug: null, status: 'loading', story: null })
   const [countries, setCountries] = useState([])
   const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
-  const [placeCatalog, setPlaceCatalog] = useState({ status: 'idle', places: [] })
-  const [routeCatalog, setRouteCatalog] = useState({ status: 'idle', routes: [] })
+  const [placeCatalog, setPlaceCatalog] = useState({ status: 'idle', places: [], next: null })
+  const [routeCatalog, setRouteCatalog] = useState({ status: 'idle', routes: [], next: null })
   // Lightbox state is scoped to a single collection key so previous/next never crosses collections.
   const [lightbox, setLightbox] = useState({ collectionKey: null, index: -1 })
 
@@ -150,7 +150,7 @@ function StoryPage() {
 
   // The public Story response only exposes attached Place UUIDs (`place_ids`),
   // and the public Place detail endpoint is slug-based, so we resolve IDs
-  // against the public Place list (one request) instead of one request per ID.
+  // against a bounded public Place page instead of one request per ID.
   useEffect(() => {
     if (placeIds.length === 0) {
       return undefined
@@ -160,13 +160,13 @@ function StoryPage() {
 
     async function loadPlaces() {
       try {
-        const data = await getPublicPlaces()
+        const data = await getPublicPlaces({ page: 1, pageSize: 24 })
         if (isCurrent) {
-          setPlaceCatalog({ status: 'success', places: data })
+          setPlaceCatalog({ status: 'success', places: data.results, next: data.next })
         }
       } catch {
         if (isCurrent) {
-          setPlaceCatalog({ status: 'error', places: [] })
+          setPlaceCatalog({ status: 'error', places: [], next: null })
         }
       }
     }
@@ -177,8 +177,7 @@ function StoryPage() {
     }
   }, [placeIds])
 
-  // Same pattern as Places: resolve the Story's direct Route IDs against the
-  // public Route list instead of fetching per-Route (and geometry-heavy) detail.
+  // Resolve Route IDs against one bounded, geometry-free public Route page.
   useEffect(() => {
     if (routeIds.length === 0) {
       return undefined
@@ -188,13 +187,13 @@ function StoryPage() {
 
     async function loadRoutes() {
       try {
-        const data = await getPublicRoutes({ includeGeometry: false })
+        const data = await getPublicRoutes({ includeGeometry: false, page: 1, pageSize: 24 })
         if (isCurrent) {
-          setRouteCatalog({ status: 'success', routes: data })
+          setRouteCatalog({ status: 'success', routes: data.results, next: data.next })
         }
       } catch {
         if (isCurrent) {
-          setRouteCatalog({ status: 'error', routes: [] })
+          setRouteCatalog({ status: 'error', routes: [], next: null })
         }
       }
     }
@@ -212,8 +211,8 @@ function StoryPage() {
       return []
     }
 
-    const placeById = new Map(placeCatalog.places.map((place) => [place.id, place]))
-    return placeIds.map((id) => placeById.get(id)).filter(Boolean)
+    const placeById = new Map(placeCatalog.places.map((place) => [String(place.id), place]))
+    return placeIds.map((id) => placeById.get(String(id))).filter(Boolean)
   }, [placeIds, placeCatalog.places])
 
   const relatedRoutes = useMemo(() => {
@@ -221,8 +220,8 @@ function StoryPage() {
       return []
     }
 
-    const routeById = new Map(routeCatalog.routes.map((route) => [route.id, route]))
-    return routeIds.map((id) => routeById.get(id)).filter(Boolean)
+    const routeById = new Map(routeCatalog.routes.map((route) => [String(route.id), route]))
+    return routeIds.map((id) => routeById.get(String(id))).filter(Boolean)
   }, [routeIds, routeCatalog.routes])
 
   // Only Videos explicitly attached to this Story (via media_ids) are shown.
@@ -285,6 +284,19 @@ function StoryPage() {
       )}
 
       {story.body && <div className="story-detail-body">{story.body}</div>}
+
+      {placeIds.length > relatedPlaces.length && placeCatalog.status === 'error' && (
+        <p className="story-detail-status" role="alert">Unable to load related Place references.</p>
+      )}
+      {placeIds.length > relatedPlaces.length && placeCatalog.next !== null && (
+        <p className="story-detail-status" role="status">Some related Places may not be shown because the public Place catalog is paginated.</p>
+      )}
+      {routeIds.length > relatedRoutes.length && routeCatalog.status === 'error' && (
+        <p className="story-detail-status" role="alert">Unable to load related Route references.</p>
+      )}
+      {routeIds.length > relatedRoutes.length && routeCatalog.next !== null && (
+        <p className="story-detail-status" role="status">Some related Routes may not be shown because the public Route catalog is paginated.</p>
+      )}
 
       {(showVideosSection || hasGalleries) && (
         <section className="story-detail-media" aria-label="Story media">
