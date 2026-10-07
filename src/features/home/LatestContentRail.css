@@ -21,7 +21,7 @@
 .latest-content-rail-title {
   margin: 0;
   padding-left: 1rem;
-  border-left: 2px solid var(--public-accent);
+  border-left: 2px solid #d9232e;
   color: var(--public-text);
   font: 400 2rem/1.2 Georgia, serif;
   letter-spacing: 0;

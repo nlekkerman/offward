@@ -330,7 +330,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   content: '';
   width: 2.5rem;
   height: 2px;
-  background: var(--public-accent);
+  background: #d9232e;
 }
 
 .home-hero h1 {
