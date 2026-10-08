@@ -270,8 +270,12 @@ function RoutePage() {
   }
   const mapRoute = route && route.is_map_renderable === true && isRenderableRoute(route) ? route : null
   const hasMalformedGeometry = route?.geometry && route?.is_map_renderable === true && !mapRoute
-  const country = findCountry(countries, route?.country)
-  const countryLabel = countryName(country, countryNames.get(route?.country) || route?.country || 'Country pending')
+  const countryValue = route?.country
+  const country = findCountry(countries, countryValue)
+  const countryFallback = typeof countryValue === 'string'
+    ? countryNames.get(countryValue) || countryValue
+    : countryName(countryValue, countryValue?.slug || countryValue?.code || '')
+  const countryLabel = countryName(country, countryFallback) || 'Country pending'
   const activityLabel = formatActivity(route?.activity_type)
 
   if (routeStatus === 'loading') {
@@ -307,75 +311,77 @@ function RoutePage() {
           <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
           <span>{activityLabel}</span>
         </div>
-        {route.summary && <p className="route-detail-summary">{route.summary}</p>}
         {countriesStatus === 'error' && <p className="route-detail-muted" role="status">Country details are unavailable, so the canonical country slug is shown.</p>}
       </header>
 
-      <div className="route-detail-toggles" role="group" aria-label="Route detail panels">
-        {routeVideos.length > 0 && (
-          <button
-            type="button"
-            id="route-videos-toggle"
-            className={openPanel === 'videos' ? 'route-panel-toggle is-open' : 'route-panel-toggle'}
-            aria-expanded={openPanel === 'videos'}
-            aria-controls="route-videos-panel"
-            onClick={toggleVideosPanel}
-          >
-            <span className="route-panel-toggle-copy">
-              <span className="route-panel-toggle-title">Media</span>
-              <span className="route-panel-toggle-count">{routeVideos.length} {routeVideos.length === 1 ? 'video' : 'videos'}</span>
-            </span>
-            <span className="route-panel-toggle-chevron" aria-hidden="true">{openPanel === 'videos' ? '▲' : '▼'}</span>
-          </button>
-        )}
-      </div>
-
-      {openPanel === 'videos' && routeVideos.length > 0 && (
-        <section id="route-videos-panel" className="route-panel-revealed" aria-labelledby="route-videos-toggle">
-          <RouteMediaGrid videos={routeVideos} />
-        </section>
-      )}
-
-      <section className="route-map-section" aria-labelledby="route-map-title">
-        <div className="route-map-heading">
-          <h2 id="route-map-title">Route Map</h2>
-        </div>
-        {(!route.geometry || route.is_map_renderable === false) && <p className="route-map-message">This Route does not yet have a published map path.</p>}
-        {hasMalformedGeometry && <p className="route-map-message" role="status">The published map path could not be displayed.</p>}
-        <MapView
-          className="route-detail-map"
-          routes={mapRoute ? [mapRoute] : []}
-          waypoints={waypoints}
-          waypointMediaCountById={waypointMediaCountById}
-          selectedWaypointId={selectedWaypointId}
-          onWaypointSelect={selectWaypoint}
-          onWaypointHoverStart={supportsHover ? previewWaypoint : undefined}
-          onWaypointHoverEnd={supportsHover ? scheduleHoverClose : undefined}
-          onWaypointVisibilityChange={handleWaypointVisibilityChange}
-          routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}
-          segments={segments}
-          selectedSegmentId={selectedSegmentId}
-          onSegmentSelect={selectSegment}
-          routeFocusRequest={routeFocusRequest}
-          initialCenter={[50, 10]}
-          initialZoom={4}
-        >
-          <RouteSections
+      <div className="route-detail-content-grid">
+        <section className="route-map-section" aria-labelledby="route-map-title">
+          <div className="route-map-heading">
+            <h2 id="route-map-title">Route Map</h2>
+          </div>
+          {(!route.geometry || route.is_map_renderable === false) && <p className="route-map-message">This Route does not yet have a published map path.</p>}
+          {hasMalformedGeometry && <p className="route-map-message" role="status">The published map path could not be displayed.</p>}
+          <MapView
+            className="route-detail-map"
+            routes={mapRoute ? [mapRoute] : []}
+            waypoints={waypoints}
+            waypointMediaCountById={waypointMediaCountById}
+            selectedWaypointId={selectedWaypointId}
+            onWaypointSelect={selectWaypoint}
+            onWaypointHoverStart={supportsHover ? previewWaypoint : undefined}
+            onWaypointHoverEnd={supportsHover ? scheduleHoverClose : undefined}
+            onWaypointVisibilityChange={handleWaypointVisibilityChange}
+            routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}
             segments={segments}
             selectedSegmentId={selectedSegmentId}
             onSegmentSelect={selectSegment}
-          />
-          <RouteMapDetailOverlay
-            detail={mapDetail}
-            onClose={closeMapDetail}
-            onShowFullRoute={showFullRoute}
-            onViewDetails={viewMapEntityDetails}
-            onPointerEnter={cancelHoverClose}
-            onPointerLeave={scheduleHoverClose}
-          />
-        </MapView>
-      </section>
-      <RelatedFood foodIds={route.food_ids} />
+            routeFocusRequest={routeFocusRequest}
+            initialCenter={[50, 10]}
+            initialZoom={4}
+          >
+            <RouteSections
+              segments={segments}
+              selectedSegmentId={selectedSegmentId}
+              onSegmentSelect={selectSegment}
+            />
+            <RouteMapDetailOverlay
+              detail={mapDetail}
+              onClose={closeMapDetail}
+              onShowFullRoute={showFullRoute}
+              onViewDetails={viewMapEntityDetails}
+              onPointerEnter={cancelHoverClose}
+              onPointerLeave={scheduleHoverClose}
+            />
+          </MapView>
+        </section>
+        <aside className="route-detail-side-content" aria-label="Route details">
+          {route.summary && <p className="route-detail-summary">{route.summary}</p>}
+          {routeVideos.length > 0 && (
+            <div className="route-detail-toggles" role="group" aria-label="Route detail panels">
+              <button
+                type="button"
+                id="route-videos-toggle"
+                className={openPanel === 'videos' ? 'route-panel-toggle is-open' : 'route-panel-toggle'}
+                aria-expanded={openPanel === 'videos'}
+                aria-controls="route-videos-panel"
+                onClick={toggleVideosPanel}
+              >
+                <span className="route-panel-toggle-copy">
+                  <span className="route-panel-toggle-title">Media</span>
+                  <span className="route-panel-toggle-count">{routeVideos.length} {routeVideos.length === 1 ? 'video' : 'videos'}</span>
+                </span>
+                <span className="route-panel-toggle-chevron" aria-hidden="true">{openPanel === 'videos' ? '▲' : '▼'}</span>
+              </button>
+            </div>
+          )}
+          {openPanel === 'videos' && routeVideos.length > 0 && (
+            <section id="route-videos-panel" className="route-panel-revealed" aria-labelledby="route-videos-toggle">
+              <RouteMediaGrid videos={routeVideos} />
+            </section>
+          )}
+          <RelatedFood foodIds={route.food_ids} />
+        </aside>
+      </div>
     </section>
   )
 }
