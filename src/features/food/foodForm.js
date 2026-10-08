@@ -1,6 +1,6 @@
 import { FOOD_STATUSES, FOOD_TYPES } from './foodConstants.js'
 
-export const FOOD_LIST_FIELDS = ['place_ids', 'route_ids', 'story_ids', 'waypoint_ids', 'segment_ids', 'video_ids', 'image_collection_ids', 'ingredients', 'steps']
+export const FOOD_LIST_FIELDS = ['video_ids', 'image_collection_ids', 'ingredients', 'steps']
 export const FOOD_INTEGER_FIELDS = ['prep_time_minutes', 'cook_time_minutes', 'servings']
 
 export function orderedRows(rows = []) {
@@ -20,6 +20,7 @@ export function hydrateFoodLists(data) {
 
 export function validateFood(values) {
   const errors = {}
+  if (!values.country) errors.country = 'Country is required.'
   if (!values.title?.trim()) errors.title = 'Title is required.'
   if (!FOOD_TYPES.includes(values.food_type)) errors.food_type = 'Select a valid Food type.'
   if (!FOOD_STATUSES.includes(values.status)) errors.status = 'Select a valid Food status.'

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import NotFoundPage from './NotFoundPage.jsx'
 import { getCountryBySlug } from '../services/countriesApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
-import RelatedFood from '../features/food/RelatedFood.jsx'
+import CountryFood from '../features/food/CountryFood.jsx'
 
 function CountryPage() {
   const { countrySlug } = useParams()
@@ -59,7 +59,7 @@ function CountryPage() {
       </div>
       <p>{country.summary}</p>
       <p>Status: {country.status}</p>
-      <RelatedFood foodIds={country.food_ids} />
+      <CountryFood country={country} />
     </section>
   )
 }

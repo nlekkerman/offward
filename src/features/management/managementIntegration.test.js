@@ -74,13 +74,47 @@ test('relationship manager retains unknown selected IDs and labels removal acces
   assert.match(html, /aria-label="Remove off-page-place from places"/)
 })
 
-test('route child composition keeps cross-route UUID selections without guessed links', async () => {
-  const { default: Children } = await server.ssrLoadModule('/src/features/management/RouteChildRelationships.jsx')
-  const html = renderToStaticMarkup(createElement(Children, { routes: [], values: { waypoint_ids: ['saved-waypoint'], segment_ids: ['saved-segment'] }, onChange() {} }))
-  assert.match(html, /saved-waypoint/)
-  assert.match(html, /saved-segment/)
-  assert.match(html, /does not attach or modify the Route/)
-  assert.doesNotMatch(html, /href=/)
+test('shared Food relationship manager retains attached UUIDs and exposes management selection', async () => {
+  const { default: Manager } = await server.ssrLoadModule('/src/features/management/FoodRelationshipManager.jsx')
+  const html = renderToStaticMarkup(createElement(Manager, { ownerId: 'owner-id', field: 'route_ids', attachedIds: ['saved-food'], onAttachedIdsChange() {} }))
+  assert.match(html, /saved-food/)
+  assert.match(html, /\+ Add food/)
+  assert.match(html, /Loading Food/)
+})
+
+test('Food relationship write reads current ids and PATCHes only the requested relationship', async () => {
+  const { updateFoodRelationship } = await server.ssrLoadModule('/src/features/management/foodRelationshipWrites.js')
+  const calls = []
+  const api = {
+    getById: async (id) => { calls.push(['get', id]); return { id, title: 'Keep this content', route_ids: [{ id: 'existing-route' }] } },
+    update: async (id, payload) => { calls.push(['patch', id, payload]) },
+  }
+  assert.deepEqual(await updateFoodRelationship(api, 'food-id', 'route_ids', 'new-route', true), ['existing-route', 'new-route'])
+  assert.deepEqual(calls, [
+    ['get', 'food-id'],
+    ['patch', 'food-id', { route_ids: ['existing-route', 'new-route'] }],
+  ])
+  calls.length = 0
+  assert.deepEqual(await updateFoodRelationship(api, 'food-id', 'route_ids', 'existing-route', false), [])
+  assert.deepEqual(calls, [
+    ['get', 'food-id'],
+    ['patch', 'food-id', { route_ids: [] }],
+  ])
+  await assert.rejects(updateFoodRelationship({
+    getById: async () => ({ id: 'food-id', title: 'Keep this content' }),
+    update: async () => assert.fail('Must not PATCH without the current relationship array'),
+  }, 'food-id', 'route_ids', 'new-route', true), /no readable route_ids/)
+})
+
+test('Waypoint Food context is retained for display but excluded from map-save payloads', async () => {
+  const { normalizeWaypoint, buildWaypointPayload } = await server.ssrLoadModule('/src/features/routes/routeMap/routeMapUtils.js')
+  const waypoint = normalizeWaypoint({
+    id: '44444444-4444-4444-4444-444444444444',
+    coordinates: { lat: 1, lng: 2 },
+    food_ids: [{ id: '55555555-5555-5555-5555-555555555555' }],
+  })
+  assert.deepEqual(waypoint.food_ids, ['55555555-5555-5555-5555-555555555555'])
+  assert.equal(Object.hasOwn(buildWaypointPayload([waypoint])[0], 'food_ids'), false)
 })
 
 test('video create surface is hidden until owner has an ID; saved owner exposes unresolved UUIDs', async () => {

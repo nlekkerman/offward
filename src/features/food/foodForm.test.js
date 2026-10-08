@@ -4,7 +4,7 @@ import { buildFoodPayload, foodFieldErrors, FOOD_LIST_FIELDS, hydrateFoodLists, 
 import { FOOD_STATUSES, FOOD_TYPES } from './foodConstants.js'
 import { normalizeManagementPage } from '../../services/management/catalogPagination.js'
 
-const core = { title: 'Food title', food_type: 'dish', status: 'inactive', country: '', summary: '', body: '' }
+const core = { title: 'Food title', food_type: 'dish', status: 'inactive', country: 'country-id', summary: '', body: '' }
 
 test('Food uses only specified enums', () => {
   assert.deepEqual(FOOD_TYPES, ['dish', 'recipe', 'story', 'guide', 'place_to_eat', 'ingredient', 'other'])
@@ -17,6 +17,10 @@ test('omitted lists remain omitted; explicit [] clears every list', () => {
   FOOD_LIST_FIELDS.forEach((field) => assert.equal(Object.hasOwn(omitted, field), false))
   const empty = buildFoodPayload({ ...core, ...Object.fromEntries(FOOD_LIST_FIELDS.map((field) => [field, []])) })
   FOOD_LIST_FIELDS.forEach((field) => assert.deepEqual(empty[field], []))
+  const authored = buildFoodPayload({ ...core, route_ids: ['route-id'], place_ids: ['place-id'], story_ids: ['story-id'], waypoint_ids: ['waypoint-id'], segment_ids: ['segment-id'] })
+  for (const field of ['route_ids', 'place_ids', 'story_ids', 'waypoint_ids', 'segment_ids']) {
+    assert.equal(Object.hasOwn(authored, field), false)
+  }
 })
 
 test('recipe payload normalizes one-based order and preserves textual quantity', () => {
@@ -45,11 +49,17 @@ test('optional positive integer metadata allows explicit null clears on every Fo
 })
 
 test('hydrate sorts recipe records, normalizes IDs and does not default absent lists', () => {
-  const values = hydrateFoodLists({ ingredients: [{ order: 2, name: 'B' }, { order: 1, name: 'A' }], place_ids: [{ id: 'p' }, 'p'], steps: [] })
+  const values = hydrateFoodLists({ ingredients: [{ order: 2, name: 'B' }, { order: 1, name: 'A' }], steps: [] })
   assert.deepEqual(values.ingredients.map((row) => [row.order, row.name]), [[1, 'A'], [2, 'B']])
-  assert.deepEqual(values.place_ids, ['p'])
   assert.deepEqual(values.steps, [])
   assert.equal(Object.hasOwn(values, 'video_ids'), false)
+  assert.deepEqual(hydrateFoodLists({ video_ids: [{ id: 'v' }, 'v'] }).video_ids, ['v'])
+  assert.equal(Object.hasOwn(hydrateFoodLists({ route_ids: ['route-id'] }), 'route_ids'), false)
+})
+
+test('Food authoring requires its canonical Country', () => {
+  assert.equal(validateFood({ ...core, country: '' }).country, 'Country is required.')
+  assert.equal(Object.hasOwn(validateFood(core), 'country'), false)
 })
 
 test('structural changes are renumbered without mutating rows', () => {

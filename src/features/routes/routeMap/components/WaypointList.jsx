@@ -2,9 +2,12 @@ import { Fragment } from 'react'
 import { getPlaceCoordinates, getWaypointDisplayName } from '../routeMapUtils.js'
 import ContentVideoManager from '../../../video/ContentVideoManager.jsx'
 import GalleryAttachmentManager from '../../../management/GalleryAttachmentManager.jsx'
+import FoodRelationshipManager from '../../../management/FoodRelationshipManager.jsx'
 import WaypointQuickEditor from './WaypointQuickEditor.jsx'
 
-function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWaypointId, quickEditWaypointId, quickEditSaving, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onOpenMedia, onMediaChange, onGalleryAttach, onGalleryDetach, onMove, onRemove }) {
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWaypointId, foodWaypointId, quickEditWaypointId, quickEditSaving, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onOpenMedia, onOpenFood, onFoodIdsChange, onMediaChange, onGalleryAttach, onGalleryDetach, onMove, onRemove }) {
   return (
     <section className="route-map-panel">
       <div className="route-map-panel-header">
@@ -40,9 +43,13 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
         <div className="waypoint-list">
           {waypoints.map((waypoint, index) => {
             const isSaved = !String(waypoint.id).startsWith('new-')
+            const canAttachFood = UUID.test(String(waypoint.id))
             const mediaCount = Array.isArray(waypoint.media_ids) ? waypoint.media_ids.length : 0
+            const foodCount = Array.isArray(waypoint.food_ids) ? waypoint.food_ids.length : 0
             const isMediaOpen = mediaWaypointId === waypoint.id
+            const isFoodOpen = foodWaypointId === waypoint.id
             const mediaPanelId = `waypoint-media-${waypoint.id}`
+            const foodPanelId = `waypoint-food-${waypoint.id}`
 
             return (
               <Fragment key={waypoint.id}>
@@ -67,11 +74,23 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
                         {mediaCount > 0 ? `Media ${mediaCount}` : '+ Media'}
                       </button>
                     )}
+                    {canAttachFood && (
+                      <button
+                        type="button"
+                        className={isFoodOpen ? 'primary-button small-button' : 'secondary-button small-button'}
+                        onClick={() => onOpenFood(waypoint.id)}
+                        aria-expanded={isFoodOpen}
+                        aria-controls={foodPanelId}
+                      >
+                        {foodCount ? `Food ${foodCount}` : '+ Food'}
+                      </button>
+                    )}
                     <button type="button" className="secondary-button small-button" onClick={() => onMove(index, -1)} disabled={index === 0}>Up</button>
                     <button type="button" className="secondary-button small-button" onClick={() => onMove(index, 1)} disabled={index === waypoints.length - 1}>Down</button>
                     <button type="button" className="danger-button small-button" onClick={() => onRemove(waypoint.id)}>Remove</button>
                   </span>
                   {!isSaved && <span className="route-map-muted">Save waypoint before adding media.</span>}
+                  {!canAttachFood && <span className="route-map-muted">Save waypoint before adding Food.</span>}
                   {quickEditWaypointId === waypoint.id && (
                     <WaypointQuickEditor
                       waypoint={waypoint}
@@ -99,6 +118,16 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
                       onAttach={(collection) => onGalleryAttach(waypoint.id, collection)}
                       onDetach={(collection) => onGalleryDetach(waypoint.id, collection)}
                       persistImmediately
+                    />
+                  </section>
+                )}
+                {isFoodOpen && canAttachFood && (
+                  <section id={foodPanelId} className="waypoint-media-panel" aria-label={`Food for Waypoint ${index + 1}`}>
+                    <FoodRelationshipManager
+                      ownerId={waypoint.id}
+                      field="waypoint_ids"
+                      attachedIds={waypoint.food_ids || []}
+                      onAttachedIdsChange={(nextIds) => onFoodIdsChange(waypoint.id, nextIds)}
                     />
                   </section>
                 )}

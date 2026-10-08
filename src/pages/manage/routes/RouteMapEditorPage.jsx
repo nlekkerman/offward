@@ -64,6 +64,7 @@ function RouteMapEditorPage() {
   const [quickEditSaving, setQuickEditSaving] = useState(false)
   const [advancedWaypointId, setAdvancedWaypointId] = useState('')
   const [mediaWaypointId, setMediaWaypointId] = useState('')
+  const [foodWaypointId, setFoodWaypointId] = useState('')
   const [savedWaypointSignature, setSavedWaypointSignature] = useState('[]')
   const [selectedPairKey, setSelectedPairKey] = useState('')
   const [manualDrawing, setManualDrawing] = useState(null)
@@ -109,6 +110,7 @@ function RouteMapEditorPage() {
         setQuickEditWaypointId('')
         setAdvancedWaypointId('')
         setMediaWaypointId('')
+        setFoodWaypointId('')
 
       } catch (err) {
         if (active) {
@@ -214,7 +216,22 @@ function RouteMapEditorPage() {
     setSelectedWaypointId(waypointId)
     setQuickEditWaypointId('')
     setAdvancedWaypointId('')
+    setFoodWaypointId('')
     setMediaWaypointId((current) => current === waypointId ? '' : waypointId)
+  }
+
+  const openWaypointFood = (waypointId) => {
+    setSelectedWaypointId(waypointId)
+    setQuickEditWaypointId('')
+    setAdvancedWaypointId('')
+    setMediaWaypointId('')
+    setFoodWaypointId((current) => current === waypointId ? '' : waypointId)
+  }
+
+  const updateWaypointFoodIds = (waypointId, nextIds) => {
+    setWaypoints((current) => normalizeWaypoints(current.map((waypoint) => String(waypoint.id) === String(waypointId)
+      ? { ...waypoint, food_ids: [...nextIds] }
+      : waypoint)))
   }
 
   const updateWaypointMedia = (waypointId, nextIds) => {
@@ -664,6 +681,7 @@ function RouteMapEditorPage() {
             routeId={routeId}
             selectedWaypointId={selectedWaypointId}
             mediaWaypointId={mediaWaypointId}
+            foodWaypointId={foodWaypointId}
             quickEditWaypointId={quickEditWaypointId}
             quickEditSaving={quickEditSaving}
             addMode={addMode}
@@ -677,6 +695,8 @@ function RouteMapEditorPage() {
             onQuickCancel={() => setQuickEditWaypointId('')}
             onOpenAdvanced={openAdvancedWaypoint}
             onOpenMedia={openWaypointMedia}
+            onOpenFood={openWaypointFood}
+            onFoodIdsChange={updateWaypointFoodIds}
             onMediaChange={updateWaypointMedia}
             onGalleryAttach={(waypointId, collection) => updateWaypointGallery(waypointId, collection, true)}
             onGalleryDetach={(waypointId, collection) => updateWaypointGallery(waypointId, collection, false)}

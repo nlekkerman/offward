@@ -15,11 +15,6 @@ export const entityConfig = {
       prep_time_minutes: '',
       cook_time_minutes: '',
       servings: '',
-      place_ids: [],
-      route_ids: [],
-      story_ids: [],
-      waypoint_ids: [],
-      segment_ids: [],
       video_ids: [],
       image_collection_ids: [],
       ingredients: [],
@@ -214,6 +209,7 @@ export function slugify(value) {
 
 export function getRelationshipOptions(resourceKey) {
   const mapping = {
+    foods: ['country'],
     places: ['country'],
     routes: ['country', 'places'],
     stories: ['country', 'places', 'routes', 'events'],

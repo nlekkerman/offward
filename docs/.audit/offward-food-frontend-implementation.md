@@ -13,7 +13,6 @@ Paths below are relative links to the actual implementation. No dependencies wer
 - [foodConstants.js](../../src/features/food/foodConstants.js): specified Food enums and display labels.
 - [foodForm.js](../../src/features/food/foodForm.js): form defaults, detail hydration, validation, payload whitelist, ordering, nested errors.
 - [FoodRecipeEditor.jsx](../../src/features/food/FoodRecipeEditor.jsx): ingredient and step rows.
-- [FoodRelationships.jsx](../../src/features/food/FoodRelationships.jsx): existing relationship managers with management catalogs.
 - [foodManagement.css](../../src/features/food/foodManagement.css): scoped Food form styling and compact recipe controls.
 - [FoodCard.jsx](../../src/features/food/FoodCard.jsx): public list/compact cards with real Food slug links.
 - [RelatedFood.jsx](../../src/features/food/RelatedFood.jsx): common owner-related Food section.
@@ -36,14 +35,16 @@ Paths below are relative links to the actual implementation. No dependencies wer
 - [entityApi.js](../../src/services/management/entityApi.js), [imageCollectionsApi.js](../../src/services/management/imageCollectionsApi.js), [catalogPagination.js](../../src/services/management/catalogPagination.js): backward-compatible management page helpers.
 - [useManagementCatalog.js](../../src/features/management/useManagementCatalog.js), [CatalogStatus.jsx](../../src/features/management/CatalogStatus.jsx): shared paging, selected-record hydration and visible catalog states.
 - [RelationshipAttachmentManager.jsx](../../src/features/management/RelationshipAttachmentManager.jsx): controlled selection, disabled states and removable unresolved IDs.
-- [RouteChildRelationships.jsx](../../src/features/management/RouteChildRelationships.jsx): saved child selection through read-only Route browsing.
+- [FoodRelationshipManager.jsx](../../src/features/management/FoodRelationshipManager.jsx): shared management Food selector, pagination, selected-record hydration and relationship error state.
+- [foodRelationshipWrites.js](../../src/features/management/foodRelationshipWrites.js): relationship-only Food read/modify/PATCH helper.
 - [ContentVideoManager.jsx](../../src/features/video/ContentVideoManager.jsx): shared paged Video catalog, upload insertion, busy reporting and explicit detach errors.
 - [ContentImageCollectionManager.jsx](../../src/features/management/ContentImageCollectionManager.jsx), [GalleryAttachmentManager.jsx](../../src/features/management/GalleryAttachmentManager.jsx): shared paged/hydrated collection options and error states.
 - [GalleryListPage.jsx](../../src/pages/manage/galleries/GalleryListPage.jsx): management gallery-list pagination.
 - [index.css](../../src/index.css): preserve existing shared Video layout when using its disabled fieldset.
 - [router.jsx](../../src/app/router.jsx), [AppShell.jsx](../../src/shared/layout/AppShell.jsx): public routes, Food navigation and active state.
 - [countriesApi.js](../../src/services/countriesApi.js): additive public Country page helper; existing array-returning helper preserved.
-- [CountryPage.jsx](../../src/pages/CountryPage.jsx), [PlacePage.jsx](../../src/pages/PlacePage.jsx), [RoutePage.jsx](../../src/pages/RoutePage.jsx), [StoryPage.jsx](../../src/pages/StoryPage.jsx), [WaypointDetailPage.jsx](../../src/pages/WaypointDetailPage.jsx), [SegmentDetailPage.jsx](../../src/pages/SegmentDetailPage.jsx): import/mount the shared Related Food section using each owner's own `food_ids`.
+- [CountryPage.jsx](../../src/pages/CountryPage.jsx) and [CountryFood.jsx](../../src/features/food/CountryFood.jsx): derive Country Food from the canonical Food Country filter.
+- [PlacePage.jsx](../../src/pages/PlacePage.jsx), [RoutePage.jsx](../../src/pages/RoutePage.jsx), [StoryPage.jsx](../../src/pages/StoryPage.jsx), [WaypointDetailPage.jsx](../../src/pages/WaypointDetailPage.jsx), [SegmentDetailPage.jsx](../../src/pages/SegmentDetailPage.jsx): import/mount the shared Related Food section using each owner's own `food_ids`.
 
 ### Tests and documentation
 
@@ -76,18 +77,24 @@ The existing Entity Form contains Food-specific fields rather than a parallel fo
 | Fields | Behavior |
 | --- | --- |
 | `title`, `slug` | Required core text fields; existing controls and validation presentation. |
-| `country` | Management Country selection. |
+| `country` | Required canonical Country selected from the management Country catalog. |
 | `food_type` | Exactly `dish`, `recipe`, `story`, `guide`, `place_to_eat`, `ingredient`, `other`. Default `dish`. |
 | `status` | Exactly `active`, `upcoming`, `inactive`. Default `inactive`. |
 | `summary`, `body` | Existing text/textarea presentation. |
 | `prep_time_minutes`, `cook_time_minutes`, `servings` | Optional nullable positive integers, visible for every Food type. Blank values serialize as `null` to clear existing metadata. |
 | `ingredients`, `steps` | Ordered recipe rows; not restricted to `food_type=recipe`. |
-| `place_ids`, `route_ids`, `story_ids`, `waypoint_ids`, `segment_ids` | Controlled UUID arrays, changed locally until parent Save. |
 | `video_ids` | Existing saved-owner manager; attachment writes are immediate. |
 | `image_collection_ids` | Ordered UUID array; deferred to parent Save. |
 | `published_at` | Read-only; never included in a write payload. |
 
 Food has no `hero_image_id` field/control.
+
+Management publication timestamps use the shared management date formatter with
+the browser's locale and local timezone, including hours and minutes. Food,
+Story and Video tables and the read-only Published field share this presentation.
+Empty or invalid dates display a dash; API values and publication behavior are
+unchanged. Event timestamps and Place visited dates also use the shared formatter
+in the entity table.
 
 Food bypasses the generic blank/null cleanup with an explicit whitelist. Lists omitted from an edit response remain omitted on untouched Save; supplied arrays replace, and explicit `[]` clears. Unknown/read-only fields do not leak into payloads. Edit writes use the existing PATCH helper, not a synthetic full-record PUT.
 
@@ -105,21 +112,24 @@ The new small Food-specific editor adds, removes and moves ingredient/step rows 
 
 There is no separate recipe endpoint, drag/drop library or generic row-framework dependency.
 
-## Relationship Selectors
+## Relationship Authoring Direction Correction
 
-Food composes the existing controlled relationship attachment manager. Countries, Places, Routes and Stories use management catalogs, so unpublished management records are not incorrectly filtered out by public APIs.
+Food create/edit authors Food content only: required Country, title, slug, type, status, summary/body, recipe metadata, ingredients, steps, Videos and image collections. It no longer provides Place/Route/Story/Waypoint/Segment relationship pickers or includes those relationship arrays in Food form payloads.
 
-Shared catalog loading requests an initial page and explicit subsequent pages. Selected records are hydrated individually through existing UUID detail helpers, including records not on page one. Local picker filtering is over loaded options, not server-wide search; later pages must be loaded explicitly. Failed catalog/detail requests show errors and retry instead of treating missing options as deselection.
+Relationship authoring is on the owning management surfaces:
 
-Selected UUIDs stay in form state even when their labels cannot resolve. They remain visible and removable. Browsing/filtering options does not alter selected relationships; Food Save writes the final UUID arrays.
+- Route edit attaches/detaches Food through `Food.route_ids`.
+- Place edit attaches/detaches Food through `Food.place_ids`.
+- Story edit attaches/detaches Food through `Food.story_ids`.
+- The Route map Waypoint editor attaches Food only for persisted Waypoint UUIDs through `Food.waypoint_ids`. Draft Waypoints show “Save waypoint before adding Food.”
+- There is no saved Segment editor: the management Route map shows candidate Waypoint-pair geometry, not persisted Segment CRUD. Segment Food authoring is deferred; no candidate pair IDs are offered.
+- Country has no independent Food attachment relationship. Country Foods derive from `Food.country`; public Country detail queries the existing public Food endpoint with that canonical Country filter.
 
-## Waypoint / Segment Relationship Handling
+The same [FoodRelationshipManager](../../src/features/management/FoodRelationshipManager.jsx) is reused on Route, Place, Story and Waypoint editors. It uses the management Food catalog, shows title/type/Country, searches loaded records locally, supports explicit pagination, hydrates selected records outside the current page, and preserves unresolved UUIDs with visible retry/error states.
 
-There is no invented global management child endpoint. A Browse Route selector loads existing saved Waypoints and Segments through the Route child **GET** helpers.
+Each attach/detach re-reads the current Food detail, requires the requested relationship to be an array, adds/removes only the owner UUID in that array, then PATCHes only that relationship field through the management Food API. No cached Food form data or recipe/media/status/Country fields are sent. UI actions are disabled while a relationship write is pending; errors are shown without optimistic success. Waypoint Food writes do not PUT/replace waypoint collections or touch map geometry. Candidate Segments are never used as persisted Segment IDs.
 
-Only valid persisted child UUIDs are selectable. Browse Route is context, not an automatic addition to Food `route_ids`. Cross-Route child selections and known labels survive context changes. Unknown existing child UUIDs remain removable until their Route is browsed.
-
-This flow never creates a Waypoint/Segment, writes Route child collections, reorders Route stops, or invokes Route authoring PUTs. Existing candidate Segment geometry/Waypoint pairing behavior is untouched.
+Public Route, Place, Story, Waypoint and Segment Food sections remain scoped to each record's public `food_ids`. Public Country Food is different by design and is derived from canonical `Food.country`.
 
 ## Video Integration
 
@@ -173,7 +183,7 @@ Food's related Places/Routes use existing Story-related visual card classes with
 
 ## Related Food Integration
 
-The same Related Food component is mounted on Country, Place, Route, Story, Waypoint and Segment detail pages. Every surface reads only that record's own shallow `food_ids`; it does not infer inherited Route/Country relationships.
+Related Food remains mounted on Place, Route, Story, Waypoint and Segment detail pages and uses each record's own shallow `food_ids`. Country detail instead lists Foods returned by the canonical Country filter; it does not require or create Country `food_ids`.
 
 A shared UUID-to-public-Food cache is seeded by list/detail results. Missing IDs trigger at most one initial unfiltered page; further discovery requires explicit next-page actions. Concurrent requests deduplicate. Unpublished, missing or still-unresolved IDs have visible partial-resolution messaging instead of fabricated links.
 
@@ -219,7 +229,7 @@ Native controls, explicit labels, accessible row action names, disabled boundary
 
 ### Verification
 
-- `node --test src\features\food\foodForm.test.js src\features\food\publicFood.test.js src\features\management\managementIntegration.test.js`: **29 passed, 0 failed**.
+- `node --test src\features\food\foodForm.test.js src\features\food\publicFood.test.js src\features\management\managementIntegration.test.js`: **32 passed, 0 failed** after the relationship-direction correction.
 - `npm run build`: **passed** after the final implementation changes.
 - Focused ESLint on Food, shared management/media code, helpers, registrations and clean changed public pages: **passed**.
 - Place/Segment lint with only the known pre-existing rule disabled: **passed**; their changes are just Related Food imports/mounts.

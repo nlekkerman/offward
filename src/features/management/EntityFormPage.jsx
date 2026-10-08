@@ -14,11 +14,11 @@ import VideoPlayer from '../video/VideoPlayer.jsx'
 import PlaceCoordinatePicker from '../map/components/PlaceCoordinatePicker.jsx'
 import { isValidLatitude, isValidLongitude } from '../map/mapGeometry.js'
 import FoodRecipeEditor from '../food/FoodRecipeEditor.jsx'
-import FoodRelationships from '../food/FoodRelationships.jsx'
 import { FOOD_STATUSES, FOOD_TYPES } from '../food/foodConstants.js'
 import { buildFoodPayload, foodFieldErrors, FOOD_LIST_FIELDS, hydrateFoodLists, validateFood } from '../food/foodForm.js'
-import { errorMessage } from './imageCollectionUtils.js'
+import { errorMessage, formatManagementDate } from './imageCollectionUtils.js'
 import { invalidatePublicFoods } from '../food/publicFoodCache.js'
+import FoodRelationshipManager from './FoodRelationshipManager.jsx'
 
 const EMPTY_VIDEO_LOCATION = {
   latitude: '',
@@ -58,13 +58,6 @@ function toBackendDateTime(value) {
   if (!value) return ''
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? value : date.toISOString()
-}
-
-function formatPublishedAtDisplay(value) {
-  if (!value) return 'Not yet published'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  return date.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 function hasVideoLocationValue(location) {
@@ -140,6 +133,7 @@ function EntityFormPage({ resourceKey, title }) {
   const [videoSegmentsLoading, setVideoSegmentsLoading] = useState(false)
   const [videoUploadStatus, setVideoUploadStatus] = useState('idle')
   const [foodLoadedId, setFoodLoadedId] = useState(null)
+  const [attachedFoodIds, setAttachedFoodIds] = useState([])
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [foodMediaBusy, setFoodMediaBusy] = useState(false)
 
@@ -209,6 +203,7 @@ function EntityFormPage({ resourceKey, title }) {
           if (!active) return
           setFormData(getInitialValues(resourceKey, item))
           if (resourceKey === 'foods') setFoodLoadedId(id)
+          if (['routes', 'places', 'stories'].includes(resourceKey)) setAttachedFoodIds(normalizeIdArray(item.food_ids))
           if (resourceKey === 'videos') {
             setVideoAttachments(item)
             setVideoLocationIntent('omit')
@@ -219,6 +214,7 @@ function EntityFormPage({ resourceKey, title }) {
           }
         } else {
           setFormData(config.defaultValues)
+          setAttachedFoodIds([])
           if (resourceKey === 'videos') {
             setVideoAttachments({})
             setVideoLocationIntent('omit')
@@ -936,7 +932,7 @@ function EntityFormPage({ resourceKey, title }) {
   const renderPublishedAt = () => (
     <div key="published_at" className="form-field">
       <label>Published</label>
-      <p className="form-static-value">{formatPublishedAtDisplay(formData.published_at)}</p>
+      <p className="form-static-value">{formatManagementDate(formData.published_at, true)}</p>
     </div>
   )
 
@@ -1001,7 +997,8 @@ function EntityFormPage({ resourceKey, title }) {
         }
         return [
           <fieldset key="food-fields" className="food-core-fields" disabled={submitting}>
-            <legend>Food details</legend>
+            <legend>Core</legend>
+            {renderField('country', 'select')}
             {renderField('title')}
             {renderField('slug')}
             {renderField('food_type', 'select')}
@@ -1009,16 +1006,18 @@ function EntityFormPage({ resourceKey, title }) {
             {renderPublishedAt()}
             {renderField('summary', 'textarea')}
             {renderField('body', 'textarea')}
+          </fieldset>,
+          <fieldset key="food-recipe-metadata" className="food-core-fields" disabled={submitting}>
+            <legend>Recipe</legend>
             {renderField('prep_time_minutes', 'number')}
             {renderField('cook_time_minutes', 'number')}
             {renderField('servings', 'number')}
           </fieldset>,
           <FoodRecipeEditor key="food-recipe" ingredients={formData.ingredients} steps={formData.steps} onChange={change} errors={fieldErrors} disabled={submitting} />,
-          <FoodRelationships key="food-relationships" values={formData} onChange={change} errors={fieldErrors} disabled={submitting} />,
           isEdit
-            ? <div key="food-videos"><p>Video attachments save immediately. Cancel does not undo attachment changes.</p><ContentVideoManager resourceKey="foods" resourceId={id} attachedVideoIds={formData.video_ids || []} onAttachmentsChange={(ids) => change('video_ids', ids)} disabled={submitting} onBusyChange={setFoodMediaBusy} /></div>
+            ? <section key="food-videos" className="food-content-section"><h3>Videos</h3><p>Video attachments save immediately. Cancel does not undo attachment changes.</p><ContentVideoManager resourceKey="foods" resourceId={id} attachedVideoIds={formData.video_ids || []} onAttachmentsChange={(ids) => change('video_ids', ids)} disabled={submitting} onBusyChange={setFoodMediaBusy} /></section>
             : <p key="food-video-notice">Create Food first, then attach videos on its edit page.</p>,
-          <div key="food-galleries"><p>Gallery attachment order saves with Food. Gallery content is edited independently in Gallery management.</p><ContentImageCollectionManager attachedCollectionIds={formData.image_collection_ids || []} onAttachmentsChange={(ids) => change('image_collection_ids', ids)} disabled={submitting} />{fieldErrors.image_collection_ids && <span className="field-error-text">{fieldErrors.image_collection_ids}</span>}</div>,
+          <section key="food-galleries" className="food-content-section"><h3>Images</h3><p>Gallery attachment order saves with Food. Gallery content is edited independently in Gallery management.</p><ContentImageCollectionManager attachedCollectionIds={formData.image_collection_ids || []} onAttachmentsChange={(ids) => change('image_collection_ids', ids)} disabled={submitting} />{fieldErrors.image_collection_ids && <span className="field-error-text">{fieldErrors.image_collection_ids}</span>}</section>,
         ]
       }
       case 'countries':
@@ -1063,6 +1062,7 @@ function EntityFormPage({ resourceKey, title }) {
             onAttach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: [...(current.image_collection_ids || []), collection.id] }))}
             onDetach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: (current.image_collection_ids || []).filter((value) => String(value) !== String(collection.id)) }))}
           />,
+          isEdit && <FoodRelationshipManager key="place-food-manager" ownerId={id} field="place_ids" attachedIds={attachedFoodIds} onAttachedIdsChange={setAttachedFoodIds} disabled={submitting} />,
         ]
       case 'routes':
         return [
@@ -1120,6 +1120,7 @@ function EntityFormPage({ resourceKey, title }) {
             onAttach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: [...(current.image_collection_ids || []), collection.id] }))}
             onDetach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: (current.image_collection_ids || []).filter((value) => String(value) !== String(collection.id)) }))}
           />,
+          isEdit && <FoodRelationshipManager key="route-food-manager" ownerId={id} field="route_ids" attachedIds={attachedFoodIds} onAttachedIdsChange={setAttachedFoodIds} disabled={submitting} />,
         ]
       case 'stories':
         return [
@@ -1176,6 +1177,7 @@ function EntityFormPage({ resourceKey, title }) {
             onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, image_collection_ids: nextIds }))}
             onHeroImageChange={(nextId) => setFormData((current) => ({ ...current, hero_image_id: nextId }))}
           />,
+          isEdit && <FoodRelationshipManager key="story-food-manager" ownerId={id} field="story_ids" attachedIds={attachedFoodIds} onAttachedIdsChange={setAttachedFoodIds} disabled={submitting} />,
         ]
       case 'videos':
         return [

@@ -1,5 +1,6 @@
 .food-recipe-editor,
-.food-relationships {
+.food-relationship-manager,
+.food-content-section {
   display: grid;
   gap: 1rem;
   min-width: 0;
@@ -62,7 +63,7 @@
   font-size: 0.9rem;
 }
 
-.food-relationships .relationship-attachment-picker-list {
+.food-relationship-manager .relationship-attachment-picker-list {
   max-height: 22rem;
   overflow: auto;
 }

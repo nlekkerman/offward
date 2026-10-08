@@ -18,6 +18,7 @@ function RelationshipAttachmentManager({
   availableItems = [],
   getId = defaultGetId,
   getLabel = defaultGetLabel,
+  getSearchText,
   getSecondaryLabel,
   searchPlaceholder = 'Search…',
   onAttach,
@@ -48,7 +49,7 @@ function RelationshipAttachmentManager({
   const pickerItems = availableItems.filter((item) => {
     if (attachedIdSet.has(String(getId(item)))) return false
     if (!searchValue) return true
-    return getLabel(item).toLowerCase().includes(searchValue)
+    return (getSearchText ? getSearchText(item) : getLabel(item)).toLowerCase().includes(searchValue)
   })
 
   return (

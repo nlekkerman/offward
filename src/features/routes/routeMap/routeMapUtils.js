@@ -27,6 +27,7 @@ export function createEmptyWaypoint(order = 1, values = {}) {
     latitude: values.latitude === undefined || values.latitude === null ? '' : String(values.latitude),
     longitude: values.longitude === undefined || values.longitude === null ? '' : String(values.longitude),
     media_ids: Array.isArray(values.media_ids) ? [...values.media_ids] : [],
+    food_ids: Array.isArray(values.food_ids) ? [...values.food_ids] : [],
   }
 }
 
@@ -61,6 +62,9 @@ export function normalizeWaypoint(waypoint = {}, index = 0) {
     longitude: longitude === null || longitude === undefined ? '' : String(longitude),
     media_ids: Array.isArray(waypoint.media_ids) ? [...waypoint.media_ids] : Array.isArray(waypoint.mediaIds) ? [...waypoint.mediaIds] : [],
     image_collection_ids: Array.isArray(waypoint.image_collection_ids) ? [...waypoint.image_collection_ids] : [],
+    food_ids: Array.isArray(waypoint.food_ids)
+      ? waypoint.food_ids.map((item) => (item && typeof item === 'object' ? item.id : item)).filter(Boolean).map(String)
+      : [],
   }
 }
 

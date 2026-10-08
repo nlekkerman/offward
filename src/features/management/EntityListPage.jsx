@@ -6,6 +6,7 @@ import { getEntityConfig, normalizeDisplayValue } from './entityConfig.js'
 import useManagementCatalog from './useManagementCatalog.js'
 import CatalogStatus from './CatalogStatus.jsx'
 import { invalidatePublicFoods } from '../food/publicFoodCache.js'
+import { formatManagementDate } from './imageCollectionUtils.js'
 
 function getCountryLabel(item, countryRecords) {
   if (item?.country_name) {
@@ -30,6 +31,14 @@ function getSummaryValue(item, fieldName, countryRecords = []) {
 
   if (fieldName === 'country') {
     return getCountryLabel(item, countryRecords)
+  }
+
+  if (['published_at', 'starts_at', 'ends_at'].includes(fieldName)) {
+    return formatManagementDate(value, true)
+  }
+
+  if (fieldName === 'visited_at') {
+    return formatManagementDate(value)
   }
 
   if (fieldName === 'status' || fieldName === 'lifecycle_status' || fieldName === 'activity_type') {

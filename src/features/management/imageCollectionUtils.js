@@ -48,9 +48,15 @@ export function collectionCount(collection) {
   return collection?.image_count ?? collection?.images_count ?? collection?.images?.length ?? 0
 }
 
-export function formatManagementDate(value) {
+export function formatManagementDate(value, includeTime = false) {
   if (!value) return '—'
+  if (typeof value !== 'string' && typeof value !== 'number' && !(value instanceof Date)) return '—'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  if (Number.isNaN(date.getTime())) return '—'
+  const options = { day: 'numeric', month: 'short', year: 'numeric' }
+  if (includeTime) {
+    options.hour = '2-digit'
+    options.minute = '2-digit'
+  }
+  return new Intl.DateTimeFormat(undefined, options).format(date)
 }
