@@ -1,4 +1,6 @@
 import { collectionPreview } from '../../management/imageCollectionUtils.js'
+import { Link } from 'react-router-dom'
+import useRelatedFood from '../../food/useRelatedFood.js'
 
 // Gallery preview image takes priority (first attachment with a usable
 // cover); Video thumbnail/poster is the fallback. Never both, never more
@@ -19,6 +21,8 @@ function formatMediaCounts(videoCount, galleryCount) {
 }
 
 function RouteMapDetailOverlay({ detail, onClose, onShowFullRoute, onViewDetails, onPointerEnter, onPointerLeave }) {
+  const { requestedIds, resolvedFoods, unresolvedIds, loading, error, canLoadMore, loadMore } = useRelatedFood(detail?.foodIds)
+
   if (!detail) {
     return null
   }
@@ -37,6 +41,11 @@ function RouteMapDetailOverlay({ detail, onClose, onShowFullRoute, onViewDetails
       activate()
     }
   }
+  const retryFoodLookup = (event) => {
+    event.stopPropagation()
+    loadMore().catch(() => {})
+  }
+  const unresolvedCountLabel = `${resolvedFoods.length} of ${requestedIds.length}`
 
   return (
     <aside
@@ -66,6 +75,43 @@ function RouteMapDetailOverlay({ detail, onClose, onShowFullRoute, onViewDetails
       )}
 
       {mediaCounts && <p className="route-map-detail-counts">{mediaCounts}</p>}
+
+      {requestedIds.length > 0 && (
+        <section className="route-map-detail-food" aria-label="Related Food">
+          <p className="route-map-detail-food-label">
+            FOOD{requestedIds.length > 1 && ` · ${unresolvedIds.length ? unresolvedCountLabel : requestedIds.length}`}
+          </p>
+          {resolvedFoods.length > 0 && (
+            <div className="route-map-detail-food-items">
+              <Link
+                className="route-map-detail-food-link"
+                to={`/food/${encodeURIComponent(resolvedFoods[0].slug)}`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                {resolvedFoods[0].title}
+              </Link>
+              {resolvedFoods.length > 1 && <span className="route-map-detail-food-more">+{resolvedFoods.length - 1} more</span>}
+            </div>
+          )}
+          {loading && <p className="route-map-detail-food-status" role="status">Food loading...</p>}
+          {!loading && unresolvedIds.length > 0 && (
+            <div className="route-map-detail-food-unresolved">
+              <p className="route-map-detail-food-status" role={error ? 'alert' : undefined}>
+                {error
+                  ? `Food lookup failed; ${unresolvedIds.length} ${unresolvedIds.length === 1 ? 'item remains' : 'items remain'} unresolved.`
+                  : resolvedFoods.length > 0
+                    ? `${unresolvedIds.length} more ${unresolvedIds.length === 1 ? 'Food item is' : 'Food items are'} not resolved yet.`
+                    : 'Food was not found in the loaded public pages.'}
+              </p>
+              {canLoadMore && (
+                <button type="button" className="route-map-detail-food-retry" onClick={retryFoodLookup}>
+                  {error ? 'Retry' : 'Check next page'}
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="route-map-detail-actions">
         {detail.type === 'segment' && (

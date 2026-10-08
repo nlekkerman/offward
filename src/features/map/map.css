@@ -244,6 +244,66 @@
   font: 700 0.72rem/1.2 sans-serif;
 }
 
+.route-map-detail-food {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  border-top: 1px solid #34382f;
+  padding-top: 0.55rem;
+}
+
+.route-map-detail-food-label {
+  margin: 0;
+  color: #9fa897;
+  font: 800 0.62rem/1.2 sans-serif;
+  letter-spacing: 0.1em;
+}
+
+.route-map-detail-food-items,
+.route-map-detail-food-unresolved {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.55rem;
+  min-width: 0;
+}
+
+.route-map-detail-food-link,
+.route-map-detail-food-more,
+.route-map-detail-food-status,
+.route-map-detail-food-retry {
+  font: 0.76rem/1.35 sans-serif;
+}
+
+.route-map-detail-food-link {
+  overflow-wrap: anywhere;
+  color: #d8b47c;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.route-map-detail-food-link:hover,
+.route-map-detail-food-link:focus-visible {
+  text-decoration: underline;
+}
+
+.route-map-detail-food-more,
+.route-map-detail-food-status {
+  margin: 0;
+  color: #a9aa9f;
+}
+
+.route-map-detail-food-retry {
+  flex: 0 0 auto;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #d8b47c;
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .route-map-show-route,
 .route-map-view-details {
   border: 0;

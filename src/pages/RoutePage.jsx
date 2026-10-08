@@ -5,6 +5,7 @@ import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
 import RelatedFood from '../features/food/RelatedFood.jsx'
+import { publicRelationshipIds } from '../features/food/publicFoodResolution.js'
 import { getAttachedMediaCount, normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import RouteSections from '../features/routes/components/RouteSections.jsx'
 import { getCountries } from '../services/countriesApi.js'
@@ -233,6 +234,7 @@ function RoutePage() {
         title: getWaypointTitle(waypoint),
         subtitle: String(waypoint.type || 'via').toUpperCase(),
         summary: waypoint.summary || waypoint.note || waypoint.description || '',
+        foodIds: publicRelationshipIds(waypoint.food_ids),
         videos: resolveAttachedVideos(waypoint, videoById),
         imageCollections: resolveImageCollections(waypoint),
       }
@@ -249,6 +251,7 @@ function RoutePage() {
       title: segment.title || `${getWaypointTitle(start)} → ${getWaypointTitle(end)}`,
       subtitle: start && end ? `${getWaypointTitle(start)} → ${getWaypointTitle(end)}` : '',
       summary: segment.summary || segment.note || '',
+      foodIds: publicRelationshipIds(segment.food_ids),
       videos: resolveAttachedVideos(segment, videoById),
       imageCollections: resolveImageCollections(segment),
     }
