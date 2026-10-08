@@ -9,6 +9,7 @@ import {
   imageId,
   imageUrl,
   toImageMembershipPayload,
+  toMembershipRows,
 } from '../../../features/management/imageCollectionUtils.js'
 
 function GalleryEditPage() {
@@ -34,7 +35,7 @@ function GalleryEditPage() {
         setCollection(data)
         setTitle(data.title || '')
         setDescription(data.description || '')
-        setImages(Array.isArray(data.images) ? data.images : [])
+        setImages(toMembershipRows(data.images))
         setError('')
       } catch (errorValue) {
         if (active) setError(errorMessage(errorValue, 'Unable to load this gallery.'))
@@ -47,19 +48,35 @@ function GalleryEditPage() {
     return () => { active = false }
   }, [id])
 
+  const reloadImages = async (previousRows) => {
+    try {
+      const data = await imageCollectionsApi.getById(id)
+      setCollection(data)
+      setImages(toMembershipRows(data.images, previousRows))
+    } catch {
+      // Keep the save error visible; the next successful load re-syncs membership.
+    }
+  }
+
   const persistImages = async (nextImages, successMessage = '') => {
     setStatus('saving')
     setError('')
     setNotice('')
     try {
       const saved = await imageCollectionsApi.replaceImages(id, toImageMembershipPayload(nextImages))
-      const savedImages = Array.isArray(saved?.images) ? saved.images : nextImages
-      setImages(savedImages)
-      setCollection((current) => ({ ...current, ...saved, images: savedImages }))
+      if (Array.isArray(saved?.images)) {
+        const savedImages = toMembershipRows(saved.images, nextImages)
+        setImages(savedImages)
+        setCollection((current) => ({ ...current, ...saved, images: savedImages }))
+      } else {
+        await reloadImages(nextImages)
+      }
       if (successMessage) setNotice(successMessage)
       return true
     } catch (errorValue) {
       setError(errorMessage(errorValue, 'Unable to save gallery images.'))
+      // Optimistic reorder/remove/caption state must not outlive a rejected write.
+      await reloadImages(nextImages)
       return false
     } finally {
       setStatus('idle')
@@ -108,7 +125,8 @@ function GalleryEditPage() {
     for (const file of files) {
       try {
         const asset = await uploadImage(file)
-        successfulImages.push({ ...asset, image_id: asset.id, caption: '' })
+        if (!asset?.id) throw new Error('upload response did not include an image asset id')
+        successfulImages.push({ image_asset_id: String(asset.id), url: asset.thumbnail_url || asset.public_url || '', caption: '' })
       } catch (errorValue) {
         failures.push(`${file.name}: ${errorMessage(errorValue, 'upload failed')}`)
       }

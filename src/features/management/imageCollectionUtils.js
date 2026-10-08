@@ -18,8 +18,10 @@ export function errorMessage(error, fallback) {
   return flattenErrorMessages(error?.response?.data?.detail) || flattenErrorMessages(error?.response?.data) || error?.message || fallback
 }
 
+// Returns the ImageAsset UUID. Management collection rows are CollectionImage records whose
+// own `id` is the membership row, so `image_asset_id` must win over `id`.
 export function imageId(image) {
-  return String(image?.image_id || image?.asset_id || image?.image?.id || image?.id || '')
+  return String(image?.image_asset_id || image?.image_id || image?.asset_id || image?.image?.id || image?.id || '')
 }
 
 export function imageUrl(image) {
@@ -38,6 +40,25 @@ export function toImageMembershipPayload(images) {
     order: index,
     caption: imageCaption(image),
   }))
+}
+
+// Normalizes collection rows (management detail/PUT response or freshly uploaded assets) into
+// canonical membership rows keyed by ImageAsset UUID, ordered by `order`. Preview URLs known
+// from earlier rows (e.g. upload responses) are carried over because management rows omit them.
+export function toMembershipRows(rows, previousRows = []) {
+  const knownUrls = new Map(previousRows.map((row) => [imageId(row), imageUrl(row)]))
+  return (Array.isArray(rows) ? rows : [])
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => (a.row?.order ?? a.index) - (b.row?.order ?? b.index) || a.index - b.index)
+    .map(({ row }) => {
+      const assetId = imageId(row)
+      return {
+        image_asset_id: assetId,
+        caption: imageCaption(row),
+        url: imageUrl(row) || knownUrls.get(assetId) || '',
+      }
+    })
+    .filter((row) => row.image_asset_id)
 }
 
 export function collectionPreview(collection) {
