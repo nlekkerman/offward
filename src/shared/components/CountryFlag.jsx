@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import ReactCountryFlag from 'react-country-flag'
 
 const FLAG_SIZES = {
@@ -5,13 +6,18 @@ const FLAG_SIZES = {
   medium: { width: '2rem', height: '1.33rem' },
 }
 
-function CountryFlag({ code, countryName, size = 'small', className = '', decorative = false }) {
+function CountryFlag({ code, countryName, size = 'small', className = '', decorative = false, showFallback = false }) {
   const normalizedCode = typeof code === 'string' ? code.trim().toUpperCase() : ''
-  const isValidCode = /^[A-Z]{2}$/.test(normalizedCode)
+  const [failedCode, setFailedCode] = useState('')
+  const isValidCode = /^[A-Z]{2}$/.test(normalizedCode) && failedCode !== normalizedCode
   const dimensions = FLAG_SIZES[size] || FLAG_SIZES.small
   const accessibleLabel = countryName
     ? `${countryName} flag${isValidCode ? '' : ' unavailable'}`
     : isValidCode ? `${normalizedCode} country flag` : 'Country flag unavailable'
+
+  if (!isValidCode && !showFallback) {
+    return null
+  }
 
   return (
     <span
@@ -26,6 +32,8 @@ function CountryFlag({ code, countryName, size = 'small', className = '', decora
           countryCode={normalizedCode}
           svg
           aria-hidden="true"
+          alt=""
+          onError={() => setFailedCode(normalizedCode)}
           style={{ width: '100%', height: '100%' }}
         />
       )}

@@ -954,7 +954,7 @@ function EntityFormPage({ resourceKey, title }) {
             autoCapitalize="characters"
           />
           <div className="country-flag-preview">
-            <CountryFlag code={formData.code} countryName={formData.name || undefined} size="medium" />
+            <CountryFlag code={formData.code} countryName={formData.name || undefined} size="medium" showFallback />
             <span>Flag preview</span>
           </div>
         </div>
