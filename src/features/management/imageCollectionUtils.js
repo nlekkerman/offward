@@ -42,11 +42,21 @@ export function toImageMembershipPayload(images) {
   }))
 }
 
+// Preview URL for a collection membership row. Reads the same ImageAsset URL fields the frontend
+// already consumes for this API family (upload response, preview_image, ImageLightbox), flat or nested.
+export function membershipPreviewUrl(row) {
+  const asset = row?.image_asset || row?.image || row?.asset
+  return imageUrl(row)
+    || row?.thumbnail_url || row?.public_url
+    || asset?.thumbnail_url || asset?.public_url || asset?.url || asset?.image_url
+    || ''
+}
+
 // Normalizes collection rows (management detail/PUT response or freshly uploaded assets) into
 // canonical membership rows keyed by ImageAsset UUID, ordered by `order`. Preview URLs known
-// from earlier rows (e.g. upload responses) are carried over because management rows omit them.
+// from earlier rows (e.g. upload responses) are kept as a fallback when a row carries no URL.
 export function toMembershipRows(rows, previousRows = []) {
-  const knownUrls = new Map(previousRows.map((row) => [imageId(row), imageUrl(row)]))
+  const knownUrls = new Map(previousRows.map((row) => [imageId(row), membershipPreviewUrl(row)]))
   return (Array.isArray(rows) ? rows : [])
     .map((row, index) => ({ row, index }))
     .sort((a, b) => (a.row?.order ?? a.index) - (b.row?.order ?? b.index) || a.index - b.index)
@@ -55,7 +65,7 @@ export function toMembershipRows(rows, previousRows = []) {
       return {
         image_asset_id: assetId,
         caption: imageCaption(row),
-        url: imageUrl(row) || knownUrls.get(assetId) || '',
+        url: membershipPreviewUrl(row) || knownUrls.get(assetId) || '',
       }
     })
     .filter((row) => row.image_asset_id)
