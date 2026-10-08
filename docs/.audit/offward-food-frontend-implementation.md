@@ -183,6 +183,8 @@ Media reuses the existing Entity Media Section, Video Player and Image Lightbox.
 
 Food's related Places/Routes use existing Story-related visual card classes with real previews/metadata; related Stories retain existing presentation conventions. Child links require verified parent Route context.
 
+`Related Routes` is the only standalone Route relationship section and is sourced from `Food.route_ids`. The former `Along the Route` heading was replaced with `Related Waypoints and Segments`: that section is sourced from `Food.waypoint_ids` and `Food.segment_ids`, not `route_ids`, and appears only when child relationships exist. It retains child detail links and their parent Route titles, along with the existing bounded public context lookup. Related Places, relationship data and backend behavior are unchanged.
+
 ## Related Food Integration
 
 Related Food remains mounted on Place, Route, Story, Waypoint and Segment detail pages and uses each record's own shallow `food_ids`. Country detail instead lists Foods returned by the canonical Country filter; it does not require or create Country `food_ids`.

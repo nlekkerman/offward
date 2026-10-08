@@ -75,7 +75,7 @@ function ChildRelationships({ waypointIds, segmentIds }) {
   if (!wantedWaypoints.length && !wantedSegments.length) return null
   return (
     <section className="food-related-content" aria-label="Related Waypoints and Segments">
-      <h2>Along the Route</h2>
+      <h2>Related Waypoints and Segments</h2>
       {uniqueLinks.length > 0 && <ul className="food-link-list">{uniqueLinks.map((link) => <li key={link.key}><Link to={link.to}>{link.title}</Link>{link.routeTitle && <span> — {link.routeTitle}</span>}</li>)}</ul>}
       {unresolved > 0 && <div className="food-relationship-status" aria-live="polite">
         <p>{unresolved} linked Waypoint/Segment {unresolved === 1 ? 'needs' : 'items need'} a verified public parent Route before a link can be shown. Only loaded Route pages and explicitly checked contexts are searched.</p>

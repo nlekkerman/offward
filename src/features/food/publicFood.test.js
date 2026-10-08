@@ -175,6 +175,7 @@ test('child links require a resolved parent Route and exclude other owners/missi
   const links = resolvePublicRouteChildren(contexts, ['w', 'wrong-owner', 'unresolved'], ['s/1'])
   assert.deepEqual(links.map((link) => link.to), ['/routes/coast%20trail/waypoints/w', '/routes/coast%20trail/segments/s%2F1'])
   assert.deepEqual(links.map((link) => link.title), ['Market', 'Segment 2'])
+  assert.deepEqual(links.map((link) => link.routeTitle), ['Coast', 'Coast'])
 })
 test('invalidation drops cached public records and ignores an older pending response', async () => {
   let resolveOld

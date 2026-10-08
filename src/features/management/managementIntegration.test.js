@@ -67,6 +67,49 @@ test('Food gallery UI keeps selected UUID/order controls and omits Story hero wi
   assert.doesNotMatch(html, /Hero image|story-hero-image/)
 })
 
+test('Food detail keeps one standalone Route section and preserves Related Places', async () => {
+  const { default: FoodRelatedContent } = await server.ssrLoadModule('/src/features/food/FoodRelatedContent.jsx')
+  const { apiClient } = await server.ssrLoadModule('/src/services/apiClient.js')
+  const { publicRouteCatalog, publicPlaceCatalog } = await server.ssrLoadModule('/src/features/food/publicRelationshipCatalog.js')
+  const originalGet = apiClient.get
+  apiClient.get = async (path) => {
+    const records = {
+      '/api/offward/routes/': [{ id: 'food-route', slug: 'warm-up', title: 'The Warm Up route' }],
+      '/api/offward/places/': [{ id: 'food-place', slug: 'market', title: 'Market' }],
+    }
+    assert.ok(records[path], `Unexpected request: ${path}`)
+    return { data: { count: 1, next: null, previous: null, results: records[path] } }
+  }
+  try {
+    await Promise.all([publicRouteCatalog.loadNext(), publicPlaceCatalog.loadNext()])
+    const food = { route_ids: ['food-route'], place_ids: ['food-place'] }
+    const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(FoodRelatedContent, { food })))
+    assert.equal((html.match(/<h2>Related Routes<\/h2>/g) || []).length, 1)
+    assert.match(html, /href="\/routes\/warm-up"/)
+    assert.match(html, /The Warm Up route/)
+    assert.match(html, /<h2>Related Places<\/h2>/)
+    assert.match(html, /href="\/places\/market"/)
+    assert.doesNotMatch(html, /Along the Route|Related Waypoints and Segments/)
+    assert.deepEqual(food, { route_ids: ['food-route'], place_ids: ['food-place'] })
+  } finally {
+    apiClient.get = originalGet
+  }
+})
+
+test('Food detail retains distinct child relationships without an Along the Route section', async () => {
+  const { default: FoodRelatedContent } = await server.ssrLoadModule('/src/features/food/FoodRelatedContent.jsx')
+  for (const children of [{ waypoint_ids: ['waypoint'] }, { segment_ids: ['segment'] }, { waypoint_ids: ['waypoint'], segment_ids: ['segment'] }]) {
+    const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(FoodRelatedContent, {
+      food: { route_ids: ['food-route'], ...children },
+    })))
+    assert.equal((html.match(/<h2>Related Routes<\/h2>/g) || []).length, 1)
+    assert.match(html, /<h2>Related Waypoints and Segments<\/h2>/)
+    assert.match(html, /verified public parent Route/)
+    assert.match(html, /Check next 1 loaded Route contexts/)
+    assert.doesNotMatch(html, /Along the Route/)
+  }
+})
+
 test('relationship manager retains unknown selected IDs and labels removal accessibly', async () => {
   const { default: Manager } = await server.ssrLoadModule('/src/features/management/RelationshipAttachmentManager.jsx')
   const html = renderToStaticMarkup(createElement(Manager, { title: 'Places', attachedIds: ['off-page-place'], availableItems: [], onDetach() {} }))
