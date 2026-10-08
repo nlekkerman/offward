@@ -40,6 +40,21 @@ export function resolveImageCollections(owner) {
   })
 }
 
+function byOrder(rows) {
+  return rows
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => (Number(a.row?.order ?? a.index) - Number(b.row?.order ?? b.index)) || a.index - b.index)
+    .map(({ row }) => row)
+}
+
+export function orderedImageCollections(owner) {
+  return byOrder(resolveImageCollections(owner))
+}
+
+export function orderedCollectionImages(collection) {
+  return byOrder((Array.isArray(collection?.images) ? collection.images : []).filter((image) => image?.url || image?.thumbnail_url))
+}
+
 export function getAttachedMediaCount(owner, videoById = new Map()) {
   return resolveAttachedVideos(owner, videoById).length + resolveImageCollections(owner).length
 }

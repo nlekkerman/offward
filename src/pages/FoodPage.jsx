@@ -5,7 +5,7 @@ import { rememberPublicFoods } from '../features/food/publicFoodCache.js'
 import usePublicCountries from '../features/food/usePublicCountries.js'
 import { formatActivityLabel, formatCountryLabel, formatPublishedDate } from '../features/home/latestContentFormatting.js'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
-import { resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
+import { orderedCollectionImages, orderedImageCollections, resolveAttachedVideos } from '../features/routes/components/routeMediaUtils.js'
 import { getPublicFoodBySlug } from '../services/foodsApi.js'
 import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
@@ -42,10 +42,15 @@ function FoodPage() {
 
   const status = result.slug === slug ? result.status : 'loading'
   const food = result.slug === slug ? result.food : null
-  const openGallery = async (preview) => {
+  const openGallery = async (preview, startIndex = 0) => {
     const id = String(preview.id || '')
     if (!id || galleryPending.current.has(id)) return
     const requestSlug = slug
+    const embeddedImages = orderedCollectionImages(preview)
+    if (embeddedImages.length) {
+      setLightbox({ slug: requestSlug, gallery: { ...preview, images: embeddedImages }, index: Math.min(startIndex, embeddedImages.length - 1) })
+      return
+    }
     galleryPending.current.add(id)
     setGalleryStatus((value) => ({ loading: id, errors: { ...value.errors, [id]: null } }))
     try {
@@ -53,11 +58,12 @@ function FoodPage() {
       if (!collection) {
         collection = await getPublicImageCollection(id)
       }
-      if (!Array.isArray(collection?.images) || !collection.images.length) {
+      const fetchedImages = orderedCollectionImages(collection)
+      if (!fetchedImages.length) {
         throw new Error('No public images are available in this gallery.')
       }
       galleryCache.current.set(id, collection)
-      if (currentSlug.current === requestSlug) setLightbox({ slug: requestSlug, gallery: collection, index: 0 })
+      if (currentSlug.current === requestSlug) setLightbox({ slug: requestSlug, gallery: { ...collection, images: fetchedImages }, index: Math.min(startIndex, fetchedImages.length - 1) })
     } catch {
       if (currentSlug.current === requestSlug) setGalleryStatus((value) => ({ ...value, errors: { ...value.errors, [id]: 'Unable to load gallery images. Try again.' } }))
     } finally {
@@ -77,7 +83,7 @@ function FoodPage() {
   const steps = orderedRows(food.steps)
   const images = lightbox.slug === slug ? lightbox.gallery?.images || [] : []
   const videos = resolveAttachedVideos(food)
-  const galleries = resolveImageCollections(food)
+  const galleries = orderedImageCollections(food)
   const invalidVideos = Array.isArray(food.videos) ? food.videos.length - videos.length : 0
 
   return (
@@ -99,7 +105,7 @@ function FoodPage() {
         {ingredients.length > 0 && <section><h2>Ingredients</h2><ul className="food-ingredients">{ingredients.map((row, index) => <li key={row.id || index}>{row.quantity && <strong>{row.quantity} </strong>}{row.name}{row.note && <span className="food-ingredient-note"> — {row.note}</span>}</li>)}</ul></section>}
         {steps.length > 0 && <section><h2>Steps</h2><ol className="food-steps">{steps.map((row, index) => <li key={row.id || index}>{row.text}</li>)}</ol></section>}
       </div>}
-      <EntityMediaSection videos={videos} galleries={galleries} onOpenGallery={openGallery} loadingGalleryId={galleryStatus.loading} galleryErrorByCollectionId={galleryStatus.errors} />
+      <EntityMediaSection videos={videos} galleries={galleries} onOpenGallery={openGallery} loadingGalleryId={galleryStatus.loading} galleryErrorByCollectionId={galleryStatus.errors} showAllImages />
       {invalidVideos > 0 && <p role="status">{invalidVideos} attached video {invalidVideos === 1 ? 'is' : 'items are'} not publicly playable.</p>}
       <FoodRelatedContent food={food} />
       <ImageLightbox images={images} activeIndex={lightbox.index} isOpen={lightbox.slug === slug && lightbox.index >= 0} onClose={() => setLightbox({ slug: null, gallery: null, index: -1 })} onPrevious={() => setLightbox((value) => ({ ...value, index: (value.index - 1 + images.length) % images.length }))} onNext={() => setLightbox((value) => ({ ...value, index: (value.index + 1) % images.length }))} />
