@@ -114,6 +114,7 @@ test('image identity never falls back to membership UUIDs while raw Story assets
 test('fresh uploads retain flat presentation URLs as same-session fallbacks', () => {
   for (const asset of [
     { id: 'asset', thumbnail_url: 'upload-thumb.webp' },
+    { id: 'asset', thumbnail_url: 'upload-thumb.webp', url: 'upload-full.webp' },
     { id: 'asset', url: 'upload-full.webp' },
     { id: 'asset', public_url: 'upload-public.webp' },
   ]) {
@@ -123,4 +124,5 @@ test('fresh uploads retain flat presentation URLs as same-session fallbacks', ()
     assert.equal(saved[0].image_asset_id, 'asset')
     assert.equal(saved[0].caption, 'Uploaded')
   }
+  assert.equal(membershipPreviewUrl({ thumbnail_url: 'upload-thumb.webp', url: 'upload-full.webp' }), 'upload-thumb.webp')
 })

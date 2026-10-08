@@ -212,6 +212,32 @@ test('management gallery list preserves preview_image from its existing list req
   }
 })
 
+test('management gallery PUT sends only membership fields and normalizes authoritative nested previews', async () => {
+  const { apiClient } = await server.ssrLoadModule('/src/services/apiClient.js')
+  const { imageCollectionsApi } = await server.ssrLoadModule('/src/services/management/imageCollectionsApi.js')
+  const { toMembershipRows, toImageMembershipPayload } = await server.ssrLoadModule('/src/features/management/imageCollectionUtils.js')
+  const previous = [{ image_asset_id: 'asset-id', caption: 'Edited caption', url: 'upload.webp' }]
+  const response = {
+    id: 'gallery-id',
+    images: [{ id: 'membership-id', image_asset_id: 'asset-id', order: 0, caption: 'Saved caption', image: { id: 'asset-id', url: 'full.webp', thumbnail_url: 'thumb.webp' } }],
+  }
+  const calls = []
+  const originalPut = apiClient.put
+  apiClient.put = async (...args) => { calls.push(args); return { data: response } }
+  try {
+    const saved = await imageCollectionsApi.replaceImages('gallery-id', toImageMembershipPayload(previous))
+    assert.deepEqual(calls, [[
+      '/api/offward/manage/image-collections/gallery-id/images/',
+      { images: [{ image_asset_id: 'asset-id', order: 0, caption: 'Edited caption' }] },
+    ]])
+    assert.deepEqual(toMembershipRows(saved.images, previous), [
+      { image_asset_id: 'asset-id', caption: 'Saved caption', url: 'thumb.webp' },
+    ])
+  } finally {
+    apiClient.put = originalPut
+  }
+})
+
 test('Food cards and public gallery cards share thumbnail-first list previews and URL fallback', async () => {
   const { default: FoodCard } = await server.ssrLoadModule('/src/features/food/FoodCard.jsx')
   const { default: EntityMediaSection } = await server.ssrLoadModule('/src/features/routes/components/EntityMediaSection.jsx')

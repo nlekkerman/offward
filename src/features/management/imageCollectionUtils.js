@@ -52,8 +52,7 @@ export function toImageMembershipPayload(images) {
 export function membershipPreviewUrl(row) {
   const asset = row?.image_asset || row?.image || row?.asset
   return row?.image?.thumbnail_url || row?.image?.url
-    || imageUrl(row)
-    || row?.thumbnail_url || row?.public_url
+    || row?.thumbnail_url || imageUrl(row) || row?.public_url
     || asset?.thumbnail_url || asset?.public_url || asset?.url || asset?.image_url
     || ''
 }
