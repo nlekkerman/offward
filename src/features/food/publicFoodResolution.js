@@ -2,6 +2,16 @@ export function publicRelationshipIds(value) {
   return Array.isArray(value) ? [...new Set(value.filter(Boolean).map(String))] : []
 }
 
+export function getRouteFoodIds(route) {
+  const waypoints = Array.isArray(route?.waypoints) ? route.waypoints : []
+  const segments = Array.isArray(route?.segments) ? route.segments : []
+  return publicRelationshipIds([
+    ...publicRelationshipIds(route?.food_ids),
+    ...waypoints.flatMap((waypoint) => publicRelationshipIds(waypoint?.food_ids)),
+    ...segments.flatMap((segment) => publicRelationshipIds(segment?.food_ids)),
+  ])
+}
+
 export function resolvePublicFoodIds(ids, records) {
   const wanted = publicRelationshipIds(ids)
   const foods = wanted.map((id) => records.get(id)).filter((food) => food?.slug)

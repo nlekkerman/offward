@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createPublicFoodCache, createPublicRelationshipCatalog, getNextPage } from './publicFoodCacheState.js'
-import { nextRouteContextBatch, publicRelationshipIds, resolvePublicFoodIds, resolvePublicRouteChildren } from './publicFoodResolution.js'
+import { getRouteFoodIds, nextRouteContextBatch, publicRelationshipIds, resolvePublicFoodIds, resolvePublicRouteChildren } from './publicFoodResolution.js'
 import { normalizePaginatedResponse } from '../../services/pagination.js'
 
 const food = (id) => ({ id, slug: `food-${id}`, title: `Food ${id}` })
@@ -104,6 +104,47 @@ test('Food resolver deduplicates owner IDs and exposes missing/slugless records 
   assert.deepEqual(result.unresolved, ['missing', 'no-slug'])
   assert.deepEqual(publicRelationshipIds(undefined), [])
   assert.deepEqual(publicRelationshipIds(['a', 'a', null]), ['a'])
+})
+
+test('Route Food aggregates every owner, deduplicates UUIDs and leaves ownership unchanged', () => {
+  const routeFoodId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+  const waypointFoodId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+  const segmentFoodId = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+  const route = Object.freeze({
+    food_ids: Object.freeze([routeFoodId, routeFoodId]),
+    waypoints: Object.freeze([
+      Object.freeze({ food_ids: Object.freeze([routeFoodId, waypointFoodId]) }),
+      Object.freeze({ food_ids: Object.freeze([waypointFoodId]) }),
+    ]),
+    segments: Object.freeze([
+      Object.freeze({ food_ids: Object.freeze([waypointFoodId, segmentFoodId]) }),
+      Object.freeze({ food_ids: Object.freeze([segmentFoodId]) }),
+    ]),
+  })
+  const before = structuredClone(route)
+  const ids = getRouteFoodIds(route)
+
+  assert.deepEqual(ids, [routeFoodId, waypointFoodId, segmentFoodId])
+  assert.deepEqual(route, before)
+  assert.notEqual(ids, route.food_ids)
+  const records = new Map(ids.map((id) => [id, food(id)]))
+  assert.deepEqual(resolvePublicFoodIds(ids, records).foods, ids.map(food))
+  assert.deepEqual(publicRelationshipIds(route.waypoints[0].food_ids), [routeFoodId, waypointFoodId])
+  assert.deepEqual(publicRelationshipIds(route.segments[1].food_ids), [segmentFoodId])
+})
+
+test('Route Food safely normalizes missing and non-array relationships', () => {
+  for (const route of [undefined, null, {}, { food_ids: 'food', waypoints: {}, segments: 'segments' }]) {
+    assert.deepEqual(getRouteFoodIds(route), [])
+  }
+  assert.deepEqual(getRouteFoodIds({
+    food_ids: null,
+    waypoints: [null, undefined, {}, { food_ids: 'invalid' }, { food_ids: ['waypoint-only', null, 'waypoint-only'] }],
+    segments: [null, {}, { food_ids: {} }, { food_ids: ['segment-only', undefined] }],
+  }), ['waypoint-only', 'segment-only'])
+  assert.deepEqual(getRouteFoodIds({ food_ids: ['route-only'] }), ['route-only'])
+  assert.deepEqual(getRouteFoodIds({ waypoints: [{ food_ids: ['waypoint-only'] }] }), ['waypoint-only'])
+  assert.deepEqual(getRouteFoodIds({ segments: [{ food_ids: ['segment-only'] }] }), ['segment-only'])
 })
 
 test('Food cache subscriptions retain stable snapshots until public data changes', async () => {

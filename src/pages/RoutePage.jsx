@@ -5,7 +5,7 @@ import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
 import RelatedFood from '../features/food/RelatedFood.jsx'
-import { publicRelationshipIds } from '../features/food/publicFoodResolution.js'
+import { getRouteFoodIds, publicRelationshipIds } from '../features/food/publicFoodResolution.js'
 import { getAttachedMediaCount, normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import RouteSections from '../features/routes/components/RouteSections.jsx'
 import { getCountries } from '../services/countriesApi.js'
@@ -148,6 +148,7 @@ function RoutePage() {
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
   const segments = useMemo(() => (Array.isArray(route?.segments) ? route.segments : []), [route])
+  const foodIds = useMemo(() => getRouteFoodIds(route), [route])
   const cancelHoverClose = () => {
     window.clearTimeout(hoverCloseTimerRef.current)
     hoverCloseTimerRef.current = null
@@ -382,7 +383,7 @@ function RoutePage() {
               <RouteMediaGrid videos={routeVideos} />
             </section>
           )}
-          <RelatedFood foodIds={route.food_ids} />
+          <RelatedFood foodIds={foodIds} />
         </aside>
       </div>
     </section>

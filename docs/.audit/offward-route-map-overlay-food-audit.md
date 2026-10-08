@@ -2,6 +2,14 @@
 
 Audit date: 2026-10-08. Scope: public frontend Route detail, route-map entity selection and overlay, public Food resolution, and relevant presentation styles. This is an audit only: no application code or backend code was changed.
 
+## Route Food Aggregation Follow-up (2026-10-08)
+
+The audit below is historical. The Route detail "Food along the way" section now passes a presentation-only union of `route.food_ids`, every embedded `waypoint.food_ids`, and every embedded `segment.food_ids` to [RelatedFood](../../src/features/food/RelatedFood.jsx), instead of only `route.food_ids`.
+
+[getRouteFoodIds](../../src/features/food/publicFoodResolution.js) safely normalizes missing/non-array relationships and deduplicates IDs with the existing public relationship normalizer. Order is first occurrence: Route, then Waypoints, then Segments. [RoutePage](../../src/pages/RoutePage.jsx) derives this list without mutating any owner relationship.
+
+Waypoint/Segment overlays and detail pages still resolve only their own `food_ids`. Backend ownership, management APIs, and the existing public Food cache/resolver are unchanged; aggregation adds no API call or relationship write. Regression coverage is in [publicFood.test.js](../../src/features/food/publicFood.test.js).
+
 ## Current Overlay Data Flow
 
 1. `RoutePage` calls `getPublicRouteBySlug(routeSlug)`.
