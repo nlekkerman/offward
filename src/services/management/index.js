@@ -8,6 +8,7 @@ export const videosApi = createManagementEntityApi('videos')
 export const toursApi = createManagementEntityApi('tours')
 export const eventsApi = createManagementEntityApi('events')
 export const partnersApi = createManagementEntityApi('partners')
+export const foodsApi = createManagementEntityApi('foods')
 
 export const managementApis = {
   countries: countriesApi,
@@ -18,4 +19,5 @@ export const managementApis = {
   tours: toursApi,
   events: eventsApi,
   partners: partnersApi,
+  foods: foodsApi,
 }

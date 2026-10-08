@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import VideoPlayer from '../features/video/VideoPlayer.jsx'
+import RelatedFood from '../features/food/RelatedFood.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
@@ -422,6 +423,7 @@ function StoryPage() {
           </div>
         </section>
       )}
+      <RelatedFood foodIds={story.food_ids} />
     </section>
   )
 }

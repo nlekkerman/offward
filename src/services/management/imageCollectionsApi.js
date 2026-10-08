@@ -1,4 +1,5 @@
 import { apiClient } from '../apiClient.js'
+import { normalizeManagementPage } from './catalogPagination.js'
 
 function getList(data) {
   return Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
@@ -12,6 +13,10 @@ export async function uploadImage(file) {
 }
 
 export const imageCollectionsApi = {
+  listPage: async ({ page = 1, pageSize = 24 } = {}) => {
+    const { data } = await apiClient.get('/api/offward/manage/image-collections/', { params: { page, page_size: pageSize } })
+    return normalizeManagementPage(data)
+  },
   list: async () => {
     const { data } = await apiClient.get('/api/offward/manage/image-collections/')
     return getList(data)

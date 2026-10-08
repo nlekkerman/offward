@@ -1,0 +1,74 @@
+.food-recipe-editor,
+.food-relationships {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.food-core-fields {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.food-recipe-row {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #3a3333;
+  border-radius: 10px;
+}
+
+.food-recipe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.food-recipe-row:focus-within {
+  border-color: #b83a37;
+}
+
+.food-management-page .primary-button,
+.food-management-page .content-video-tabs .is-active {
+  background: #d9232e;
+  color: #fff6ef;
+  border-color: #d9232e;
+}
+
+.food-management-page .content-image-picker-card.is-selected,
+.food-management-page .content-video-picker-item.is-selected {
+  border-color: #d9232e;
+  background: #281719;
+}
+
+.food-management-page .relationship-attachment-picker-item:hover {
+  border-color: #d9232e;
+}
+
+.food-management-page :is(input, textarea, select, button, a):focus-visible {
+  outline: 2px solid #d9232e;
+  outline-offset: 3px;
+}
+
+.management-catalog-status {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.food-relationships .relationship-attachment-picker-list {
+  max-height: 22rem;
+  overflow: auto;
+}
+
+@media (max-width: 600px) {
+  .food-recipe-row {
+    padding: 0.75rem;
+  }
+}

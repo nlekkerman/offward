@@ -4,6 +4,7 @@ import MapView from '../features/map/components/MapView.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
+import RelatedFood from '../features/food/RelatedFood.jsx'
 import { getAttachedMediaCount, normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import RouteSections from '../features/routes/components/RouteSections.jsx'
 import { getCountries } from '../services/countriesApi.js'
@@ -374,6 +375,7 @@ function RoutePage() {
           />
         </MapView>
       </section>
+      <RelatedFood foodIds={route.food_ids} />
     </section>
   )
 }

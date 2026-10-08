@@ -1,40 +1,19 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { imageCollectionsApi } from '../../../services/management/imageCollectionsApi.js'
-import { collectionCount, collectionPreview, errorMessage, formatManagementDate } from '../../../features/management/imageCollectionUtils.js'
+import { collectionCount, collectionPreview, formatManagementDate } from '../../../features/management/imageCollectionUtils.js'
+import useManagementCatalog from '../../../features/management/useManagementCatalog.js'
+import CatalogStatus from '../../../features/management/CatalogStatus.jsx'
 
 function GalleryListPage() {
-  const [collections, setCollections] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    let active = true
-
-    async function loadCollections() {
-      setLoading(true)
-      try {
-        const data = await imageCollectionsApi.list()
-        if (!active) return
-        setCollections(data)
-        setError('')
-      } catch (errorValue) {
-        if (active) setError(errorMessage(errorValue, 'Unable to load galleries.'))
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
-    loadCollections()
-    return () => { active = false }
-  }, [])
+  const catalog = useManagementCatalog(imageCollectionsApi)
+  const { items: collections, loading, error } = catalog
 
   if (loading) {
     return <section className="management-page"><h1>Galleries</h1><div className="management-empty">Loading galleries...</div></section>
   }
 
-  if (error) {
-    return <section className="management-page"><h1>Galleries</h1><div className="management-error">{error}</div></section>
+  if (error && !collections.length) {
+    return <section className="management-page"><h1>Galleries</h1><CatalogStatus catalog={catalog} label="galleries" /></section>
   }
 
   return (
@@ -73,6 +52,7 @@ function GalleryListPage() {
           })}
         </div>
       )}
+      <CatalogStatus catalog={catalog} label="galleries" />
     </section>
   )
 }

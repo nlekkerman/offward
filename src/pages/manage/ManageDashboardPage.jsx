@@ -1,6 +1,7 @@
 import { Link, useOutletContext } from 'react-router-dom'
 
 const cards = [
+  { label: 'Food', href: '/manage/foods' },
   { label: 'Countries', href: '/manage/countries' },
   { label: 'Places', href: '/manage/places' },
   { label: 'Routes', href: '/manage/routes' },

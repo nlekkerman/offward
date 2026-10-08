@@ -1,9 +1,14 @@
 import { apiClient } from '../apiClient.js'
+import { normalizeManagementPage } from './catalogPagination.js'
 
 export function createManagementEntityApi(resourceKey) {
   const basePath = `/api/offward/manage/${resourceKey}/`
 
   return {
+    listPage: async ({ page = 1, pageSize = 24 } = {}) => {
+      const { data } = await apiClient.get(basePath, { params: { page, page_size: pageSize } })
+      return normalizeManagementPage(data)
+    },
     list: async () => {
       const { data } = await apiClient.get(basePath)
       if (Array.isArray(data)) {
@@ -15,7 +20,7 @@ export function createManagementEntityApi(resourceKey) {
       return []
     },
     getById: async (id) => {
-      const { data } = await apiClient.get(`${basePath}${id}/`)
+      const { data } = await apiClient.get(`${basePath}${encodeURIComponent(id)}/`)
       return data
     },
     create: async (payload) => {

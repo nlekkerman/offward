@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { managementApis } from '../../services/management/index.js'
 import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
 import { getEntityConfig, normalizeDisplayValue } from './entityConfig.js'
+import useManagementCatalog from './useManagementCatalog.js'
+import CatalogStatus from './CatalogStatus.jsx'
+import { invalidatePublicFoods } from '../food/publicFoodCache.js'
 
 function getCountryLabel(item, countryRecords) {
   if (item?.country_name) {
@@ -55,79 +57,13 @@ function CountryIdentity({ country, fallback }) {
 function EntityListPage({ resourceKey, title }) {
   const config = getEntityConfig(resourceKey)
   const api = managementApis[resourceKey]
-  const [items, setItems] = useState([])
-  const [countryRecords, setCountryRecords] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  const loadItems = async () => {
-    try {
-      setLoading(true)
-      const data = await api.list()
-      setItems(data)
-      setError('')
-    } catch (err) {
-      setError(err?.response?.data?.detail || 'Unable to load records.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    let active = true
-
-    async function fetchItems() {
-      try {
-        setLoading(true)
-        const data = await api.list()
-        if (active) {
-          setItems(data)
-          setError('')
-        }
-      } catch (err) {
-        if (active) {
-          setError(err?.response?.data?.detail || 'Unable to load records.')
-        }
-      } finally {
-        if (active) {
-          setLoading(false)
-        }
-      }
-    }
-
-    fetchItems()
-
-    return () => {
-      active = false
-    }
-  }, [api, resourceKey])
-
-  useEffect(() => {
-    if (!config.listFields.includes('country')) {
-      return undefined
-    }
-
-    let active = true
-
-    async function fetchCountries() {
-      try {
-        const data = await managementApis.countries.list()
-        if (active) {
-          setCountryRecords(data)
-        }
-      } catch {
-        if (active) {
-          setCountryRecords([])
-        }
-      }
-    }
-
-    fetchCountries()
-
-    return () => {
-      active = false
-    }
-  }, [config.listFields, resourceKey])
+  const catalog = useManagementCatalog(api)
+  const { items, loading, error } = catalog
+  const countryIds = config.listFields.includes('country')
+    ? items.map((item) => typeof item.country === 'object' ? item.country?.id : item.country || item.country_id).filter(Boolean)
+    : []
+  const countries = useManagementCatalog(managementApis.countries, countryIds)
+  const countryRecords = countries.items
 
   const handleDelete = async (item) => {
     const id = item?.id
@@ -142,7 +78,8 @@ function EntityListPage({ resourceKey, title }) {
 
     try {
       await api.remove(id)
-      await loadItems()
+      if (resourceKey === 'foods') invalidatePublicFoods()
+      catalog.retry()
     } catch (err) {
       const message = err?.response?.data?.detail || err?.response?.data?.non_field_errors?.[0] || 'Unable to delete this record.'
       window.alert(message)
@@ -155,12 +92,12 @@ function EntityListPage({ resourceKey, title }) {
     return <section className="management-page"><h1>{title}</h1><div className="management-empty">Loading...</div></section>
   }
 
-  if (error) {
-    return <section className="management-page"><h1>{title}</h1><div className="management-error">{error}</div></section>
+  if (error && !items.length) {
+    return <section className="management-page"><h1>{title}</h1><CatalogStatus catalog={catalog} label="records" /></section>
   }
 
   return (
-    <section className="management-page">
+    <section className={resourceKey === 'foods' ? 'management-page food-management-page' : 'management-page'}>
       <div className="management-page-header">
         <div>
           <p className="eyebrow">Management</p>
@@ -171,6 +108,7 @@ function EntityListPage({ resourceKey, title }) {
         </Link>
       </div>
 
+      {config.listFields.includes('country') && (countries.error || countries.unresolvedErrors.length > 0) && <p className="management-error" role="alert">Some Country labels could not be loaded. <button type="button" className="secondary-button small-button" onClick={countries.retry}>Retry Country labels</button></p>}
       {!items.length ? (
         <div className="management-empty">
           <p>No {config.label.toLowerCase()} records found.</p>
@@ -222,6 +160,7 @@ function EntityListPage({ resourceKey, title }) {
           </table>
         </div>
       )}
+      <CatalogStatus catalog={catalog} label={title.toLowerCase()} />
     </section>
   )
 }

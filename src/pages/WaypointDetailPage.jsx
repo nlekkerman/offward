@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import EntityRouteContext from '../features/routes/components/EntityRouteContext.jsx'
+import RelatedFood from '../features/food/RelatedFood.jsx'
 import { normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import { getPublicPlaces } from '../services/placesApi.js'
@@ -219,6 +220,8 @@ function WaypointDetailPage() {
         loadingGalleryId={galleryLoadingId}
         galleryErrorByCollectionId={galleryErrorByCollectionId}
       />
+
+      <RelatedFood foodIds={waypoint.food_ids} />
 
       <ImageLightbox
         images={lightboxImages}

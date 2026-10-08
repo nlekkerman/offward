@@ -86,6 +86,7 @@ function RelationshipAttachmentManager({
                   className="danger-button small-button"
                   onClick={() => onDetach?.(id)}
                   disabled={disabled}
+                  aria-label={`Remove ${item.__unresolved ? String(id) : getLabel(item)} from ${title.toLowerCase()}`}
                 >
                   Remove
                 </button>

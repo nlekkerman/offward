@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RelatedStories from '../features/routes/components/RelatedStories.jsx'
+import RelatedFood from '../features/food/RelatedFood.jsx'
 import { normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderablePlace } from '../features/map/mapGeometry.js'
@@ -185,6 +186,7 @@ function PlacePage() {
       <EntityMediaSection videos={videos} galleries={galleries} onOpenGallery={openGallery} loadingGalleryId={galleryLoadingId} galleryErrorByCollectionId={galleryErrorByCollectionId} />
       {storyCatalog.status === 'error' && <p className="place-detail-secondary-error" role="alert">Unable to load related Stories.</p>}
       <RelatedStories stories={relatedStories} />
+      <RelatedFood foodIds={place.food_ids} />
       <ImageLightbox
         images={lightboxImages}
         activeIndex={lightbox.index}

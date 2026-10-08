@@ -4,6 +4,10 @@ import { routeMapApi } from '../../services/management/routeMapApi.js'
 import { createVideoDirectUpload, uploadVideoToCloudflare } from '../../services/management/videoUploadApi.js'
 import { slugify } from '../management/entityConfig.js'
 import VideoPlayer from './VideoPlayer.jsx'
+import { managementApis } from '../../services/management/index.js'
+import useManagementCatalog from '../management/useManagementCatalog.js'
+import CatalogStatus from '../management/CatalogStatus.jsx'
+import { invalidatePublicFoods } from '../food/publicFoodCache.js'
 
 const ACCEPTED_EXTENSIONS = ['.mp4', '.mov', '.m4v']
 
@@ -40,16 +44,6 @@ function getRelationField(resourceKey) {
   return resourceKey === 'segment' || resourceKey === 'waypoint' ? 'media_ids' : 'video_ids'
 }
 
-function getRecordList(data) {
-  if (Array.isArray(data)) {
-    return data
-  }
-  if (Array.isArray(data?.results)) {
-    return data.results
-  }
-  return []
-}
-
 function normalizeVideoRecord(video) {
   const id = video?.id ?? video?.video_id ?? ''
   return {
@@ -82,9 +76,13 @@ function ContentVideoManager({
   routeId = '',
   segmentId = '',
   waypointId = '',
+  disabled = false,
+  onBusyChange,
 }) {
-  const [allVideos, setAllVideos] = useState([])
-  const [loadingVideos, setLoadingVideos] = useState(true)
+  const catalog = useManagementCatalog(managementApis.videos, attachedVideoIds)
+  const allVideos = useMemo(() => catalog.items.map(normalizeVideoRecord), [catalog.items])
+  const loadingVideos = catalog.loading
+  const [savingAttachments, setSavingAttachments] = useState(false)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [mode, setMode] = useState('upload')
   const [searchTerm, setSearchTerm] = useState('')
@@ -105,34 +103,6 @@ function ContentVideoManager({
   const backendResourcePath = getResourcePath(resourceKey)
 
   const normalizedAttachedIds = useMemo(() => normalizeVideoIds(attachedVideoIds), [attachedVideoIds])
-
-  useEffect(() => {
-    let active = true
-
-    async function loadVideos() {
-      try {
-        setLoadingVideos(true)
-        const { data } = await apiClient.get('/api/offward/manage/videos/')
-        if (!active) return
-        setAllVideos(getRecordList(data).map(normalizeVideoRecord))
-      } catch {
-        if (active) {
-          setAllVideos([])
-          setError('Unable to load the Video catalog.')
-        }
-      } finally {
-        if (active) {
-          setLoadingVideos(false)
-        }
-      }
-    }
-
-    loadVideos()
-
-    return () => {
-      active = false
-    }
-  }, [])
 
   const attachedVideos = useMemo(
     () => allVideos.filter((video) => normalizedAttachedIds.includes(String(video.id))),
@@ -200,12 +170,14 @@ function ContentVideoManager({
     await apiClient.patch(`/api/offward/manage/${backendResourcePath}/${resourceId}/`, {
       [relationshipField]: nextVideoIds,
     })
+    if (backendResourcePath === 'foods') invalidatePublicFoods()
 
     return nextVideoIds
   }
 
   const updateRelationship = async (nextIds, { silent = false } = {}) => {
     const nextVideoIds = normalizeVideoIds(nextIds)
+    setSavingAttachments(true)
     try {
       const updated = await persistRelationship(nextVideoIds)
       onAttachmentsChange?.(updated)
@@ -219,6 +191,8 @@ function ContentVideoManager({
         setError(message)
       }
       throw requestError
+    } finally {
+      setSavingAttachments(false)
     }
   }
 
@@ -237,8 +211,17 @@ function ContentVideoManager({
     if (previewVideoId === String(videoId)) {
       setPreviewVideoId('')
     }
+
     setNotice('Video detached from this content.')
     setError('')
+  }
+
+  const handleDetach = async (videoId) => {
+    try {
+      await detachVideo(videoId)
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    }
   }
 
   const createVideoRecord = async ({ file, provider, providerId, title, status }) => {
@@ -299,13 +282,14 @@ function ContentVideoManager({
       if (!createdVideoId) {
         throw new Error('The video record was created without a valid id.')
       }
+      catalog.addItem({ ...createdVideo, id: String(createdVideoId) })
 
       setUploadState('attaching')
       await updateRelationship([...normalizedAttachedIds, String(createdVideoId)], { silent: true })
       setUploadState('success')
-      setNotice('Video uploaded and attached.')
       setRetryVideoId('')
       resetUploadForm()
+      setNotice('Video uploaded and attached.')
       setIsPanelOpen(false)
     } catch (requestError) {
       if (abortController.signal.aborted) return
@@ -364,6 +348,10 @@ function ContentVideoManager({
   }
 
   const isBusy = uploadState === 'requesting' || uploadState === 'uploading' || uploadState === 'creating' || uploadState === 'attaching'
+  useEffect(() => {
+    onBusyChange?.(isBusy || savingAttachments)
+    return () => onBusyChange?.(false)
+  }, [isBusy, savingAttachments, onBusyChange])
 
   if (!resourceId && resourceKey !== 'segment') {
     return null
@@ -371,6 +359,9 @@ function ContentVideoManager({
 
   return (
     <section className="content-video-manager">
+      <fieldset className="content-video-control-fieldset" disabled={disabled || savingAttachments}>
+      <CatalogStatus catalog={catalog} label="videos" disabled={disabled || isBusy || savingAttachments} />
+      {normalizedAttachedIds.filter((videoId) => !allVideos.some((video) => video.id === videoId)).map((videoId) => <div className="content-video-card" key={videoId}><span>{videoId} (unresolved Video)</span><button type="button" className="danger-button small-button" disabled={disabled || isBusy || savingAttachments} aria-label={`Remove Video ${videoId}`} onClick={() => handleDetach(videoId)}>Remove</button></div>)}
       <div className="content-video-header">
         <div>
           <p className="eyebrow">Media</p>
@@ -397,7 +388,7 @@ function ContentVideoManager({
                 <button type="button" className="secondary-button small-button" onClick={() => setPreviewVideoId((current) => current === String(video.id) ? '' : String(video.id))}>
                   {previewVideoId === String(video.id) ? 'Hide' : 'Preview'}
                 </button>
-                <button type="button" className="danger-button small-button" onClick={() => detachVideo(video.id)}>
+                <button type="button" className="danger-button small-button" disabled={disabled || isBusy || savingAttachments} aria-label={`Remove Video ${video.title}`} onClick={() => handleDetach(video.id)}>
                   Remove
                 </button>
               </div>
@@ -408,6 +399,7 @@ function ContentVideoManager({
         )}
       </div>
       {error && !isPanelOpen && <div className="management-error" role="alert">{error}</div>}
+      {notice && !isPanelOpen && <p role="status">{notice}</p>}
 
       {previewVideoId && (
         <div className="content-video-preview-box">
@@ -426,7 +418,7 @@ function ContentVideoManager({
       )}
 
       <div className="content-video-panel-toggle">
-        <button type="button" className="secondary-button" onClick={() => setIsPanelOpen((current) => !current)}>
+        <button type="button" className="secondary-button" disabled={disabled || savingAttachments || isBusy} onClick={() => setIsPanelOpen((current) => !current)}>
           {isPanelOpen ? 'Close video manager' : '+ Add video'}
         </button>
       </div>
@@ -507,7 +499,7 @@ function ContentVideoManager({
                 <button type="button" className="secondary-button" onClick={resetUploadForm}>
                   Cancel
                 </button>
-                <button type="button" className="primary-button" disabled={!selectedFile || isBusy} onClick={uploadAndAttach}>
+                <button type="button" className="primary-button" disabled={disabled || !selectedFile || isBusy || savingAttachments} onClick={uploadAndAttach}>
                   {isBusy ? 'Uploading...' : 'Upload & Attach'}
                 </button>
               </div>
@@ -567,7 +559,7 @@ function ContentVideoManager({
                 <button type="button" className="secondary-button" onClick={() => setSelectedExistingId('')}>
                   Clear selection
                 </button>
-                <button type="button" className="primary-button" disabled={!selectedExistingId} onClick={handleExistingAttach}>
+                <button type="button" className="primary-button" disabled={disabled || isBusy || savingAttachments || !selectedExistingId} onClick={handleExistingAttach}>
                   Attach selected
                 </button>
               </div>
@@ -575,6 +567,7 @@ function ContentVideoManager({
           )}
         </div>
       )}
+      </fieldset>
     </section>
   )
 }

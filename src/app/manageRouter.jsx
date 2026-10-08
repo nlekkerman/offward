@@ -23,6 +23,9 @@ function ManageRouter() {
       <Route element={<ManagementGuard />}>
         <Route element={<ManageLayout />}>
           <Route index element={<ManageDashboardPage />} />
+          <Route path="foods" element={<EntityListPage resourceKey="foods" title="Food" />} />
+          <Route path="foods/new" element={<EntityFormPage resourceKey="foods" title="Create Food" />} />
+          <Route path="foods/:id/edit" element={<EntityFormPage resourceKey="foods" title="Edit Food" />} />
           <Route path="countries" element={<EntityListPage resourceKey="countries" title="Countries" />} />
           <Route path="countries/new" element={<EntityFormPage resourceKey="countries" title="Create Country" />} />
           <Route path="countries/:id/edit" element={<EntityFormPage resourceKey="countries" title="Edit Country" />} />

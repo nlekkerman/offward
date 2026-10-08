@@ -13,6 +13,12 @@ import RelationshipAttachmentManager from './RelationshipAttachmentManager.jsx'
 import VideoPlayer from '../video/VideoPlayer.jsx'
 import PlaceCoordinatePicker from '../map/components/PlaceCoordinatePicker.jsx'
 import { isValidLatitude, isValidLongitude } from '../map/mapGeometry.js'
+import FoodRecipeEditor from '../food/FoodRecipeEditor.jsx'
+import FoodRelationships from '../food/FoodRelationships.jsx'
+import { FOOD_STATUSES, FOOD_TYPES } from '../food/foodConstants.js'
+import { buildFoodPayload, foodFieldErrors, FOOD_LIST_FIELDS, hydrateFoodLists, validateFood } from '../food/foodForm.js'
+import { errorMessage } from './imageCollectionUtils.js'
+import { invalidatePublicFoods } from '../food/publicFoodCache.js'
 
 const EMPTY_VIDEO_LOCATION = {
   latitude: '',
@@ -94,6 +100,11 @@ function getInitialValues(resourceKey, data = {}) {
     base.event_ids = normalizeIdArray(data.event_ids)
   }
 
+  if (resourceKey === 'foods') {
+    FOOD_LIST_FIELDS.forEach((field) => delete base[field])
+    Object.assign(base, hydrateFoodLists(data))
+  }
+
   if (Object.prototype.hasOwnProperty.call(base, 'country')) {
     const countryValue = data.country && typeof data.country === 'object'
       ? data.country.id
@@ -128,6 +139,9 @@ function EntityFormPage({ resourceKey, title }) {
   const [videoSegments, setVideoSegments] = useState([])
   const [videoSegmentsLoading, setVideoSegmentsLoading] = useState(false)
   const [videoUploadStatus, setVideoUploadStatus] = useState('idle')
+  const [foodLoadedId, setFoodLoadedId] = useState(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  const [foodMediaBusy, setFoodMediaBusy] = useState(false)
 
   const relationshipNames = useMemo(() => {
     return getRelationshipOptions(resourceKey)
@@ -194,6 +208,7 @@ function EntityFormPage({ resourceKey, title }) {
           const item = await api.getById(id)
           if (!active) return
           setFormData(getInitialValues(resourceKey, item))
+          if (resourceKey === 'foods') setFoodLoadedId(id)
           if (resourceKey === 'videos') {
             setVideoAttachments(item)
             setVideoLocationIntent('omit')
@@ -224,7 +239,7 @@ function EntityFormPage({ resourceKey, title }) {
     return () => {
       active = false
     }
-  }, [api, config.defaultValues, id, isEdit, relationshipNames, resourceKey])
+  }, [api, config.defaultValues, id, isEdit, relationshipNames, resourceKey, loadAttempt])
 
   const videoRouteId = resourceKey === 'videos' ? formData.location?.route_id : ''
 
@@ -431,6 +446,7 @@ function EntityFormPage({ resourceKey, title }) {
   }
 
   const buildPayload = () => {
+    if (resourceKey === 'foods') return buildFoodPayload(formData)
     const payload = { ...formData }
 
     // The backend owns first-publish timestamp assignment; never submit a frontend value.
@@ -533,6 +549,18 @@ function EntityFormPage({ resourceKey, title }) {
   const handleSubmit = async (event) => {
     event.preventDefault()
 
+    if (resourceKey === 'foods') {
+      if (foodMediaBusy) {
+        setError('Wait for Video actions to finish before saving Food.')
+        return
+      }
+      const errors = validateFood(formData)
+      if (Object.keys(errors).length) {
+        setFieldErrors(errors)
+        setError('Please fix validation errors before saving.')
+        return
+      }
+    }
     const videoSubmitBlockReason = getVideoSubmitBlockReason()
     if (videoSubmitBlockReason) {
       setError(videoSubmitBlockReason)
@@ -569,18 +597,26 @@ function EntityFormPage({ resourceKey, title }) {
       const payload = buildPayload()
       if (isEdit) {
         await api.update(id, payload)
+        if (resourceKey === 'foods') invalidatePublicFoods()
       } else {
-        await api.create(payload)
+        const created = await api.create(payload)
+        if (resourceKey === 'foods') {
+          if (!created?.id) throw new Error('Food was created without an ID. Return to the list before retrying to avoid duplicates.')
+          invalidatePublicFoods()
+          navigate(`/manage/foods/${created.id}/edit`)
+          return
+        }
       }
       navigate(`/manage/${resourceKey}`)
     } catch (err) {
       const responseData = err?.response?.data || {}
       const responseMessage = typeof responseData === 'string' ? responseData : responseData.detail
-      setError(responseMessage || err?.message || 'Unable to save this record.')
+      setError(resourceKey === 'foods' ? errorMessage(err, 'Unable to save Food.') : responseMessage || err?.message || 'Unable to save this record.')
 
       if (responseData && typeof responseData === 'object') {
-        const nextErrors = {}
+        const nextErrors = resourceKey === 'foods' ? foodFieldErrors(responseData) : {}
         Object.entries(responseData).forEach(([key, value]) => {
+          if (resourceKey === 'foods') return
           if (Array.isArray(value)) {
             nextErrors[key] = value.join(' ')
           } else if (typeof value === 'string') {
@@ -596,6 +632,10 @@ function EntityFormPage({ resourceKey, title }) {
 
   if (loading) {
     return <section className="management-page"><h1>{title}</h1><div className="management-empty">Loading form…</div></section>
+  }
+
+  if (resourceKey === 'foods' && isEdit && foodLoadedId !== id) {
+    return <section className="management-page"><h1>{title}</h1><div className="management-error" role="alert">{error || 'Unable to load Food.'}</div><button type="button" className="secondary-button" onClick={() => setLoadAttempt((value) => value + 1)}>Retry</button><Link to="/manage/foods" className="secondary-button">Back to list</Link></section>
   }
 
   const renderField = (key, fieldType = 'text') => {
@@ -673,7 +713,7 @@ function EntityFormPage({ resourceKey, title }) {
     }
 
     if (fieldType === 'select' && key === 'status') {
-      const statusOptions = ['draft', 'active', 'upcoming', 'inactive', 'completed', 'archived']
+      const statusOptions = resourceKey === 'foods' ? FOOD_STATUSES : ['draft', 'active', 'upcoming', 'inactive', 'completed', 'archived']
       return (
         <div key={key} className="form-field">
           <label htmlFor={key}>{fieldLabel(key)}</label>
@@ -683,6 +723,10 @@ function EntityFormPage({ resourceKey, title }) {
           {fieldError && <span className="field-error-text">{fieldError}</span>}
         </div>
       )
+    }
+
+    if (fieldType === 'select' && key === 'food_type') {
+      return <div key={key} className="form-field"><label htmlFor={key}>Food type</label><select {...commonProps}>{FOOD_TYPES.map((type) => <option key={type} value={type}>{fieldLabel(type)}</option>)}</select>{fieldError && <span className="field-error-text">{fieldError}</span>}</div>
     }
 
     if (fieldType === 'select' && key === 'lifecycle_status') {
@@ -741,7 +785,7 @@ function EntityFormPage({ resourceKey, title }) {
       return (
         <div key={key} className="form-field">
           <label htmlFor={key}>{fieldLabel(key)}</label>
-          <input {...commonProps} type="number" step="any" />
+          <input {...commonProps} type="number" step={resourceKey === 'foods' ? '1' : 'any'} min={resourceKey === 'foods' ? '1' : undefined} />
           {fieldError && <span className="field-error-text">{fieldError}</span>}
         </div>
       )
@@ -950,6 +994,33 @@ function EntityFormPage({ resourceKey, title }) {
 
   const renderFormFields = () => {
     switch (resourceKey) {
+      case 'foods': {
+        const change = (field, value) => {
+          setFormData((current) => ({ ...current, [field]: value }))
+          setFieldErrors((current) => Object.fromEntries(Object.entries(current).filter(([key]) => key !== field && !key.startsWith(`${field}.`))))
+        }
+        return [
+          <fieldset key="food-fields" className="food-core-fields" disabled={submitting}>
+            <legend>Food details</legend>
+            {renderField('title')}
+            {renderField('slug')}
+            {renderField('food_type', 'select')}
+            {renderField('status', 'select')}
+            {renderPublishedAt()}
+            {renderField('summary', 'textarea')}
+            {renderField('body', 'textarea')}
+            {renderField('prep_time_minutes', 'number')}
+            {renderField('cook_time_minutes', 'number')}
+            {renderField('servings', 'number')}
+          </fieldset>,
+          <FoodRecipeEditor key="food-recipe" ingredients={formData.ingredients} steps={formData.steps} onChange={change} errors={fieldErrors} disabled={submitting} />,
+          <FoodRelationships key="food-relationships" values={formData} onChange={change} errors={fieldErrors} disabled={submitting} />,
+          isEdit
+            ? <div key="food-videos"><p>Video attachments save immediately. Cancel does not undo attachment changes.</p><ContentVideoManager resourceKey="foods" resourceId={id} attachedVideoIds={formData.video_ids || []} onAttachmentsChange={(ids) => change('video_ids', ids)} disabled={submitting} onBusyChange={setFoodMediaBusy} /></div>
+            : <p key="food-video-notice">Create Food first, then attach videos on its edit page.</p>,
+          <div key="food-galleries"><p>Gallery attachment order saves with Food. Gallery content is edited independently in Gallery management.</p><ContentImageCollectionManager attachedCollectionIds={formData.image_collection_ids || []} onAttachmentsChange={(ids) => change('image_collection_ids', ids)} disabled={submitting} />{fieldErrors.image_collection_ids && <span className="field-error-text">{fieldErrors.image_collection_ids}</span>}</div>,
+        ]
+      }
       case 'countries':
         return [
           renderField('name'),
@@ -1183,7 +1254,7 @@ function EntityFormPage({ resourceKey, title }) {
   }
 
   return (
-    <section className="management-page">
+    <section className={resourceKey === 'foods' ? 'management-page food-management-page' : 'management-page'}>
       <div className="management-page-header">
         <div>
           <p className="eyebrow">Management</p>
@@ -1219,7 +1290,7 @@ function EntityFormPage({ resourceKey, title }) {
           <button type="button" className="secondary-button" onClick={() => navigate(`/manage/${resourceKey}`)}>
             Cancel
           </button>
-          <button type="submit" className="primary-button" disabled={submitting}>
+          <button type="submit" className="primary-button" disabled={submitting || (resourceKey === 'foods' && foodMediaBusy)}>
             {submitting ? 'Saving...' : isEdit ? 'Save changes' : 'Create'}
           </button>
         </div>

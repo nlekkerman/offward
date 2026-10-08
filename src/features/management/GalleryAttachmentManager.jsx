@@ -1,16 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import ImageLightbox from '../../shared/components/ImageLightbox.jsx'
 import { imageCollectionsApi } from '../../services/management/imageCollectionsApi.js'
 import { collectionCount, collectionPreview, errorMessage } from './imageCollectionUtils.js'
+import useManagementCatalog from './useManagementCatalog.js'
+import CatalogStatus from './CatalogStatus.jsx'
 
 function normalizeIds(ids) {
   return (Array.isArray(ids) ? ids : []).filter(Boolean).map(String)
 }
 
 function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = [], onAttach, onDetach, onPreview, disabled = false, persistImmediately = false }) {
-  const [collections, setCollections] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const catalog = useManagementCatalog(imageCollectionsApi, attachedCollectionIds)
+  const collections = catalog.items
+  const loading = catalog.loading
   const [persistenceStatus, setPersistenceStatus] = useState('idle')
   const [persistenceError, setPersistenceError] = useState('')
   const [isPickerOpen, setIsPickerOpen] = useState(false)
@@ -20,28 +22,14 @@ function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = 
   const collectionById = useMemo(() => new Map(collections.map((collection) => [String(collection.id), collection])), [collections])
   const attachedCollections = selectedIds.map((id) => collectionById.get(id)).filter(Boolean)
 
-  useEffect(() => {
-    let active = true
-    imageCollectionsApi.list()
-      .then((nextCollections) => {
-        if (active) setCollections(nextCollections)
-      })
-      .catch((errorValue) => {
-        if (active) setError(errorMessage(errorValue, 'Image galleries are unavailable right now.'))
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-    return () => { active = false }
-  }, [])
-
   const openPreview = async (collection) => {
     onPreview?.(collection)
     try {
       const detail = await imageCollectionsApi.getById(collection.id)
       setPreviewCollection(detail)
-    } catch {
-      setPreviewCollection(collection)
+    } catch (errorValue) {
+      setPersistenceError(errorMessage(errorValue, 'Unable to load gallery preview.'))
+      return
     }
     setPreviewIndex(0)
   }
@@ -79,7 +67,8 @@ function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = 
         </button>
       </div>
 
-      {error && <p className="content-image-error" role="alert">{error}</p>}
+      <CatalogStatus catalog={catalog} label="galleries" disabled={disabled || isSaving} />
+      {selectedIds.filter((id) => !collectionById.has(id)).map((id) => <article className="gallery-attachment-card" key={id}><span>{id} (unresolved gallery)</span><button type="button" className="danger-button small-button" onClick={() => persistChange(onDetach, { id })} disabled={disabled || isSaving} aria-label={`Remove gallery ${id}`}>Remove</button></article>)}
       {persistenceError && <p className="content-image-error" role="alert">{persistenceError}</p>}
       {persistImmediately && persistenceStatus !== 'idle' && (
         <p className="content-image-status" role="status">{isSaving ? 'Saving...' : 'Saved'}</p>

@@ -566,6 +566,13 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .gallery-attachment-picker-grid { grid-template-columns: 1fr; }
 }
 
+.content-video-control-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
 .relationship-attachment-manager {
   display: flex;
   flex-direction: column;

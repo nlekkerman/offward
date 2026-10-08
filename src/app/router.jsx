@@ -7,6 +7,8 @@ import CountriesListPage from '../pages/CountriesListPage.jsx'
 import CountryPage from '../pages/CountryPage.jsx'
 import EventPage from '../pages/EventPage.jsx'
 import ExplorePage from '../pages/ExplorePage.jsx'
+import FoodPage from '../pages/FoodPage.jsx'
+import FoodsListPage from '../pages/FoodsListPage.jsx'
 import HomePage from '../pages/HomePage.jsx'
 import NotFoundPage from '../pages/NotFoundPage.jsx'
 import PlacePage from '../pages/PlacePage.jsx'
@@ -29,6 +31,8 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <HomePage /> },
           { path: 'explore', element: <ExplorePage /> },
+          { path: 'food', element: <FoodsListPage /> },
+          { path: 'food/:slug', element: <FoodPage /> },
           { path: 'countries', element: <CountriesListPage /> },
           { path: 'countries/:countrySlug', element: <CountryPage /> },
           { path: 'places/:placeSlug', element: <PlacePage /> },

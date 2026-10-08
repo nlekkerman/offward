@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import EntityRouteContext from '../features/routes/components/EntityRouteContext.jsx'
 import RelatedStories from '../features/routes/components/RelatedStories.jsx'
+import RelatedFood from '../features/food/RelatedFood.jsx'
 import { normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
@@ -200,6 +201,7 @@ function SegmentDetailPage() {
       />
 
       <RelatedStories stories={relatedStories} />
+      <RelatedFood foodIds={segment.food_ids} />
 
       <ImageLightbox
         images={lightboxImages}
