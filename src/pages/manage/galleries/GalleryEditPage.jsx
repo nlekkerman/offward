@@ -7,7 +7,7 @@ import {
   errorMessage,
   imageCaption,
   imageId,
-  imageUrl,
+  membershipPreviewUrl,
   toImageMembershipPayload,
   toMembershipRows,
 } from '../../../features/management/imageCollectionUtils.js'
@@ -126,7 +126,7 @@ function GalleryEditPage() {
       try {
         const asset = await uploadImage(file)
         if (!asset?.id) throw new Error('upload response did not include an image asset id')
-        successfulImages.push({ image_asset_id: String(asset.id), url: asset.thumbnail_url || asset.public_url || '', caption: '' })
+        successfulImages.push({ image_asset_id: String(asset.id), url: membershipPreviewUrl(asset), caption: '' })
       } catch (errorValue) {
         failures.push(`${file.name}: ${errorMessage(errorValue, 'upload failed')}`)
       }
@@ -221,9 +221,9 @@ function GalleryEditPage() {
         ) : (
           <div className="gallery-image-grid">
             {images.map((image, index) => (
-              <article className="gallery-image-card" key={`${imageId(image)}-${index}`}>
+              <article className="gallery-image-card" key={imageId(image)}>
                 <div className="gallery-image-preview">
-                  {imageUrl(image) ? <img src={imageUrl(image)} alt="" /> : <span>Image</span>}
+                  {membershipPreviewUrl(image) ? <img src={membershipPreviewUrl(image)} alt="" /> : <span>Image</span>}
                 </div>
                 <label className="form-field">
                   Caption

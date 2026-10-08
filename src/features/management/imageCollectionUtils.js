@@ -21,7 +21,8 @@ export function errorMessage(error, fallback) {
 // Returns the ImageAsset UUID. Management collection rows are CollectionImage records whose
 // own `id` is the membership row, so `image_asset_id` must win over `id`.
 export function imageId(image) {
-  return String(image?.image_asset_id || image?.image_id || image?.asset_id || image?.image?.id || image?.id || '')
+  const isMembership = image && (Object.hasOwn(image, 'image_asset_id') || Object.hasOwn(image, 'order'))
+  return String(image?.image_asset_id || image?.image_id || image?.asset_id || image?.image?.id || (isMembership ? '' : image?.id) || '')
 }
 
 export function imageUrl(image) {
@@ -50,7 +51,8 @@ export function toImageMembershipPayload(images) {
 // already consumes for this API family (upload response, preview_image, ImageLightbox), flat or nested.
 export function membershipPreviewUrl(row) {
   const asset = row?.image_asset || row?.image || row?.asset
-  return imageUrl(row)
+  return row?.image?.thumbnail_url || row?.image?.url
+    || imageUrl(row)
     || row?.thumbnail_url || row?.public_url
     || asset?.thumbnail_url || asset?.public_url || asset?.url || asset?.image_url
     || ''

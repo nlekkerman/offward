@@ -1,5 +1,21 @@
 # React + Vite
 
+## Management gallery images
+
+[Gallery editing](src/pages/manage/galleries/GalleryEditPage.jsx) normalizes management
+detail and successful image-replacement responses through
+[imageCollectionUtils](src/features/management/imageCollectionUtils.js). Each saved
+membership uses `image_asset_id`, not its membership `id`. Previews prefer
+`image.thumbnail_url`, then `image.url`, retaining legacy presentation fields and
+same-session upload URLs when the response has no preview URL.
+
+Image replacement sends only `{ images: [{ image_asset_id, order, caption }] }`;
+array position determines order. Nested image objects and preview URLs are never
+written back. Gallery list previews still use
+`preview_image.thumbnail_url || preview_image.url`, with no per-image requests.
+
+Run the helper regressions with `node --test src/features/management/imageCollectionUtils.test.js`.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
