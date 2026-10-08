@@ -5,6 +5,7 @@ import { getCountries } from '../services/countriesApi.js'
 import { getPublicStories } from '../services/storiesApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
 import { findCountry } from '../shared/utils/country.js'
+import { collectionPreview, imagePreviewUrl } from '../features/management/imageCollectionUtils.js'
 
 function getImageUrl(image) {
   return image?.url || image?.image_url || image?.thumbnail_url || image?.image?.url || image?.image?.image_url || ''
@@ -17,12 +18,12 @@ function getStoryPreviewUrl(story) {
   }
 
   const firstCollection = Array.isArray(story.image_collections) ? story.image_collections[0] : null
-  const collectionUrl = getImageUrl(firstCollection?.preview_image) || getImageUrl(firstCollection?.images?.[0]) || firstCollection?.preview_image_url || ''
+  const collectionUrl = collectionPreview(firstCollection) || getImageUrl(firstCollection?.images?.[0])
   if (collectionUrl) {
     return collectionUrl
   }
 
-  return getImageUrl(story.preview_image) || getImageUrl(story.image) || getImageUrl(story.thumbnail)
+  return imagePreviewUrl(story.preview_image) || getImageUrl(story.image) || getImageUrl(story.thumbnail)
 }
 
 function StoriesListPage() {

@@ -28,6 +28,10 @@ export function imageUrl(image) {
   return image?.url || image?.image_url || image?.image?.url || image?.image?.image_url || image?.src || ''
 }
 
+export function imagePreviewUrl(image) {
+  return image?.thumbnail_url || imageUrl(image)
+}
+
 export function imageCaption(image) {
   return image?.caption || ''
 }
@@ -72,7 +76,7 @@ export function toMembershipRows(rows, previousRows = []) {
 }
 
 export function collectionPreview(collection) {
-  return collection?.preview_image?.thumbnail_url || collection?.preview_image?.url || collection?.preview_image?.image_url || collection?.preview_image_url || imageUrl(collection?.images?.[0])
+  return imagePreviewUrl(collection?.preview_image) || collection?.preview_image_url || imageUrl(collection?.images?.[0])
 }
 
 export function collectionCount(collection) {

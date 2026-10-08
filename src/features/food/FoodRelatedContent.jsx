@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import { getPublicRouteContext, publicPlaceCatalog, publicRouteCatalog, publicStoryCatalog } from './publicRelationshipCatalog.js'
 import { nextRouteContextBatch, publicRelationshipIds, resolvePublicRouteChildren } from './publicFoodResolution.js'
-import { collectionPreview, imageUrl } from '../management/imageCollectionUtils.js'
+import { collectionPreview, imagePreviewUrl, imageUrl } from '../management/imageCollectionUtils.js'
 import usePublicCountries from './usePublicCountries.js'
 import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
@@ -30,7 +30,7 @@ function RelationshipGroup({ ids, catalog, title, path }) {
       {found.length > 0 && (path === 'stories'
         ? <ul className="food-link-list">{found.map((record) => <li key={record.id}><Link to={`/${path}/${encodeURIComponent(record.slug)}`}>{record.title || record.name || title}</Link></li>)}</ul>
         : <div className="story-related-grid">{found.map((record) => {
-          const preview = imageUrl(record.hero_image) || imageUrl(record.preview_image) || collectionPreview(record.image_collections?.[0]) || record.preview_image_url
+          const preview = imageUrl(record.hero_image) || imagePreviewUrl(record.preview_image) || collectionPreview(record.image_collections?.[0]) || record.preview_image_url
           const country = findCountry(countries, record.country)
           const countryLabel = country?.name || formatCountryLabel(record.country)
           return <Link key={record.id} className="story-related-card" to={`/${path}/${encodeURIComponent(record.slug)}`}>

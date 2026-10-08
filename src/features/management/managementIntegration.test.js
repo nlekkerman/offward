@@ -178,3 +178,60 @@ test('public Food cards use real slug links/type/summary and do not guess UUID l
   assert.match(html, /preview.webp/)
   assert.equal(card({ id: 'no-slug', title: 'Unavailable' }), '')
 })
+
+test('management gallery list preserves preview_image from its existing list request', async () => {
+  const { apiClient } = await server.ssrLoadModule('/src/services/apiClient.js')
+  const { imageCollectionsApi } = await server.ssrLoadModule('/src/services/management/imageCollectionsApi.js')
+  const collection = { id: 'gallery-id', title: 'Skocaj', image_count: 3, preview_image: { id: 'asset-id', url: 'https://example.invalid/full.webp', thumbnail_url: 'https://example.invalid/thumb.webp', width: 1152, height: 2048 } }
+  const originalGet = apiClient.get
+  const calls = []
+  apiClient.get = async (...args) => {
+    calls.push(args)
+    return { data: { count: 1, next: null, previous: null, results: [collection] } }
+  }
+  try {
+    const { GalleryListCard } = await server.ssrLoadModule('/src/pages/manage/galleries/GalleryListPage.jsx')
+    const page = await imageCollectionsApi.listPage()
+    assert.deepEqual(page.results, [collection])
+    const card = (record) => renderToStaticMarkup(createElement(MemoryRouter, null, createElement(GalleryListCard, { collection: record })))
+    const html = card(page.results[0])
+    assert.match(html, /src="https:\/\/example.invalid\/thumb.webp"/)
+    assert.match(html, /gallery-list-preview/)
+    assert.match(html, /Skocaj/)
+    assert.match(html, /3 images/)
+    assert.match(html, /href="\/manage\/galleries\/gallery-id\/edit"/)
+    assert.doesNotMatch(html, /No preview/)
+    assert.match(card({ ...collection, preview_image: { url: collection.preview_image.url } }), /src="https:\/\/example.invalid\/full.webp"/)
+    const empty = card({ ...collection, image_count: 0, preview_image: null })
+    assert.match(empty, /No preview/)
+    assert.match(empty, /0 images/)
+    assert.doesNotMatch(empty, /<img/)
+    assert.deepEqual(calls, [['/api/offward/manage/image-collections/', { params: { page: 1, page_size: 24 } }]])
+  } finally {
+    apiClient.get = originalGet
+  }
+})
+
+test('Food cards and public gallery cards share thumbnail-first list previews and URL fallback', async () => {
+  const { default: FoodCard } = await server.ssrLoadModule('/src/features/food/FoodCard.jsx')
+  const { default: EntityMediaSection } = await server.ssrLoadModule('/src/features/routes/components/EntityMediaSection.jsx')
+  const preview_image = { url: 'https://example.invalid/full.webp', thumbnail_url: 'https://example.invalid/thumb.webp', width: 1152, height: 2048 }
+  const foodCard = (food) => renderToStaticMarkup(createElement(MemoryRouter, null, createElement(FoodCard, { food: { slug: 'food', title: 'Food', ...food } })))
+  const galleryCard = (preview, showAllImages = false) => renderToStaticMarkup(createElement(EntityMediaSection, {
+    galleries: [{ id: 'gallery', title: 'Skocaj', image_count: 3, preview_image: preview }],
+    onOpenGallery() {},
+    showAllImages,
+  }))
+  for (const preview of [preview_image, { url: preview_image.url }]) {
+    const expected = preview.thumbnail_url || preview.url
+    assert.ok(foodCard({ preview_image: preview }).includes(`src="${expected}"`))
+    assert.ok(foodCard({ image_collections: [{ preview_image: preview }] }).includes(`src="${expected}"`))
+    for (const showAllImages of [false, true]) {
+      const html = galleryCard(preview, showAllImages)
+      assert.ok(html.includes(`src="${expected}"`))
+      assert.match(html, /Skocaj/)
+      assert.match(html, /3 photos/)
+    }
+  }
+  assert.doesNotMatch(galleryCard(null), /<img/)
+})

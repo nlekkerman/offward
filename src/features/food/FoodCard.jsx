@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
-import { collectionPreview, imageUrl } from '../management/imageCollectionUtils.js'
+import { collectionPreview, imagePreviewUrl, imageUrl } from '../management/imageCollectionUtils.js'
 import { formatActivityLabel, formatCountryLabel, formatPublishedDate } from '../home/latestContentFormatting.js'
 import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
 import './food.css'
 
 function FoodCard({ food, countries = [], compact = false }) {
-  const preview = imageUrl(food.preview_image) || food.preview_image?.thumbnail_url
+  const preview = imagePreviewUrl(food.preview_image)
     || food.preview_image_url || collectionPreview(food.image_collections?.[0])
     || imageUrl(food.image) || imageUrl(food.thumbnail)
   const country = findCountry(countries, food.country)

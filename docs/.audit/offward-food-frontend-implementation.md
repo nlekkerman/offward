@@ -152,6 +152,8 @@ Attach/remove/Up/Down modify the local ordered array. They persist only with par
 
 Existing collection authoring/upload remains separate. Public Food reuses embedded collection previews, lazy full-collection loading, the existing media section and image lightbox. Collection order follows the Food response; gallery fetch failures are visible/retryable.
 
+List/card previews share [collectionPreview and imagePreviewUrl](../../src/features/management/imageCollectionUtils.js). They prefer `preview_image.thumbnail_url`, falling back to `preview_image.url`, without fetching collection details or constructing CDN URLs. Management gallery cards retain their title/count, layout, `object-fit: cover`, and existing "No preview" placeholder for empty collections. Food cards (list, Country and related Food), related Place/Route cards and public Story collection previews use the same URL resolver; public gallery media cards already use `collectionPreview`. Regression tests cover list-response preservation, thumbnail/full-size selection, null previews and request-free card rendering.
+
 ## Public Food API
 
 The public adapter uses only:
