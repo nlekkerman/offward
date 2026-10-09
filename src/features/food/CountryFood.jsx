@@ -21,7 +21,7 @@ function CountryFood({ country }) {
       if (isCurrent) setResult({ requestKey, foods: [], status: 'error', error: error?.message || 'Unable to load Food for this Country.' })
     })
     return () => { isCurrent = false }
-  }, [countryFilter, attempt])
+  }, [countryFilter, attempt, requestKey])
 
   const current = !countryFilter
     ? { foods: [], status: 'success', error: '' }

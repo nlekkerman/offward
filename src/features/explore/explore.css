@@ -244,6 +244,12 @@
 
 .country-discovery-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
 
+.country-page .country-detail-identity { margin-bottom: 1.25rem; }
+.country-page .country-detail-identity h1 { margin: 0; font: 400 clamp(2.5rem, 6vw, 4.5rem)/1.1 Georgia, serif; }
+.country-page .country-page-summary,
+.country-page .country-page-body { max-width: 70rem; color: var(--explore-muted); font: 400 1rem/1.7 'Trebuchet MS', sans-serif; }
+.country-page .country-page-body { white-space: pre-wrap; }
+
 .explore-card-map-action {
   min-height: 44px;
   border: 0;

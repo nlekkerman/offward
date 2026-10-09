@@ -21,8 +21,9 @@ export async function getPublicStoriesPage({ page = 1, pageSize = 12 } = {}) {
 }
 
 export async function getPublicStories() {
-  const page = await getPublicStoriesPage()
-  return page.results
+  const { data } = await apiClient.get('/api/offward/stories/')
+  const stories = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+  return orderPublicStories(stories)
 }
 
 export async function getLatestPublicStory() {

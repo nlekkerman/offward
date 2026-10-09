@@ -25,7 +25,7 @@ function CountryEntityPreview({ country, mode }) {
     )
 
     return () => { isCurrent = false }
-  }, [countryFilter, mode, attempt])
+  }, [countryFilter, mode, attempt, requestKey])
 
   if (!countryFilter) return null
 
