@@ -9,19 +9,19 @@ const PAGE_SIZE = 6
 function CountryEntityPreview({ country, mode }) {
   const countryFilter = country.slug || country.id
   const [attempt, setAttempt] = useState(0)
-  const [result, setResult] = useState({ countryFilter: '', status: 'loading', items: [] })
+  const [result, setResult] = useState({ requestKey: '', status: 'loading', items: [] })
   const title = mode === 'routes' ? 'Routes' : 'Places'
+  const requestKey = JSON.stringify([countryFilter, mode, attempt])
 
   useEffect(() => {
     if (!countryFilter) return undefined
 
     let isCurrent = true
-    setResult({ countryFilter, status: 'loading', items: [] })
     const fetchPage = mode === 'routes' ? getPublicRoutes : getPublicPlaces
 
     fetchPage({ country: countryFilter, page: 1, pageSize: PAGE_SIZE }).then(
-      (data) => { if (isCurrent) setResult({ countryFilter, status: 'success', items: data.results }) },
-      () => { if (isCurrent) setResult({ countryFilter, status: 'error', items: [] }) },
+      (data) => { if (isCurrent) setResult({ requestKey, status: 'success', items: data.results }) },
+      () => { if (isCurrent) setResult({ requestKey, status: 'error', items: [] }) },
     )
 
     return () => { isCurrent = false }
@@ -29,7 +29,7 @@ function CountryEntityPreview({ country, mode }) {
 
   if (!countryFilter) return null
 
-  const current = result.countryFilter === countryFilter ? result : { status: 'loading', items: [] }
+  const current = result.requestKey === requestKey ? result : { status: 'loading', items: [] }
   const query = new URLSearchParams({ view: mode, country: String(countryFilter) })
 
   return (

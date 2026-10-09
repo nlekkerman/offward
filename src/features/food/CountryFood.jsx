@@ -8,25 +8,24 @@ const PAGE_SIZE = 6
 function CountryFood({ country }) {
   const countryFilter = country.slug || country.id
   const [attempt, setAttempt] = useState(0)
-  const [result, setResult] = useState({ countryFilter: '', foods: [], status: 'loading', error: '' })
+  const [result, setResult] = useState({ requestKey: '', foods: [], status: 'loading', error: '' })
+  const requestKey = JSON.stringify([countryFilter, attempt])
 
   useEffect(() => {
     let isCurrent = true
-    if (!countryFilter) {
-      setResult({ countryFilter: '', foods: [], status: 'success', error: '' })
-      return () => { isCurrent = false }
-    }
+    if (!countryFilter) return () => { isCurrent = false }
 
-    setResult({ countryFilter, foods: [], status: 'loading', error: '' })
     getPublicFoods({ page: 1, page_size: PAGE_SIZE, country: countryFilter }).then((data) => {
-      if (isCurrent) setResult({ countryFilter, foods: data.results, status: 'success', error: '' })
+      if (isCurrent) setResult({ requestKey, foods: data.results, status: 'success', error: '' })
     }).catch((error) => {
-      if (isCurrent) setResult({ countryFilter, foods: [], status: 'error', error: error?.message || 'Unable to load Food for this Country.' })
+      if (isCurrent) setResult({ requestKey, foods: [], status: 'error', error: error?.message || 'Unable to load Food for this Country.' })
     })
     return () => { isCurrent = false }
   }, [countryFilter, attempt])
 
-  const current = result.countryFilter === countryFilter ? result : { foods: [], status: 'loading' }
+  const current = !countryFilter
+    ? { foods: [], status: 'success', error: '' }
+    : result.requestKey === requestKey ? result : { foods: [], status: 'loading', error: '' }
   const foodUrl = countryFilter ? `/food?country=${encodeURIComponent(countryFilter)}` : null
 
   return (

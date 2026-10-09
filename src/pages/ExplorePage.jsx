@@ -49,7 +49,7 @@ function ExplorePage() {
     setSelection(null)
   }
 
-  const results = <ExploreResults items={items} total={count} hasMore={next !== null} loadingMore={loadingMore} moreError={moreError} mode={mode} countries={countries} status={status} onRetry={retry} onMore={loadMore} selectedId={selectedId} onSelect={mapMode && filters.country ? setSelection : undefined} />
+  const results =   <ExploreResults items={items} total={count} hasMore={next !== null} loadingMore={loadingMore} moreError={moreError} mode={mode} countries={countries} status={status} onRetry={retry} onMore={loadMore} selectedId={selectedId} onSelect={mapMode && country ? setSelection : undefined} />
 
   return (
     <section className="explore-page explore-discovery">

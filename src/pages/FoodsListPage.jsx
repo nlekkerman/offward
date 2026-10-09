@@ -7,7 +7,7 @@ import usePublicCountries from '../features/food/usePublicCountries.js'
 import { formatActivityLabel } from '../features/home/latestContentFormatting.js'
 
 function FoodsListPage() {
-  const [, setSearchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const country = searchParams.get('country') || ''
   const foodType = searchParams.get('food_type') || ''
   const [attempt, setAttempt] = useState(0)
