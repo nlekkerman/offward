@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import FoodCard from '../features/food/FoodCard.jsx'
 import { FOOD_TYPES } from '../features/food/foodConstants.js'
 import { getNextPage, loadPublicFoodPage } from '../features/food/publicFoodCache.js'
@@ -6,14 +7,24 @@ import usePublicCountries from '../features/food/usePublicCountries.js'
 import { formatActivityLabel } from '../features/home/latestContentFormatting.js'
 
 function FoodsListPage() {
-  const [country, setCountry] = useState('')
-  const [foodType, setFoodType] = useState('')
+  const [, setSearchParams] = useSearchParams()
+  const country = searchParams.get('country') || ''
+  const foodType = searchParams.get('food_type') || ''
   const [attempt, setAttempt] = useState(0)
   const [result, setResult] = useState({ key: null, foods: [], count: 0, next: null, page: 0, status: 'loading', error: false })
   const requestRef = useRef(0)
   const morePending = useRef(false)
   const countries = usePublicCountries()
   const key = JSON.stringify([country, foodType, attempt])
+
+  function updateFilter(name, value) {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      if (value) next.set(name, value)
+      else next.delete(name)
+      return next
+    })
+  }
 
   useEffect(() => {
     const request = ++requestRef.current
@@ -53,8 +64,8 @@ function FoodsListPage() {
     <section className="food-page">
       <header className="explore-heading"><div><p className="eyebrow">PUBLIC FOOD</p><h1>Food</h1></div>{current.count !== undefined && <p className="explore-count" aria-live="polite">{current.foods.length} of {current.count} Food items</p>}</header>
       <div className="food-filters">
-        <label>Country<select aria-describedby="food-country-catalog-note" value={country} onChange={(event) => setCountry(event.target.value)}><option value="">All countries</option>{countries.countries.map((item) => <option key={item.id || item.slug} value={item.slug || item.id}>{item.name}</option>)}</select></label>
-        <label>Food type<select value={foodType} onChange={(event) => setFoodType(event.target.value)}><option value="">All types</option>{FOOD_TYPES.map((type) => <option key={type} value={type}>{formatActivityLabel(type)}</option>)}</select></label>
+        <label>Country<select aria-describedby="food-country-catalog-note" value={country} onChange={(event) => updateFilter('country', event.target.value)}><option value="">All countries</option>{countries.countries.map((item) => <option key={item.id || item.slug} value={item.slug || item.id}>{item.name}</option>)}</select></label>
+        <label>Food type<select value={foodType} onChange={(event) => updateFilter('food_type', event.target.value)}><option value="">All types</option>{FOOD_TYPES.map((type) => <option key={type} value={type}>{formatActivityLabel(type)}</option>)}</select></label>
       </div>
       <div id="food-country-catalog-note" className="food-relationship-status">
         {countries.status === 'loading' && <p role="status">Loading countries...</p>}

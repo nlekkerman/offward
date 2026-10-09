@@ -208,6 +208,42 @@
 
 .explore-discovery-card-detail > span { color: #ff6b72; }
 
+.explore-discovery-card.is-compact .explore-discovery-card-body {
+  min-height: 190px;
+  gap: 0.65rem;
+  padding: 1rem;
+}
+
+.explore-discovery-card.is-compact .explore-discovery-card h3 { font-size: 1.35rem; }
+.explore-discovery-card.is-compact .explore-discovery-summary { -webkit-line-clamp: 2; }
+
+.country-discovery-preview {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--explore-border);
+}
+
+.country-discovery-preview-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.country-discovery-preview-heading h2 {
+  margin: 0;
+  font: 400 1.75rem/1.25 Georgia, serif;
+}
+
+.country-discovery-view-all {
+  color: #ff6b72;
+  font: 600 0.85rem/1.4 'Trebuchet MS', sans-serif;
+  text-underline-offset: 4px;
+}
+
+.country-discovery-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+
 .explore-card-map-action {
   min-height: 44px;
   border: 0;

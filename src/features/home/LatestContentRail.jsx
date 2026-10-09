@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getCountries } from '../../services/countriesApi.js'
 import { getLatestPublicStory } from '../../services/storiesApi.js'
-import { getPublicRoutes } from '../../services/routesApi.js'
 import { getPublicVideos } from '../../services/videosApi.js'
-import LatestRouteCard from './LatestRouteCard.jsx'
 import LatestStoryCard from './LatestStoryCard.jsx'
 import LatestVideoCard from './LatestVideoCard.jsx'
 import './LatestContentRail.css'
@@ -17,16 +15,9 @@ async function loadLatestVideo() {
     .sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0))[0] || null
 }
 
-async function loadLatestRoute() {
-  // Route summaries have no timestamp, so this uses the API's current ordering.
-  // Geometry is requested only for the single Route shown with its mini-map.
-  const page = await getPublicRoutes({ status: 'active', includeGeometry: true, page: 1, pageSize: 1 })
-  return page.results[0] || null
-}
-
 /**
- * Single horizontal rail for the newest publicly visible content, directly
- * below the Home hero. Extend by adding a loader + card component per type.
+ * Single horizontal rail for publicly visible content with a published date,
+ * directly below the Home hero.
  */
 function LatestContentRail() {
   const [status, setStatus] = useState('loading')
@@ -36,10 +27,9 @@ function LatestContentRail() {
     let isCurrent = true
 
     async function loadLatest() {
-      const [videoResult, storyResult, routeResult, countriesResult] = await Promise.allSettled([
+      const [videoResult, storyResult, countriesResult] = await Promise.allSettled([
         loadLatestVideo(),
         getLatestPublicStory(),
-        loadLatestRoute(),
         getCountries(),
       ])
 
@@ -56,10 +46,6 @@ function LatestContentRail() {
 
       if (storyResult.status === 'fulfilled' && storyResult.value) {
         nextItems.push({ key: `story-${storyResult.value.id}`, type: 'story', data: storyResult.value, countries })
-      }
-
-      if (routeResult.status === 'fulfilled' && routeResult.value) {
-        nextItems.push({ key: `route-${routeResult.value.id}`, type: 'route', data: routeResult.value, countries })
       }
 
       setItems(nextItems)
@@ -82,7 +68,6 @@ function LatestContentRail() {
         <div className="latest-content-rail-track">
           <div className="latest-rail-skeleton" />
           <div className="latest-rail-skeleton" />
-          <div className="latest-rail-skeleton" />
         </div>
       </section>
     )
@@ -102,7 +87,6 @@ function LatestContentRail() {
           <li className="latest-rail-item" key={item.key}>
             {item.type === 'video' && <LatestVideoCard video={item.data} />}
             {item.type === 'story' && <LatestStoryCard story={item.data} countryRecords={item.countries} />}
-            {item.type === 'route' && <LatestRouteCard route={item.data} countryRecords={item.countries} />}
           </li>
         ))}
       </ul>

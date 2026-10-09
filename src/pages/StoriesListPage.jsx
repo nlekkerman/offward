@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatCountryLabel, formatPublishedDate } from '../features/home/latestContentFormatting.js'
 import { getCountries } from '../services/countriesApi.js'
-import { getPublicStories } from '../services/storiesApi.js'
+import { getPublicStoriesPage } from '../services/storiesApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
 import { findCountry } from '../shared/utils/country.js'
 import { collectionPreview, imagePreviewUrl } from '../features/management/imageCollectionUtils.js'
@@ -27,23 +27,25 @@ function getStoryPreviewUrl(story) {
 }
 
 function StoriesListPage() {
-  const [status, setStatus] = useState('loading')
-  const [stories, setStories] = useState([])
+  const [attempt, setAttempt] = useState(0)
+  const [result, setResult] = useState({ status: 'loading', stories: [], count: 0, next: null, page: 0, moreError: false })
+  const morePending = useRef(false)
   const [countries, setCountries] = useState([])
 
   useEffect(() => {
     let isCurrent = true
 
     async function loadStories() {
+      setResult({ status: 'loading', stories: [], count: 0, next: null, page: 0, moreError: false })
+      morePending.current = false
       try {
-        const data = await getPublicStories()
+        const data = await getPublicStoriesPage({ page: 1 })
         if (isCurrent) {
-          setStories(data)
-          setStatus('success')
+          setResult({ status: 'success', stories: data.results, count: data.count, next: data.next, page: 1, moreError: false })
         }
       } catch {
         if (isCurrent) {
-          setStatus('error')
+          setResult((value) => ({ ...value, status: 'error' }))
         }
       }
     }
@@ -53,7 +55,26 @@ function StoriesListPage() {
     return () => {
       isCurrent = false
     }
-  }, [])
+  }, [attempt])
+
+  const loadMore = async () => {
+    if (!result.next || morePending.current) return
+    morePending.current = true
+    setResult((value) => ({ ...value, status: 'loading-more', moreError: false }))
+    try {
+      const page = result.page + 1
+      const data = await getPublicStoriesPage({ page })
+      setResult((value) => {
+        const records = new Map(value.stories.map((story) => [String(story.id || story.slug), story]))
+        data.results.forEach((story) => records.set(String(story.id || story.slug), story))
+        return { status: 'success', stories: [...records.values()], count: data.count, next: data.next, page, moreError: false }
+      })
+    } catch {
+      setResult((value) => ({ ...value, status: 'success', moreError: true }))
+    } finally {
+      morePending.current = false
+    }
+  }
 
   useEffect(() => {
     let isCurrent = true
@@ -70,22 +91,22 @@ function StoriesListPage() {
           <p className="eyebrow">PUBLIC STORIES</p>
           <h1>Stories</h1>
         </div>
-        {status === 'success' && (
+        {result.status !== 'loading' && result.status !== 'error' && (
           <p className="explore-count" aria-live="polite">
-            {stories.length} {stories.length === 1 ? 'story' : 'stories'}
+            Showing {result.stories.length} of {result.count} stories
           </p>
         )}
       </div>
 
-      {status === 'loading' && <p className="explore-status" role="status">Loading stories...</p>}
-      {status === 'error' && <p className="explore-status" role="status">Unable to load stories.</p>}
-      {status === 'success' && stories.length === 0 && (
+      {result.status === 'loading' && <p className="explore-status" role="status">Loading stories...</p>}
+      {result.status === 'error' && <div className="explore-status" role="alert"><p>Unable to load stories.</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>Retry</button></div>}
+      {result.status === 'success' && result.stories.length === 0 && (
         <p className="explore-status" role="status">No stories are published yet.</p>
       )}
 
-      {stories.length > 0 && (
+      {result.stories.length > 0 && (
         <div className="story-list-grid" aria-label="Stories">
-          {stories.map((story) => {
+          {result.stories.map((story) => {
             const previewUrl = getStoryPreviewUrl(story)
             const countryLabel = formatCountryLabel(story.country)
             const country = findCountry(countries, story.country)
@@ -114,6 +135,8 @@ function StoriesListPage() {
           })}
         </div>
       )}
+      {result.moreError && <p className="explore-status" role="alert">Unable to load more stories. Your loaded stories are preserved.</p>}
+      {result.next && <button type="button" className="food-button" disabled={result.status === 'loading-more'} onClick={loadMore}>{result.status === 'loading-more' ? 'Loading more stories…' : result.moreError ? 'Retry loading more stories' : 'Load more stories'}</button>}
     </section>
   )
 }

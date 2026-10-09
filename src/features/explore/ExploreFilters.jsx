@@ -9,6 +9,7 @@ export default function ExploreFilters({ mode, countries, countriesStatus, count
         <span>Country</span>
         <select value={country} className={country ? 'is-filtered' : ''} onChange={(event) => onChange({ country: event.target.value })}>
           <option value="">All countries</option>
+          {country && !countries.some((item) => item.slug === country || String(item.id) === country) && <option value={country}>{country}</option>}
           {countries.filter((item) => item.status === 'active' || item.status === 'upcoming').map((item) => (
             <option key={item.id} value={item.slug}>{item.name}</option>
           ))}

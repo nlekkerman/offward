@@ -25,13 +25,25 @@ function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const mode = searchParams.get('view') === 'places' ? 'places' : 'routes'
   const [mapMode, setMapMode] = useState(false)
-  const [filters, setFilters] = useState({ country: '', activity: '' })
   const [selection, setSelection] = useState(null)
-  const activity = mode === 'routes' ? filters.activity : ''
-  const { countries, countriesStatus, items, count, next, loadingMore, moreError, loadMore, status, retry } = useExploreData({ mode, country: filters.country, activity, mapMode })
+  const country = searchParams.get('country') || ''
+  const activity = mode === 'routes' ? searchParams.get('activity') || '' : ''
+  const { countries, countriesStatus, items, count, next, loadingMore, moreError, loadMore, status, retry } = useExploreData({ mode, country, activity, mapMode })
   const selectedId = status === 'success' && items.some((item) => item.id === selection) ? selection : null
-  const filtered = Boolean(filters.country || activity)
-  const title = filtered || mapMode ? `${mode === 'routes' ? 'Routes' : 'Places'}${filters.country ? ` in ${countries.find((country) => country.slug === filters.country)?.name || filters.country}` : ''}` : mode === 'routes' ? 'Latest Routes' : 'Places to Explore'
+  const filtered = Boolean(country || activity)
+  const title = filtered || mapMode ? `${mode === 'routes' ? 'Routes' : 'Places'}${country ? ` in ${countries.find((item) => item.slug === country || String(item.id) === country)?.name || country}` : ''}` : mode === 'routes' ? 'Routes to Explore' : 'Places to Explore'
+
+  function updateFilters(changes) {
+    resetSelection()
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      for (const [key, value] of Object.entries(changes)) {
+        if (value) next.set(key, value)
+        else next.delete(key)
+      }
+      return next
+    })
+  }
 
   function resetSelection() {
     setSelection(null)
@@ -47,10 +59,10 @@ function ExplorePage() {
         resetSelection()
         setSearchParams((previous) => { const next = new URLSearchParams(previous); next.set('view', view); return next })
       }} />
-      <ExploreFilters mode={mode} countries={countries} countriesStatus={countriesStatus} country={filters.country} activity={activity} onChange={(changes) => { resetSelection(); setFilters((previous) => ({ ...previous, ...changes })) }} onRetry={retry} />
+      <ExploreFilters mode={mode} countries={countries} countriesStatus={countriesStatus} country={country} activity={activity} onChange={updateFilters} onRetry={retry} />
       {mapMode ? (
         <Suspense fallback={<p className="explore-discovery-status" role="status">Loading map browser...</p>}>
-          <ExploreMapBrowser mode={mode} items={items} country={filters.country} status={status} selectedId={selectedId} onSelect={setSelection} onReset={() => setSelection(null)}>
+          <ExploreMapBrowser mode={mode} items={items} country={country} status={status} selectedId={selectedId} onSelect={setSelection} onReset={() => setSelection(null)}>
             <ExploreLanding title={title}>{results}</ExploreLanding>
           </ExploreMapBrowser>
         </Suspense>

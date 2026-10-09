@@ -4,6 +4,8 @@ import NotFoundPage from './NotFoundPage.jsx'
 import { getCountryBySlug } from '../services/countriesApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
 import CountryFood from '../features/food/CountryFood.jsx'
+import CountryEntityPreview from './CountryEntityPreview.jsx'
+import '../features/explore/explore.css'
 
 function CountryPage() {
   const { countrySlug } = useParams()
@@ -37,11 +39,11 @@ function CountryPage() {
   }, [countrySlug])
 
   if (error) {
-    return <section className="page-placeholder">Unable to load this country.</section>
+    return <section className="explore-page">Unable to load this country.</section>
   }
 
   if (country === undefined) {
-    return <section className="page-placeholder">Loading country...</section>
+    return <section className="explore-page">Loading country...</section>
   }
 
   if (!country) {
@@ -49,7 +51,7 @@ function CountryPage() {
   }
 
   return (
-    <section className="page-placeholder">
+    <section className="explore-page explore-discovery country-page">
       <div className="country-detail-identity">
         <CountryFlag code={country.code} countryName={country.name} size="medium" />
         <div>
@@ -57,8 +59,10 @@ function CountryPage() {
           <h1>{country.name}</h1>
         </div>
       </div>
-      <p>{country.summary}</p>
-      <p>Status: {country.status}</p>
+      {country.summary && <p className="country-page-summary">{country.summary}</p>}
+      {country.body && <p className="country-page-body">{country.body}</p>}
+      <CountryEntityPreview country={country} mode="routes" />
+      <CountryEntityPreview country={country} mode="places" />
       <CountryFood country={country} />
     </section>
   )

@@ -6,17 +6,17 @@ import { formatActivityLabel, formatCountryLabel } from '../home/latestContentFo
 import { isRenderablePlace } from '../map/mapGeometry.js'
 import { getExplorePreview } from './exploreUtils.js'
 
-function ExploreCard({ item, mode, countries, selectedId, onSelect }) {
+export function ExploreCard({ item, mode, countries, selectedId, onSelect, compact = false, showCountry = true }) {
   const [failedPreview, setFailedPreview] = useState(null)
   const route = mode === 'routes'
   const title = route ? item.title : item.name
   const country = findCountry(countries, item.country_id || item.country)
-  const countryLabel = country?.name || formatCountryLabel(item.country)
+  const countryLabel = showCountry && (country?.name || formatCountryLabel(item.country))
   const preview = getExplorePreview(item)
   const mapped = route ? item.is_map_renderable === true : isRenderablePlace(item)
 
   return (
-    <article className={`explore-discovery-card${selectedId === item.id ? ' is-selected' : ''}${preview && preview !== failedPreview ? ' has-preview' : ''}`}>
+    <article className={`explore-discovery-card${compact ? ' is-compact' : ''}${selectedId === item.id ? ' is-selected' : ''}${preview && preview !== failedPreview ? ' has-preview' : ''}`}>
       <Link className="explore-discovery-card-link" to={`/${mode}/${encodeURIComponent(item.slug)}`}>
         {preview && preview !== failedPreview && (
           <div className="explore-discovery-media">

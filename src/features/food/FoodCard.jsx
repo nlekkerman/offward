@@ -5,12 +5,12 @@ import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
 import './food.css'
 
-function FoodCard({ food, countries = [], compact = false }) {
+function FoodCard({ food, countries = [], compact = false, showCountry = true }) {
   const preview = imagePreviewUrl(food.preview_image)
     || food.preview_image_url || collectionPreview(food.image_collections?.[0])
     || imageUrl(food.image) || imageUrl(food.thumbnail)
-  const country = findCountry(countries, food.country)
-  const countryLabel = country?.name || formatCountryLabel(food.country)
+  const country = showCountry ? findCountry(countries, food.country) : null
+  const countryLabel = showCountry && (country?.name || formatCountryLabel(food.country))
   const date = formatPublishedDate(food.published_at)
   if (!food.slug) return null
   return (
