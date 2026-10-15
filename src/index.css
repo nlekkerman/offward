@@ -58,7 +58,7 @@ button, input, select, textarea { font: inherit; }
 .app-header nav a {
   position: relative;
   padding: 0.75rem 0;
-  color: var(--public-text);
+  color: var(--public-accent);
   transition: color 180ms ease;
 }
 .app-header nav a::after {
