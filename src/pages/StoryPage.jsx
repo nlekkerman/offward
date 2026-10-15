@@ -5,7 +5,9 @@ import RelatedFood from '../features/food/RelatedFood.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
-import { collectionCount, collectionPreview } from '../features/management/imageCollectionUtils.js'
+import CompactRelatedEntityCard from '../shared/components/CompactRelatedEntityCard.jsx'
+import { collectionCount } from '../features/management/imageCollectionUtils.js'
+import { formatActivityLabel } from '../features/home/latestContentFormatting.js'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicPlaces } from '../services/placesApi.js'
 import { getPublicRoutes } from '../services/routesApi.js'
@@ -26,37 +28,12 @@ function formatPublishedDate(value) {
   return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-function formatActivity(value) {
-  if (!value || typeof value !== 'string') {
-    return null
-  }
-
-  return value.replace(/[_-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-}
-
 function getImageUrl(image) {
   return image?.url || image?.image_url || image?.image?.url || image?.image?.image_url || ''
 }
 
 function getCollectionImages(collection) {
   return Array.isArray(collection?.images) ? collection.images : []
-}
-
-// Best-effort preview from data already present on the lightweight public
-// Place/Route list items - never fetches per-item detail.
-function getEntityPreviewUrl(entity) {
-  const heroUrl = getImageUrl(entity?.hero_image)
-  if (heroUrl) {
-    return heroUrl
-  }
-
-  const firstCollection = Array.isArray(entity?.image_collections) ? entity.image_collections[0] : null
-  const collectionUrl = collectionPreview(firstCollection)
-  if (collectionUrl) {
-    return collectionUrl
-  }
-
-  return getImageUrl(entity?.preview_image) || getImageUrl(entity?.image) || getImageUrl(entity?.thumbnail) || ''
 }
 
 function StoryPage() {
@@ -376,22 +353,19 @@ function StoryPage() {
       {relatedPlaces.length > 0 && (
         <section className="story-detail-related-group" aria-label="Related places">
           <p className="eyebrow">{relatedPlaces.length > 1 ? 'Related Places' : 'Related Place'}</p>
-          <div className="story-related-grid">
+          <div className="compact-related-grid">
             {relatedPlaces.map((place) => {
-              const previewUrl = getEntityPreviewUrl(place)
               const relatedCountry = findCountry(countries, place.country)
               const countryLabel = place.country ? countryName(relatedCountry, countryNames.get(place.country) || place.country) : null
               return (
-                <Link to={`/places/${place.slug}`} className="story-related-card" key={place.id}>
-                  <span className="story-related-card-media">
-                    {previewUrl ? <img src={previewUrl} alt="" loading="lazy" /> : <span className="story-related-card-fallback" aria-hidden="true">◈</span>}
-                  </span>
-                  <span className="story-related-card-body">
-                    <span className="story-related-card-eyebrow">Place</span>
-                    <span className="story-related-card-title">{place.name}</span>
-                    {countryLabel && <span className="story-related-card-meta country-identity-inline"><CountryFlag code={relatedCountry?.code} decorative />{countryLabel}</span>}
-                  </span>
-                </Link>
+                <CompactRelatedEntityCard
+                  key={place.id}
+                  entity={place}
+                  entityType="Place"
+                  href={`/places/${encodeURIComponent(place.slug)}`}
+                  country={relatedCountry}
+                  countryLabel={countryLabel}
+                />
               )
             })}
           </div>
@@ -401,23 +375,20 @@ function StoryPage() {
       {relatedRoutes.length > 0 && (
         <section className="story-detail-related-group" aria-label="Related routes">
           <p className="eyebrow">{relatedRoutes.length > 1 ? 'Related Routes' : 'Related Route'}</p>
-          <div className="story-related-grid">
+          <div className="compact-related-grid">
             {relatedRoutes.map((route) => {
-              const previewUrl = getEntityPreviewUrl(route)
               const relatedCountry = findCountry(countries, route.country)
               const relatedCountryName = countryName(relatedCountry, countryNames.get(route.country) || route.country)
-              const metaLabel = [relatedCountryName, formatActivity(route.activity_type)].filter(Boolean).join(' · ')
               return (
-                <Link to={`/routes/${route.slug}`} className="story-related-card" key={route.id}>
-                  <span className="story-related-card-media">
-                    {previewUrl ? <img src={previewUrl} alt="" loading="lazy" /> : <span className="story-related-card-fallback" aria-hidden="true">⤳</span>}
-                  </span>
-                  <span className="story-related-card-body">
-                    <span className="story-related-card-eyebrow">Route</span>
-                    <span className="story-related-card-title">{route.title}</span>
-                    {metaLabel && <span className="story-related-card-meta country-identity-inline"><CountryFlag code={relatedCountry?.code} decorative />{metaLabel}</span>}
-                  </span>
-                </Link>
+                <CompactRelatedEntityCard
+                  key={route.id}
+                  entity={route}
+                  entityType="Route"
+                  href={`/routes/${encodeURIComponent(route.slug)}`}
+                  country={relatedCountry}
+                  countryLabel={relatedCountryName}
+                  activityLabel={formatActivityLabel(route.activity_type)}
+                />
               )
             })}
           </div>

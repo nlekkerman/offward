@@ -1,14 +1,14 @@
 # Offward Public Relationship UI Audit
 
-Audit date: 2026-10-09. Scope: public React frontend routes, relationship presentation, discovery/list surfaces, cards, media, responsive styles, and frontend API helpers. This is an audit and recommendation only; no application or backend code was changed. The backend serializer and endpoint ordering contracts are not present in this frontend checkout, so findings describe frontend consumption rather than asserting unverified wire-schema guarantees.
+Baseline audit date: 2026-10-09. Scope: public React frontend routes, relationship presentation, discovery/list surfaces, cards, media, responsive styles, and frontend API helpers. The Phase 2 implementation follow-up below records frontend changes as of 2026-10-15; no backend code was changed. The backend serializer and endpoint ordering contracts are not present in this frontend checkout, so findings describe frontend consumption rather than asserting unverified wire-schema guarantees.
 
 ## Executive Summary
 
 - Explore is the only full public Routes/Places browser with bounded page requests, filters, Load more, and map/list modes.
 - Food also has a bounded, paginated browse page with Country and type filters, though those filters are not represented in the URL.
-- Stories and Countries have navigation/list pages but their current list helpers return only the response’s array/results, without page navigation; these pages are not demonstrably exhaustive.
+- The Stories list has a paginated helper, but its list/detail relationship consumers also use one-response helpers without page navigation; Countries likewise have no page navigation. These consumers are not demonstrably exhaustive.
 - Country detail is not yet a discovery hub: it shows identity, summary, a raw status label, and a paginated Food section only.
-- Route detail is the richest journey page. It shows the map, summary, Route videos, child Waypoint/Segment selections, and an aggregated Food section. It does not expose linked Places as a section or Route/child Stories.
+- Route detail is the richest journey page. It shows the map, summary, Route videos, child Waypoint/Segment selections, aggregated Food, and a bounded Places section resolved from embedded Waypoint `place_id` values. Route Stories remain unavailable without a bounded reverse lookup.
 - Place detail has direct media, Story and Food sections, but no related Routes section. Story detail has media and direct Place/Route/Food relationships. Waypoint and Segment pages keep their Food relationships scoped to their own IDs.
 - Card components and inline implementations vary substantially in aspect ratio, density, metadata, and visual style. This is visible but less urgent than incomplete discovery paths and unbounded list consumers.
 
@@ -19,7 +19,7 @@ Audit date: 2026-10-09. Scope: public React frontend routes, relationship presen
 | Page / owner | Direct relationships consumed or available to the UI | Derived relationships | Currently displayed | Missing useful content / notes |
 |---|---|---|---|---|
 | Country | Country identity, summary, status; Food filtered by the Country value | Routes, Places, Stories and Food can be discovered by their Country field/filter; they are not embedded children in the visible page code | Identity/flag, summary, raw status label, up to 12 Food at a time | No Routes, Places, or Stories section. Country page does not establish a canonical “View all in this Country” path. |
-| Route | `waypoints`, `segments`, `food_ids`, summary, `video_ids`/`media_ids`, embedded media/gallery fields, country/activity | Place context can be inferred through child `place_id`; Route Food presentation includes Food IDs owned by child Waypoints and Segments | Map and child detail overlay; summary; expandable Route video panel; Route + child Food union | No linked Place cards outside map, no Route Stories. The page does not currently resolve Route-level Place fields if any exist. |
+| Route | `waypoints`, `segments`, `food_ids`, summary, `video_ids`/`media_ids`, embedded media/gallery fields, country/activity | Place context can be inferred through child `place_id`; Route Food presentation includes Food IDs owned by child Waypoints and Segments | Map and child detail overlay; summary; expandable Route video panel; Route + child Food union; resolved Place cards from Waypoint IDs | Route Stories have no bounded reverse lookup. Place matching is limited to loaded public Place pages; no Route-level Place ownership is inferred. |
 | Place | Country, summary/body, `story_ids`, `food_ids`, media IDs/collections, coordinates | Routes that include/reference this Place are not looked up in the Place page | Identity, Country/date metadata, map, media, related Stories, related Food | No Related Routes section despite Route child Place references being available elsewhere. |
 | Story | Country, excerpt/body/hero, `place_ids`, `route_ids`, `food_ids`, media IDs/collections | Food-to-Waypoint/Segment parent Route context is only shown on Food detail; not Story detail | Article, media, related Place/Route cards, related Food | No Country-page link, no Event/Tour relation shown. Place/Route resolution is bounded to one catalog page and can omit matches. |
 | Food | Country, type, summary/body/recipe, `place_ids`, `route_ids`, `story_ids`, `waypoint_ids`, `segment_ids`, media | Waypoint/Segment links are resolved through public Route catalog/context to their parent Route | Food detail/media, Place and Route card groups, Story text links, Waypoint/Segment links with parent Route context | Country name is not a link. Food-to-child resolution is explicitly bounded/manual and may remain incomplete. |
@@ -54,10 +54,10 @@ Current Route detail content:
 - **Summary:** Direct Route summary.
 - **Media:** Direct Route Videos are behind a toggle; child media is available in child overlays/details, not merged into the Route gallery.
 - **Food along the way:** `getRouteFoodIds` presentation union of Route `food_ids`, all embedded Waypoint `food_ids`, and all embedded Segment `food_ids`, deduplicated in first-occurrence order. This is UI aggregation only. It does not mutate relationships or change Waypoint/Segment detail ownership.
-- **Places:** No Route-level Place section. Child Waypoint detail can show its linked Place, but this is not an adequate substitute for a scannable Route Places list.
+- **Places along the Route:** Waypoint `place_id` values are deduplicated in Waypoint order and resolved through the existing bounded public Place catalog. The section appears when at least one matching public Place is loaded; later-page checks are explicit.
 - **Stories:** No Route-level Story section. The UI has no bounded reverse lookup from Route to Stories.
 
-**Recommendation:** Keep the map, summary, Route-owned media, and aggregated “Food along the way.” Add a bounded “Places along the Route” section if the Route payload exposes child Place references reliably; resolve by a supported filtered endpoint rather than downloading all Places. Add Route/child Story aggregation only if a reliable, bounded public relation/query exists. Do not silently combine ownership: Waypoint and Segment pages and overlays should continue using only their own `food_ids`.
+**Recommendation:** Keep the map, summary, Route-owned media, and aggregated “Food along the way.” Replace the current bounded catalog matching with a supported Place-ID filter or Place-by-ID lookup when available. Add Route/child Story aggregation only if a reliable, bounded public relation/query exists. Do not silently combine ownership: Waypoint and Segment pages and overlays should continue using only their own `food_ids`.
 
 ## Place Page
 
@@ -71,7 +71,7 @@ No Route lookup or related Route section is present. This is a high-value gap be
 
 Story detail renders title, Country/date metadata, excerpt, optional hero, body, Videos and image collections, related Place/Route cards, and direct Story Food. Place and Route IDs are resolved by requesting the first 24 public Places/Routes and matching IDs locally; a notice can indicate that later catalog pages may contain more matches. The frontend does not crawl all pages or request one detail per ID.
 
-Related Place/Route cards share `story-related-card` styling but are constructed inline. They contain image or a decorative glyph fallback, entity type, title, and Country/activity metadata; summaries/dates are omitted. Food uses compact Food cards.
+Related Place/Route cards use the shared `CompactRelatedEntityCard` with a compact decorative glyph fallback when no usable preview is available. They contain entity type, title, and optional Country/activity metadata; summaries/dates are omitted. Food uses compact Food cards.
 
 **Recommendation:** Keep the article first, then direct media and direct Places/Routes, followed by direct Food. Do not add a second generic Country card where the Country/date metadata already establishes context. Preserve bounded matching and surface the limitation; ideally use server-side relation expansion or ID filtering for complete results.
 
@@ -143,7 +143,7 @@ No current duplicate “Related Routes” and “Along the Route” headings wer
 ## Discoverability Gaps
 
 - Country detail omits Routes, Places, and Stories and has no View all links.
-- Route detail does not list the Places referenced by its Waypoints and does not show a Route/child Story section.
+- Route detail lists resolved Places referenced by its Waypoints but does not show a Route/child Story section.
 - Place detail does not show Routes that include/reference it.
 - Country links are generally labels rather than links to a browsable Country page.
 - The Home Latest rail has no View all CTA; Food has no Home Latest preview.
@@ -160,13 +160,13 @@ No current duplicate “Related Routes” and “Along the Route” headings wer
 | Home Route preview | One active Route request with geometry, `page_size=1`; selects first API result. | Bounded, but ordering is backend default, not verified chronological “latest.” Geometry is needed for the mini-map. |
 | Home Story preview | `getLatestPublicStory` obtains `getPublicStories()` response, filters active, client-sorts by `published_at`. | Unbounded/first-response only; lacks pagination envelope and is not guaranteed complete. Add paginated helper and request one ordered record if API supports ordering. |
 | Home Video preview | Fetches public Video list, filters playable records and sorts by `published_at` in browser, then uses first. | Potentially unbounded. Add server ordering/limit support or a bounded list API. |
-| Stories list / related Story IDs | Public helper accepts bare array or `.results`, filters active, sorts published date; no page args or pagination metadata retained. | List cannot Load more; relationship resolution cannot guarantee a match beyond that response. Do not silently crawl every page. |
+| Stories list / related Story IDs | `getPublicStoriesPage` supports explicit pages and pagination metadata; list and direct relationship consumers use `getPublicStories()`, which reads one response and discards pagination metadata. | List cannot Load more; relationship resolution cannot guarantee a match beyond that response. Do not silently crawl every page. |
 | Countries list | `getCountries()` returns array or `.results` only. Separate `getPublicCountriesPage` and `usePublicCountries` support pagination, but CountriesListPage does not use them. | Countries page may show only first page when backend paginates. Use page helper and Load more or explicit pagination. |
 | Food list / Country Food | `page_size=12`, Country/type filters, `next`, explicit Load more. | Bounded and honest; sync filters to URL before advertising filtered links. |
 | Story Place/Route relation lookup | First page of 24 Places/Routes is loaded to match direct IDs. | Bounded but can omit records; prefer endpoint ID filters/expanded relations. Do not crawl all pages in the background. |
 | Waypoint Place lookup | First Place page of 24; no automatic traversal. | Correctly reports possible later page; a Place-by-ID lookup or supported filter would resolve precisely. |
 | Food Waypoint/Segment lookup | Loads Route catalog pages only on demand; resolves contexts in batches of at most four detail requests per user action. | Keep explicit and bounded. |
-| Route detail | One slug-based detail request includes expected Route/child content; Food resolution uses shared cache and paginated manual page loading. | No extra relation API call for the aggregate. Verify backend payload contract separately if it changes. |
+| Route detail | One slug-based detail request includes Route/child content; Food aggregation is local; linked Place IDs use the shared 24-record Place catalog, with later pages user-triggered. | Place matches can remain unresolved until explicit pages are loaded. No Place details or full catalog are fetched automatically. |
 | Country Food preview | 12 records per request; currently exposes Load more. | Keep bounded; a Country hub should prefer a 3–6 preview plus View all. |
 
 The frontend alone cannot verify whether API default ordering is chronological. Route and Food list ordering should not be called “latest” without an explicit `published_at`/`created_at` order guarantee.
@@ -397,3 +397,33 @@ All relationship sections should hide when no usable relationships exist, and sh
 ## Frontend Evidence
 
 Key implementation references: `src/app/router.jsx`; `src/shared/layout/AppShell.jsx`; `src/pages/HomePage.jsx`, `ExplorePage.jsx`, `CountryPage.jsx`, `CountriesListPage.jsx`, `StoriesListPage.jsx`, `FoodsListPage.jsx`, `RoutePage.jsx`, `PlacePage.jsx`, `StoryPage.jsx`, `FoodPage.jsx`, `WaypointDetailPage.jsx`, `SegmentDetailPage.jsx`; `src/features/explore/useExploreData.js` and `ExploreResults.jsx`; `src/features/home/LatestContentRail.jsx`; `src/features/food/FoodCard.jsx`, `RelatedFood.jsx`, `FoodRelatedContent.jsx`, `publicFoodResolution.js`, and `publicRelationshipCatalog.js`; `src/features/routes/components/RouteMapDetailOverlay.jsx` and `EntityMediaSection.jsx`; `src/services/routesApi.js`, `placesApi.js`, `storiesApi.js`, `foodsApi.js`, and `countriesApi.js`; `src/index.css`, `src/features/explore/explore.css`, `src/features/food/food.css`, and `src/features/home/LatestContentRail.css`.
+
+## Phase 2 Implementation Follow-up
+
+### Route Places Along the Route
+
+- **Implemented** using only embedded Route Waypoints' `place_id` values. Waypoints are already ordered for Route detail; Place IDs are deduplicated in that order, so a Place referenced by multiple Waypoints appears once.
+- The shared `publicPlaceCatalog` relationship cache is reused. Its public Place requests are bounded to 24 records per page; when the cache is idle, the first page loads when Route Place IDs exist, and later pages load only after an explicit user action. It does not crawl the catalogue or fetch individual Place details.
+- As with existing Story/Food relationship resolution, a linked Place outside loaded pages cannot be matched yet. The UI offers an explicit next-page lookup while more pages exist. The section/cards appear only after at least one matching public Place resolves; unresolved IDs alone do not produce a “0 Places” empty section.
+- Cards use the shared compact related-entity pattern, with a preview image when available, Place title, optional Country metadata, and a Place detail link. Waypoints remain map/itinerary entities, not cards in this section.
+
+### Route Stories
+
+- **Deferred; not implemented.** The current public Route detail consumer has no direct Story relationship field or Story list to render. Story records expose `route_ids`, but the public Story API offers no Route-ID filter or reverse relation resolver. `getPublicStoriesPage` preserves pagination, but it has no filter; scanning pages to find a Route's Stories would violate the no-crawl requirement. `getPublicStories` reads one response and discards pagination metadata, so it is not an exhaustive resolver.
+- The missing capability is a supported bounded reverse lookup (for example, a public Stories-by-Route-ID filter), or an expanded Story-ID list on the public Route response plus a public Story-by-ID lookup. Current Story detail lookup is slug-based.
+
+### Place Related Routes
+
+- **Deferred; not implemented.** Public Route list filters support status, Country, activity type, and pagination, but not Place ID. Place detail currently consumes direct `story_ids` and `food_ids`; no `route_ids` or expanded Route records are used by the public Place page. There is no Place-to-Route resolver in the frontend, and Route detail lookup is slug-based.
+- Although embedded Route Waypoints expose `place_id`, there is no safe reverse query to find those Routes. Scanning Route pages or every Route detail is explicitly avoided. The missing capability is a public Route filter/reverse lookup by Waypoint `place_id`, or expanded Route IDs on Place with a bounded public Route-by-ID resolver.
+
+### Shared Compact Related Card
+
+- **Extracted and reused** as `src/shared/components/CompactRelatedEntityCard.jsx`. It replaces the duplicated inline Place/Route card markup on Story detail and Food detail and is also used for Route's linked Places.
+- The card uses existing image preview helpers. If there is no preview or an image URL fails, it shows the existing intentional compact Place/Route glyph fallback rather than an empty image box. It supports optional Country and Route activity metadata.
+
+### Phase 2 Remaining Gaps
+
+- Route Stories still need a bounded public reverse relation or expanded IDs plus a public ID lookup; existing Story pagination alone is insufficient without scanning pages.
+- Place Related Routes still need a bounded Place-to-Route query or expanded Route IDs plus a public ID lookup; Waypoint `place_id` is only available in Route detail and does not provide a reverse index.
+- Route Place matching remains limited to loaded public Place pages (24 records per request). Later-page resolution is user-initiated; a Place-by-ID endpoint or server-side Place-ID filter would make it exact without pagination lookup.

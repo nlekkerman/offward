@@ -2,9 +2,8 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import { getPublicRouteContext, publicPlaceCatalog, publicRouteCatalog, publicStoryCatalog } from './publicRelationshipCatalog.js'
 import { nextRouteContextBatch, publicRelationshipIds, resolvePublicRouteChildren } from './publicFoodResolution.js'
-import { collectionPreview, imagePreviewUrl, imageUrl } from '../management/imageCollectionUtils.js'
 import usePublicCountries from './usePublicCountries.js'
-import CountryFlag from '../../shared/components/CountryFlag.jsx'
+import CompactRelatedEntityCard from '../../shared/components/CompactRelatedEntityCard.jsx'
 import { findCountry } from '../../shared/utils/country.js'
 import { formatCountryLabel } from '../home/latestContentFormatting.js'
 
@@ -29,14 +28,18 @@ function RelationshipGroup({ ids, catalog, title, path }) {
       <h2>Related {title}</h2>
       {found.length > 0 && (path === 'stories'
         ? <ul className="food-link-list">{found.map((record) => <li key={record.id}><Link to={`/${path}/${encodeURIComponent(record.slug)}`}>{record.title || record.name || title}</Link></li>)}</ul>
-        : <div className="story-related-grid">{found.map((record) => {
-          const preview = imageUrl(record.hero_image) || imagePreviewUrl(record.preview_image) || collectionPreview(record.image_collections?.[0]) || record.preview_image_url
+        : <div className="compact-related-grid">{found.map((record) => {
           const country = findCountry(countries, record.country)
           const countryLabel = country?.name || formatCountryLabel(record.country)
-          return <Link key={record.id} className="story-related-card" to={`/${path}/${encodeURIComponent(record.slug)}`}>
-            {preview && <span className="story-related-card-media"><img src={preview} alt="" loading="lazy" /></span>}
-            <span className="story-related-card-body"><span className="story-related-card-eyebrow">{path === 'places' ? 'Place' : 'Route'}</span><span className="story-related-card-title">{record.title || record.name}</span>{countryLabel && <span className="story-related-card-meta country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>}</span>
-          </Link>
+          const entityType = path === 'places' ? 'Place' : 'Route'
+          return <CompactRelatedEntityCard
+            key={record.id}
+            entity={record}
+            entityType={entityType}
+            href={`/${path}/${encodeURIComponent(record.slug)}`}
+            country={country}
+            countryLabel={countryLabel}
+          />
         })}</div>)}
       {unresolved > 0 && <div className="food-relationship-status" aria-live="polite">
         <p>{unresolved} linked {title.toLowerCase()} {unresolved === 1 ? 'item remains' : 'items remain'} unresolved.{state.bounded ? ' Only the first public Story response is available through the existing helper; later pages cannot be checked here.' : state.page && !state.next ? ' No further public pages are available; these items may be unpublished.' : ' Lookup is limited to loaded public pages.'}</p>

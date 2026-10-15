@@ -2575,6 +2575,24 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   margin-bottom: 0;
 }
 
+.route-detail-related-places {
+  padding-top: 1.25rem;
+  border-top: 1px solid #30362f;
+}
+
+.route-detail-related-places h2 {
+  margin: 0;
+  color: #f3efe6;
+  font: 400 1.35rem/1.2 Georgia, serif;
+}
+
+.route-places-lookup {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
 .route-detail-place-context {
   display: grid;
   gap: 0.6rem;
@@ -3350,14 +3368,14 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   border-top: 1px solid #30362f;
 }
 
-.story-related-grid {
+.compact-related-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1rem;
   margin-top: 1rem;
 }
 
-.story-related-card {
+.compact-related-card {
   display: grid;
   grid-template-columns: 84px minmax(0, 1fr);
   align-items: stretch;
@@ -3371,37 +3389,37 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
-.story-related-card:hover,
-.story-related-card:focus-visible {
+.compact-related-card:hover,
+.compact-related-card:focus-visible {
   border-color: #59624f;
   transform: translateY(-2px);
 }
 
-.story-related-card:focus-visible {
+.compact-related-card:focus-visible {
   outline: 2px solid #d8b47c;
   outline-offset: 2px;
 }
 
-.story-related-card-media {
+.compact-related-card-media {
   display: flex;
   align-items: center;
   justify-content: center;
   background: #0e110e;
 }
 
-.story-related-card-media img {
+.compact-related-card-media img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.story-related-card-fallback {
+.compact-related-card-fallback {
   color: #4f5548;
   font-size: 1.5rem;
 }
 
-.story-related-card-body {
+.compact-related-card-body {
   display: grid;
   align-content: center;
   gap: 0.2rem;
@@ -3409,14 +3427,14 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   padding: 0.7rem 0.9rem;
 }
 
-.story-related-card-eyebrow {
+.compact-related-card-eyebrow {
   color: #d8b47c;
   font: 700 0.65rem/1 sans-serif;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.story-related-card-title {
+.compact-related-card-title {
   color: #f3efe6;
   font: 600 0.95rem/1.3 sans-serif;
   overflow: hidden;
@@ -3424,7 +3442,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   white-space: nowrap;
 }
 
-.story-related-card-meta {
+.compact-related-card-meta {
   color: #aaa99e;
   font: 0.78rem/1.3 sans-serif;
 }
@@ -3597,7 +3615,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .content-image-row { grid-template-columns: 88px minmax(0, 1fr); }
   .content-image-row-actions { grid-column: 1 / -1; }
   .story-detail-image-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
-  .story-related-card { grid-template-columns: 64px minmax(0, 1fr); }
+  .compact-related-card { grid-template-columns: 64px minmax(0, 1fr); }
 }
 
 @media (max-width: 600px) {
