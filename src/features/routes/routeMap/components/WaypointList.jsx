@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import { getPlaceCoordinates, getWaypointDisplayName } from '../routeMapUtils.js'
 import ContentVideoManager from '../../../video/ContentVideoManager.jsx'
 import GalleryAttachmentManager from '../../../management/GalleryAttachmentManager.jsx'
@@ -7,7 +7,87 @@ import WaypointQuickEditor from './WaypointQuickEditor.jsx'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWaypointId, foodWaypointId, quickEditWaypointId, quickEditSaving, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onOpenMedia, onOpenFood, onFoodIdsChange, onMediaChange, onGalleryAttach, onGalleryDetach, onMove, onRemove }) {
+function WaypointCreatePlaceForm({ waypoint, saving, onCreate, onCancel }) {
+  const [slug, setSlug] = useState('')
+  const [name, setName] = useState(waypoint.name || '')
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    if (!slug.trim()) {
+      setFieldErrors({ slug: 'Slug is required.' })
+      setError('')
+      return
+    }
+
+    const result = await onCreate(waypoint.id, {
+      slug: slug.trim(),
+      ...(name.trim() ? { name: name.trim() } : {}),
+    })
+
+    if (result?.success) return
+    setFieldErrors(result?.fieldErrors || {})
+    setError(result?.error || 'Unable to create a Place from this Waypoint.')
+  }
+
+  return (
+    <form className="waypoint-create-place-form" onSubmit={handleSubmit}>
+      <div className="form-field">
+        <label htmlFor={`create-place-slug-${waypoint.id}`}>Slug *</label>
+        <input
+          id={`create-place-slug-${waypoint.id}`}
+          name="slug"
+          value={slug}
+          onChange={(event) => {
+            setSlug(event.target.value)
+            setFieldErrors((current) => ({ ...current, slug: '' }))
+          }}
+          className={fieldErrors.slug ? 'form-input field-error' : 'form-input'}
+          required
+        />
+        {fieldErrors.slug && <span className="field-error-text">{fieldErrors.slug}</span>}
+      </div>
+      <div className="form-field">
+        <label htmlFor={`create-place-name-${waypoint.id}`}>Name</label>
+        <input
+          id={`create-place-name-${waypoint.id}`}
+          name="name"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value)
+            setFieldErrors((current) => ({ ...current, name: '' }))
+          }}
+          className={fieldErrors.name ? 'form-input field-error' : 'form-input'}
+        />
+        {fieldErrors.name && <span className="field-error-text">{fieldErrors.name}</span>}
+      </div>
+      {error && <div className="management-error" role="alert">{error}</div>}
+      <div className="waypoint-quick-actions">
+        <button type="submit" className="primary-button small-button" disabled={saving}>
+          {saving ? 'Creating...' : 'Create Place'}
+        </button>
+        <button type="button" className="secondary-button small-button" onClick={onCancel} disabled={saving}>Cancel</button>
+      </div>
+    </form>
+  )
+}
+
+function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWaypointId, foodWaypointId, quickEditWaypointId, quickEditSaving, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onOpenMedia, onOpenFood, onFoodIdsChange, onMediaChange, onGalleryAttach, onGalleryDetach, onMove, onRemove, onCreatePlace }) {
+  const [createPlaceWaypointId, setCreatePlaceWaypointId] = useState('')
+  const [createPlaceSaving, setCreatePlaceSaving] = useState(false)
+
+  const createPlace = async (waypointId, payload) => {
+    setCreatePlaceSaving(true)
+    try {
+      const result = await onCreatePlace(waypointId, payload)
+      if (result?.success) setCreatePlaceWaypointId('')
+      return result
+    } finally {
+      setCreatePlaceSaving(false)
+    }
+  }
+
   return (
     <section className="route-map-panel">
       <div className="route-map-panel-header">
@@ -43,6 +123,7 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
         <div className="waypoint-list">
           {waypoints.map((waypoint, index) => {
             const isSaved = !String(waypoint.id).startsWith('new-')
+            const canCreatePlace = UUID.test(String(waypoint.id)) && !waypoint.place_id
             const canAttachFood = UUID.test(String(waypoint.id))
             const mediaCount = Array.isArray(waypoint.media_ids) ? waypoint.media_ids.length : 0
             const foodCount = Array.isArray(waypoint.food_ids) ? waypoint.food_ids.length : 0
@@ -63,6 +144,17 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
                   </button>
                   <span className="waypoint-inline-actions">
                     <button type="button" className="secondary-button small-button" onClick={() => onOpenAdvanced(waypoint.id)}>Edit details</button>
+                    {canCreatePlace && (
+                      <button
+                        type="button"
+                        className={createPlaceWaypointId === waypoint.id ? 'primary-button small-button' : 'secondary-button small-button'}
+                        onClick={() => setCreatePlaceWaypointId((current) => current === waypoint.id ? '' : waypoint.id)}
+                        aria-expanded={createPlaceWaypointId === waypoint.id}
+                        aria-controls={`create-place-${waypoint.id}`}
+                      >
+                        Create Place
+                      </button>
+                    )}
                     {isSaved && (
                       <button
                         type="button"
@@ -98,6 +190,16 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
                       onSave={(name) => onQuickSave(waypoint.id, name)}
                       onCancel={onQuickCancel}
                     />
+                  )}
+                  {createPlaceWaypointId === waypoint.id && canCreatePlace && (
+                    <div id={`create-place-${waypoint.id}`}>
+                      <WaypointCreatePlaceForm
+                        waypoint={waypoint}
+                        saving={createPlaceSaving}
+                        onCreate={createPlace}
+                        onCancel={() => setCreatePlaceWaypointId('')}
+                      />
+                    </div>
                   )}
                 </div>
                 {isMediaOpen && (

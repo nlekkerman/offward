@@ -45,6 +45,21 @@ function getWaypointSignature(waypoints) {
   return JSON.stringify(buildWaypointPayload(waypoints))
 }
 
+function getPlaceCreateErrors(err) {
+  const data = err?.response?.data
+  const fieldErrors = {}
+  ;['slug', 'name'].forEach((field) => {
+    const value = data?.[field]
+    if (typeof value === 'string') fieldErrors[field] = value
+    else if (Array.isArray(value)) fieldErrors[field] = value.filter(Boolean).join(' ')
+  })
+
+  return {
+    fieldErrors,
+    error: getErrorMessage(err, fieldErrors.slug || fieldErrors.name ? '' : 'Unable to create a Place from this Waypoint.'),
+  }
+}
+
 function RouteMapEditorPage() {
   const { routeId } = useParams()
   const [route, setRoute] = useState(null)
@@ -416,6 +431,43 @@ function RouteMapEditorPage() {
     }
   }
 
+  const createPlaceFromWaypoint = async (waypointId, payload) => {
+    try {
+      const result = await routeMapApi.createPlaceFromWaypoint(routeId, waypointId, payload)
+      const returnedWaypointId = result?.waypoint?.id
+      const placeId = result?.waypoint?.place_id
+      const place = result?.place
+
+      if (!returnedWaypointId || !placeId || !place?.id || String(returnedWaypointId) !== String(waypointId)) {
+        throw new Error('The Place was created, but the response did not include the expected Waypoint and Place details.')
+      }
+
+      setWaypoints((current) => current.map((waypoint) => String(waypoint.id) === String(returnedWaypointId)
+        ? {
+            ...waypoint,
+            place_id: placeId,
+            place_name: place.name || place.title || '',
+          }
+        : waypoint))
+      setSavedWaypointSignature((current) => {
+        const savedWaypoints = JSON.parse(current)
+        return JSON.stringify(savedWaypoints.map((waypoint) => String(waypoint.id) === String(returnedWaypointId)
+          ? { ...waypoint, place_id: placeId }
+          : waypoint))
+      })
+      setPlaces((current) => {
+        const existingIndex = current.findIndex((item) => String(item.id) === String(place.id))
+        if (existingIndex < 0) return [...current, place]
+        return current.map((item, index) => index === existingIndex ? place : item)
+      })
+      setNotice('Place created and linked to the Waypoint.')
+      setError('')
+      return { success: true }
+    } catch (err) {
+      return getPlaceCreateErrors(err)
+    }
+  }
+
   const saveActiveWaypoint = async () => {
     if (!selectedWaypoint) {
       return
@@ -702,6 +754,7 @@ function RouteMapEditorPage() {
             onGalleryDetach={(waypointId, collection) => updateWaypointGallery(waypointId, collection, false)}
             onMove={moveWaypoint}
             onRemove={removeWaypoint}
+            onCreatePlace={createPlaceFromWaypoint}
           />
           {addMode && (
             <div className="route-map-notice route-map-inline-message" role="status">

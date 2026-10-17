@@ -26,6 +26,13 @@ export const routeMapApi = {
       updatedAt: normalizedRoute.updatedAt,
     }
   },
+  createPlaceFromWaypoint: async (routeId, waypointId, payload) => {
+    const { data } = await apiClient.post(
+      routeMapPath(routeId, `waypoints/${waypointId}/create-place/`),
+      payload,
+    )
+    return data
+  },
   getSegments: async (routeId) => {
     const { data } = await apiClient.get(routeMapPath(routeId, 'segments/'))
     if (!Array.isArray(data)) {

@@ -2024,6 +2024,21 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   gap: 0.5rem;
 }
 
+.waypoint-create-place-form {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #171811;
+  border: 1px solid #5c4a32;
+  border-radius: 0.55rem;
+}
+
+.waypoint-create-place-form .management-error {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+}
+
 .route-map-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
