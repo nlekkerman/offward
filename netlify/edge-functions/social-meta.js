@@ -67,6 +67,13 @@ function getSocialImage(content, contentType, apiOrigin) {
   const hero = getImageUrl(content.hero_image, apiOrigin)
   if (contentType === 'stories' && hero) return hero
 
+  if (contentType !== 'stories') {
+    for (const field of ['preview_image', 'image', 'cover_image']) {
+      const url = getImageUrl(content[field], apiOrigin)
+      if (url) return url
+    }
+  }
+
   const collections = Array.isArray(content.image_collections) ? content.image_collections : []
   for (const collection of collections) {
     if (!isObject(collection)) continue
@@ -75,13 +82,6 @@ function getSocialImage(content, contentType, apiOrigin) {
       || getImageUrl(Array.isArray(collection.images) ? collection.images[0] : null, apiOrigin)
       || getImageUrl(collection, apiOrigin)
     if (url) return url
-  }
-
-  if (contentType !== 'stories') {
-    for (const field of ['preview_image', 'image', 'cover_image']) {
-      const url = getImageUrl(content[field], apiOrigin)
-      if (url) return url
-    }
   }
 
   return hero || FALLBACK_IMAGE
