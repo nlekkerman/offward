@@ -4,7 +4,10 @@ import VideoPlayer from '../features/video/VideoPlayer.jsx'
 import RelatedFood from '../features/food/RelatedFood.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
+import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import CompactRelatedEntityCard from '../shared/components/CompactRelatedEntityCard.jsx'
 import { collectionCount } from '../features/management/imageCollectionUtils.js'
 import { formatActivityLabel } from '../features/home/latestContentFormatting.js'
@@ -239,13 +242,25 @@ function StoryPage() {
   const country = findCountry(countries, story.country)
   const countryLabel = story.country ? countryName(country, countryNames.get(story.country) || story.country) : null
   const publishedLabel = formatPublishedDate(story.published_at)
+  const storyTitle = story.title || 'Story'
+  const storyDescription = getContentDescription(story.excerpt, storyTitle, countryLabel || '')
+  const storyPath = `/stories/${encodeURIComponent(storySlug)}`
+  const storyUrl = getPublicUrl(storyPath)
 
   return (
     <section className="story-detail-page">
+      <PageMetadata
+        title={storyTitle}
+        description={storyDescription}
+        path={storyPath}
+        image={getContentSocialImage(story, { preferHero: true })}
+        type="article"
+      />
       <Link className="route-detail-back" to="/explore?view=stories">Back to Explore</Link>
       <header className="story-detail-header">
         <p className="eyebrow">Story</p>
-        <h1>{story.title}</h1>
+        <h1>{storyTitle}</h1>
+        <ShareControl title={storyTitle} url={storyUrl} description={typeof story.excerpt === 'string' && story.excerpt.trim() ? story.excerpt.trim() : undefined} />
         {(countryLabel || publishedLabel) && (
           <div className="story-detail-meta" aria-label="Story metadata">
             {countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>}

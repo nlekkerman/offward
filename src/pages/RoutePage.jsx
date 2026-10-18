@@ -13,7 +13,10 @@ import { getCountries } from '../services/countriesApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
+import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import NotFoundPage from './NotFoundPage.jsx'
 
 const ROUTE_DETAIL_LINE_STYLE = {
@@ -282,6 +285,10 @@ function RoutePage() {
     : countryName(countryValue, countryValue?.slug || countryValue?.code || '')
   const countryLabel = countryName(country, countryFallback) || 'Country pending'
   const activityLabel = formatActivity(route?.activity_type)
+  const routeTitle = route?.title || 'Route'
+  const routeDescription = getContentDescription(route?.summary, routeTitle, route?.country ? countryLabel : '')
+  const routePath = `/routes/${encodeURIComponent(routeSlug)}`
+  const routeUrl = getPublicUrl(routePath)
 
   if (routeStatus === 'loading') {
     return <section className="route-detail-page"><p className="route-detail-status" role="status">Loading route...</p></section>
@@ -306,11 +313,18 @@ function RoutePage() {
 
   return (
     <section className="route-detail-page">
+      <PageMetadata
+        title={routeTitle}
+        description={routeDescription}
+        path={routePath}
+        image={getContentSocialImage(route)}
+      />
       <Link className="route-detail-back" to="/explore">Back to Explore</Link>
       <header className="route-detail-header">
         <div>
           <p className="eyebrow">PUBLIC ROUTE</p>
-          <h1>{route.title}</h1>
+          <h1>{routeTitle}</h1>
+          <ShareControl title={routeTitle} url={routeUrl} description={typeof route.summary === 'string' && route.summary.trim() ? route.summary.trim() : undefined} />
         </div>
         <div className="route-detail-meta" aria-label="Route metadata">
           <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>

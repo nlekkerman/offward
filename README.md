@@ -1,5 +1,12 @@
 # React + Vite
 
+## Netlify social metadata
+
+`netlify/edge-functions/social-meta.ts` injects detail-page metadata for Route,
+Place, Story, and Food requests. In Netlify, make the existing
+`VITE_API_BASE_URL` variable available to Edge Functions; the Edge Function uses
+it to fetch public detail records. No additional API URL is required.
+
 ## Management gallery images
 
 [Gallery editing](src/pages/manage/galleries/GalleryEditPage.jsx) normalizes management

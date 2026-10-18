@@ -10,7 +10,10 @@ import { getPublicFoodBySlug } from '../services/foodsApi.js'
 import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import ShareControl from '../shared/components/ShareControl.jsx'
 import { findCountry } from '../shared/utils/country.js'
+import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import '../features/food/food.css'
 
 function orderedRows(rows) {
@@ -78,6 +81,10 @@ function FoodPage() {
 
   const country = findCountry(countries, food.country)
   const countryLabel = country?.name || formatCountryLabel(food.country)
+  const foodTitle = food.title || 'Food'
+  const foodDescription = getContentDescription(food.summary, foodTitle, food.country ? countryLabel : '')
+  const foodPath = `/food/${encodeURIComponent(slug)}`
+  const foodUrl = getPublicUrl(foodPath)
   const published = formatPublishedDate(food.published_at)
   const ingredients = orderedRows(food.ingredients)
   const steps = orderedRows(food.steps)
@@ -88,10 +95,17 @@ function FoodPage() {
 
   return (
     <section className="food-page food-detail-page">
+      <PageMetadata
+        title={foodTitle}
+        description={foodDescription}
+        path={foodPath}
+        image={getContentSocialImage(food)}
+      />
       <Link className="route-detail-back" to="/food">Back to Food</Link>
       <header className="food-detail-header">
         <p className="eyebrow">{formatActivityLabel(food.food_type) || 'Food'}</p>
-        <h1>{food.title}</h1>
+        <h1>{foodTitle}</h1>
+        <ShareControl title={foodTitle} url={foodUrl} description={typeof food.summary === 'string' && food.summary.trim() ? food.summary.trim() : undefined} />
         <div className="food-card-meta">{countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>}{published && <span>{published}</span>}</div>
         {food.summary && <p className="route-detail-summary">{food.summary}</p>}
       </header>

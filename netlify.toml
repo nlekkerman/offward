@@ -1,0 +1,15 @@
+[[edge_functions]]
+function = "social-meta"
+path = "/routes/*"
+
+[[edge_functions]]
+function = "social-meta"
+path = "/places/*"
+
+[[edge_functions]]
+function = "social-meta"
+path = "/stories/*"
+
+[[edge_functions]]
+function = "social-meta"
+path = "/food/*"

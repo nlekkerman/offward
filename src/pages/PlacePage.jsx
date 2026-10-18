@@ -13,7 +13,10 @@ import { getPublicStories } from '../services/storiesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
+import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 
 function formatCountrySlug(value) {
   if (!value || typeof value !== 'string') {
@@ -154,13 +157,24 @@ function PlacePage() {
   const country = findCountry(countries, place.country)
   const countryLabel = countryName(country, formatCountrySlug(place.country))
   const lightboxImages = lightbox.gallery?.images || []
+  const placeTitle = place.name || 'Place'
+  const placeDescription = getContentDescription(place.summary, placeTitle, place.country ? countryLabel : '')
+  const placePath = `/places/${encodeURIComponent(placeSlug)}`
+  const placeUrl = getPublicUrl(placePath)
 
   return (
     <section className="place-detail-page">
+      <PageMetadata
+        title={placeTitle}
+        description={placeDescription}
+        path={placePath}
+        image={getContentSocialImage(place)}
+      />
       <Link className="route-detail-back" to="/explore?view=places">Back to Explore</Link>
       <header className="place-detail-header">
         <p className="eyebrow">PUBLIC PLACE</p>
-        <h1>{place.name}</h1>
+        <h1>{placeTitle}</h1>
+        <ShareControl title={placeTitle} url={placeUrl} description={typeof place.summary === 'string' && place.summary.trim() ? place.summary.trim() : undefined} />
         <div className="route-detail-meta" aria-label="Place metadata">
           <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
           {place.visited_at && <span>Visited {place.visited_at}</span>}
