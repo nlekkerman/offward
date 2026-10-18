@@ -3,7 +3,16 @@ import { collectionCount, collectionPreview } from '../../management/imageCollec
 import { orderedCollectionImages } from './routeMediaUtils.js'
 
 // showAllImages renders every embedded image of every collection (in order) instead of one cover per collection.
-function EntityMediaSection({ videos = [], galleries = [], onOpenGallery, loadingGalleryId = null, galleryErrorByCollectionId = {}, showAllImages = false }) {
+function EntityMediaSection({
+  videos = [],
+  galleries = [],
+  onOpenGallery,
+  loadingGalleryId = null,
+  galleryErrorByCollectionId = {},
+  showAllImages = false,
+  sectionLabel = 'Media',
+  showImageGroupLabel = true,
+}) {
   const hasMedia = videos.length > 0 || galleries.length > 0
 
   if (!hasMedia) {
@@ -39,9 +48,9 @@ function EntityMediaSection({ videos = [], galleries = [], onOpenGallery, loadin
   }
 
   return (
-    <section className="route-map-detail-media entity-detail-media" aria-label="Media">
+    <section className="route-map-detail-media entity-detail-media" aria-label={sectionLabel}>
       <div className="entity-detail-section-heading">
-        <p className="route-map-detail-section-label">Media</p>
+        <p className="route-map-detail-section-label">{sectionLabel}</p>
         <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
       </div>
 
@@ -78,7 +87,7 @@ function EntityMediaSection({ videos = [], galleries = [], onOpenGallery, loadin
 
       {galleries.length > 0 && showAllImages && (
         <div className="route-map-detail-media-group">
-          <p>Images{imageTotal > 0 && ` · ${imageTotal}`}</p>
+          {showImageGroupLabel && <p>Images{imageTotal > 0 && ` · ${imageTotal}`}</p>}
           {galleries.map((gallery, galleryIndex) => {
             const images = galleryImages[galleryIndex]
             const galleryId = gallery.id ? String(gallery.id) : ''

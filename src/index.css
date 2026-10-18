@@ -2625,6 +2625,20 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   gap: 1.25rem;
 }
 
+.route-detail-media-section {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #30362f;
+}
+
+.route-detail-media-section h2 {
+  margin: 0;
+  color: #f3efe6;
+  font: 400 clamp(1.55rem, 3vw, 2rem)/1.1 Georgia, serif;
+}
+
 .route-detail-side-content .route-detail-toggles {
   margin-bottom: 0;
 }

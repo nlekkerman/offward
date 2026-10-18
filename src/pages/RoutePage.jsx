@@ -1,22 +1,26 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
+import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
 import RoutePlacesAlongRoute from '../features/routes/components/RoutePlacesAlongRoute.jsx'
 import RelatedFood from '../features/food/RelatedFood.jsx'
 import { getRouteFoodIds, publicRelationshipIds } from '../features/food/publicFoodResolution.js'
-import { getAttachedMediaCount, normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
+import { getAttachedMediaCount, normalizeMediaIds, orderedCollectionImages, orderedImageCollections, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import RouteSections from '../features/routes/components/RouteSections.jsx'
 import { getCountries } from '../services/countriesApi.js'
+import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
+import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
+import VideoPlayerDialog from '../features/video/VideoPlayerDialog.jsx'
 import NotFoundPage from './NotFoundPage.jsx'
 
 const ROUTE_DETAIL_LINE_STYLE = {
@@ -86,8 +90,12 @@ function RoutePage() {
   const [selectedWaypointId, setSelectedWaypointId] = useState(null)
   const [hoveredWaypointId, setHoveredWaypointId] = useState(null)
   const [selectedSegmentId, setSelectedSegmentId] = useState(null)
-  const [openPanel, setOpenPanel] = useState(null)
   const [videoCatalog, setVideoCatalog] = useState({ status: 'idle', videos: [] })
+  const [activeVideo, setActiveVideo] = useState(null)
+  const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
+  const [galleryLoadingId, setGalleryLoadingId] = useState(null)
+  const [galleryErrorByCollectionId, setGalleryErrorByCollectionId] = useState({})
+  const galleryCacheRef = useRef(new Map())
   const [routeFocusRequest, setRouteFocusRequest] = useState(0)
   const hoverCloseTimerRef = useRef(null)
   const supportsHover = useHoverCapability()
@@ -100,7 +108,8 @@ function RoutePage() {
     async function loadRoute() {
       setSelectedWaypointId(null)
       setSelectedSegmentId(null)
-      setOpenPanel(null)
+      setActiveVideo(null)
+      setLightbox({ gallery: null, index: -1 })
       try {
         const data = await getPublicRouteBySlug(routeSlug)
         if (!isCurrent) {
@@ -153,6 +162,7 @@ function RoutePage() {
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
   const segments = useMemo(() => (Array.isArray(route?.segments) ? route.segments : []), [route])
   const foodIds = useMemo(() => getRouteFoodIds(route), [route])
+  const routeImageCollections = useMemo(() => orderedImageCollections(route), [route])
   const cancelHoverClose = () => {
     window.clearTimeout(hoverCloseTimerRef.current)
     hoverCloseTimerRef.current = null
@@ -181,7 +191,41 @@ function RoutePage() {
     setSelectedWaypointId(null)
     setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
   }
-  const toggleVideosPanel = () => setOpenPanel((current) => (current === 'videos' ? null : 'videos'))
+  const openGallery = async (gallery, startIndex = 0) => {
+    const collectionId = gallery?.id ? String(gallery.id) : ''
+    if (!collectionId || galleryLoadingId === collectionId) return
+
+    const embeddedImages = orderedCollectionImages(gallery)
+    if (embeddedImages.length > 0) {
+      setLightbox({ gallery: { ...gallery, images: embeddedImages }, index: Math.min(startIndex, embeddedImages.length - 1) })
+      return
+    }
+
+    setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: null }))
+    const cached = galleryCacheRef.current.get(collectionId)
+    if (cached) {
+      const images = orderedCollectionImages(cached)
+      if (images.length > 0) {
+        setLightbox({ gallery: { ...cached, images }, index: Math.min(startIndex, images.length - 1) })
+        return
+      }
+    }
+
+    setGalleryLoadingId(collectionId)
+    try {
+      const collection = await getPublicImageCollection(collectionId)
+      const images = orderedCollectionImages(collection)
+      if (!images.length) {
+        throw new Error('No public images are available in this gallery.')
+      }
+      galleryCacheRef.current.set(collectionId, collection)
+      setLightbox({ gallery: { ...collection, images }, index: Math.min(startIndex, images.length - 1) })
+    } catch {
+      setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Unable to load gallery images. Try again.' }))
+    } finally {
+      setGalleryLoadingId((current) => (current === collectionId ? null : current))
+    }
+  }
 
   const unresolvedVideoIds = useMemo(() => [
     ...normalizeMediaIds(route?.video_ids ?? route?.media_ids),
@@ -224,6 +268,8 @@ function RoutePage() {
 
   const videoById = useMemo(() => new Map(videoCatalog.videos.map((video) => [String(video.id), video])), [videoCatalog.videos])
   const routeVideos = useMemo(() => resolveAttachedVideos(route, videoById), [route, videoById])
+  const lightboxImages = lightbox.gallery?.images || []
+  const closeVideoDialog = useCallback(() => setActiveVideo(null), [])
   const waypointMediaCountById = useMemo(() => new Map(waypoints.map((waypoint) => [
     waypoint.id,
     getAttachedMediaCount(waypoint, videoById),
@@ -375,33 +421,36 @@ function RoutePage() {
         </section>
         <aside className="route-detail-side-content" aria-label="Route details">
           {route.summary && <p className="route-detail-summary">{route.summary}</p>}
-          {routeVideos.length > 0 && (
-            <div className="route-detail-toggles" role="group" aria-label="Route detail panels">
-              <button
-                type="button"
-                id="route-videos-toggle"
-                className={openPanel === 'videos' ? 'route-panel-toggle is-open' : 'route-panel-toggle'}
-                aria-expanded={openPanel === 'videos'}
-                aria-controls="route-videos-panel"
-                onClick={toggleVideosPanel}
-              >
-                <span className="route-panel-toggle-copy">
-                  <span className="route-panel-toggle-title">Media</span>
-                  <span className="route-panel-toggle-count">{routeVideos.length} {routeVideos.length === 1 ? 'video' : 'videos'}</span>
-                </span>
-                <span className="route-panel-toggle-chevron" aria-hidden="true">{openPanel === 'videos' ? '▲' : '▼'}</span>
-              </button>
-            </div>
+          {routeImageCollections.length > 0 && (
+            <EntityMediaSection
+              galleries={routeImageCollections}
+              onOpenGallery={openGallery}
+              loadingGalleryId={galleryLoadingId}
+              galleryErrorByCollectionId={galleryErrorByCollectionId}
+              showAllImages
+              sectionLabel="Images"
+              showImageGroupLabel={false}
+            />
           )}
-          {openPanel === 'videos' && routeVideos.length > 0 && (
-            <section id="route-videos-panel" className="route-panel-revealed" aria-labelledby="route-videos-toggle">
-              <RouteMediaGrid videos={routeVideos} />
+          {routeVideos.length > 0 && (
+            <section className="route-detail-media-section" aria-labelledby="route-videos-title">
+              <h2 id="route-videos-title">Videos</h2>
+              <RouteMediaGrid videos={routeVideos} onVideoSelect={setActiveVideo} />
             </section>
           )}
           <RoutePlacesAlongRoute waypoints={waypoints} countries={countries} />
           <RelatedFood foodIds={foodIds} />
         </aside>
       </div>
+      <ImageLightbox
+        images={lightboxImages}
+        activeIndex={lightbox.index}
+        isOpen={lightbox.index >= 0}
+        onClose={() => setLightbox({ gallery: null, index: -1 })}
+        onPrevious={() => setLightbox((current) => ({ ...current, index: (current.index - 1 + lightboxImages.length) % lightboxImages.length }))}
+        onNext={() => setLightbox((current) => ({ ...current, index: (current.index + 1) % lightboxImages.length }))}
+      />
+      <VideoPlayerDialog video={activeVideo} onClose={closeVideoDialog} />
     </section>
   )
 }

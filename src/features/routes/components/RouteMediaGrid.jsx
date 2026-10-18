@@ -3,7 +3,7 @@ import VideoPlayer from '../../video/VideoPlayer.jsx'
 
 // Compact previews; Play expands one video to a full-width player. Only the
 // expanded item mounts VideoPlayer, so collapsing unmounts the iframe and stops playback.
-function RouteMediaGrid({ videos = [], className = '' }) {
+function RouteMediaGrid({ videos = [], className = '', onVideoSelect }) {
   const [expandedVideoId, setExpandedVideoId] = useState(null)
 
   if (videos.length === 0) {
@@ -16,7 +16,7 @@ function RouteMediaGrid({ videos = [], className = '' }) {
         const videoId = String(video.id)
         const title = video.title?.trim() || 'Video'
 
-        if (videoId === expandedVideoId) {
+        if (!onVideoSelect && videoId === expandedVideoId) {
           return (
             <div className="route-media-item is-expanded" key={videoId}>
               <div className="route-media-expanded-header">
@@ -44,8 +44,8 @@ function RouteMediaGrid({ videos = [], className = '' }) {
             <button
               type="button"
               className="route-media-preview"
-              onClick={() => setExpandedVideoId(videoId)}
-              aria-label={`Play ${title}`}
+              onClick={() => (onVideoSelect ? onVideoSelect(video) : setExpandedVideoId(videoId))}
+              aria-label={`${onVideoSelect ? 'Open' : 'Play'} ${title}`}
             >
               {video.thumbnail_url ? (
                 <img className="route-media-thumbnail" src={video.thumbnail_url} alt="" loading="lazy" />
