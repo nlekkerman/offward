@@ -174,7 +174,7 @@ function PlacePage() {
       <header className="place-detail-header">
         <p className="eyebrow">PUBLIC PLACE</p>
         <h1>{placeTitle}</h1>
-        <ShareControl title={placeTitle} url={placeUrl} description={typeof place.summary === 'string' && place.summary.trim() ? place.summary.trim() : undefined} />
+        <ShareControl type="place" title={placeTitle} url={placeUrl} description={typeof place.summary === 'string' && place.summary.trim() ? place.summary.trim() : undefined} />
         <div className="route-detail-meta" aria-label="Place metadata">
           <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
           {place.visited_at && <span>Visited {place.visited_at}</span>}

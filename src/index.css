@@ -3396,10 +3396,34 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   min-height: 2.25rem;
 }
 
-.share-control .secondary-button {
+.share-control .share-control-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   min-height: 2.25rem;
   padding: 0.55rem 0.8rem;
-  font-size: 0.82rem;
+  border: 1px solid var(--public-accent);
+  border-radius: 0.75rem;
+  background: var(--public-accent);
+  color: #fff;
+  font: 600 0.82rem/1 sans-serif;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.share-control .share-control-button:hover {
+  background: #d9232e;
+  border-color: #d9232e;
+}
+
+.share-control .share-control-button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.share-control .share-control-button svg {
+  flex: 0 0 auto;
 }
 
 .share-control-feedback {

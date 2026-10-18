@@ -324,7 +324,7 @@ function RoutePage() {
         <div>
           <p className="eyebrow">PUBLIC ROUTE</p>
           <h1>{routeTitle}</h1>
-          <ShareControl title={routeTitle} url={routeUrl} description={typeof route.summary === 'string' && route.summary.trim() ? route.summary.trim() : undefined} />
+          <ShareControl type="route" title={routeTitle} url={routeUrl} description={typeof route.summary === 'string' && route.summary.trim() ? route.summary.trim() : undefined} />
         </div>
         <div className="route-detail-meta" aria-label="Route metadata">
           <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>

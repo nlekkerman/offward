@@ -260,7 +260,7 @@ function StoryPage() {
       <header className="story-detail-header">
         <p className="eyebrow">Story</p>
         <h1>{storyTitle}</h1>
-        <ShareControl title={storyTitle} url={storyUrl} description={typeof story.excerpt === 'string' && story.excerpt.trim() ? story.excerpt.trim() : undefined} />
+        <ShareControl type="story" title={storyTitle} url={storyUrl} description={typeof story.excerpt === 'string' && story.excerpt.trim() ? story.excerpt.trim() : undefined} />
         {(countryLabel || publishedLabel) && (
           <div className="story-detail-meta" aria-label="Story metadata">
             {countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>}

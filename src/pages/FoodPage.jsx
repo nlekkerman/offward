@@ -105,7 +105,7 @@ function FoodPage() {
       <header className="food-detail-header">
         <p className="eyebrow">{formatActivityLabel(food.food_type) || 'Food'}</p>
         <h1>{foodTitle}</h1>
-        <ShareControl title={foodTitle} url={foodUrl} description={typeof food.summary === 'string' && food.summary.trim() ? food.summary.trim() : undefined} />
+        <ShareControl type="food" title={foodTitle} url={foodUrl} description={typeof food.summary === 'string' && food.summary.trim() ? food.summary.trim() : undefined} />
         <div className="food-card-meta">{countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>}{published && <span>{published}</span>}</div>
         {food.summary && <p className="route-detail-summary">{food.summary}</p>}
       </header>
