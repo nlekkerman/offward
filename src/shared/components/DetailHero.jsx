@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import offwardLogo from '../../assets/images/home/logo_offward.webp'
 
-function DetailHero({ imageUrl }) {
+function DetailHero({ imageUrl, children }) {
   const [failedImageUrl, setFailedImageUrl] = useState(null)
 
   useEffect(() => {
@@ -11,17 +11,20 @@ function DetailHero({ imageUrl }) {
   const showImage = Boolean(imageUrl && imageUrl !== failedImageUrl)
 
   return (
-    <figure className={`detail-hero${showImage ? '' : ' detail-hero-fallback'}`}>
+    <section className={`detail-hero${showImage ? '' : ' detail-hero-fallback'}`}>
       {showImage ? (
         <img
+          className="detail-hero-image"
           src={imageUrl}
           alt=""
+          aria-hidden="true"
           onError={() => setFailedImageUrl(imageUrl)}
         />
       ) : (
-        <img src={offwardLogo} alt="" aria-hidden="true" />
+        <img className="detail-hero-logo" src={offwardLogo} alt="" aria-hidden="true" />
       )}
-    </figure>
+      <div className="detail-hero-content">{children}</div>
+    </section>
   )
 }
 

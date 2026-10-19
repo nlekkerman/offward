@@ -361,27 +361,28 @@ function RoutePage() {
   }
 
   return (
-    <section className="route-detail-page">
+    <section className="route-detail-page route-public-detail-page">
       <PageMetadata
         title={routeTitle}
         description={routeDescription}
         path={routePath}
         image={routeHeroImage || getContentSocialImage(route)}
       />
+      <DetailHero imageUrl={routeHeroImage}>
+        <header className="route-detail-header">
+          <div>
+            <p className="eyebrow">PUBLIC ROUTE</p>
+            <h1>{routeTitle}</h1>
+            <ShareControl type="route" title={routeTitle} url={routeUrl} description={typeof route.summary === 'string' && route.summary.trim() ? route.summary.trim() : undefined} />
+          </div>
+          <div className="route-detail-meta" aria-label="Route metadata">
+            <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
+            <span>{activityLabel}</span>
+          </div>
+          {countriesStatus === 'error' && <p className="route-detail-muted" role="status">Country details are unavailable, so the canonical country slug is shown.</p>}
+        </header>
+      </DetailHero>
       <Link className="route-detail-back" to="/explore">Back to Explore</Link>
-      <DetailHero imageUrl={routeHeroImage} />
-      <header className="route-detail-header">
-        <div>
-          <p className="eyebrow">PUBLIC ROUTE</p>
-          <h1>{routeTitle}</h1>
-          <ShareControl type="route" title={routeTitle} url={routeUrl} description={typeof route.summary === 'string' && route.summary.trim() ? route.summary.trim() : undefined} />
-        </div>
-        <div className="route-detail-meta" aria-label="Route metadata">
-          <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
-          <span>{activityLabel}</span>
-        </div>
-        {countriesStatus === 'error' && <p className="route-detail-muted" role="status">Country details are unavailable, so the canonical country slug is shown.</p>}
-      </header>
 
       <div className="route-detail-content-grid">
         <section className="route-map-section" aria-labelledby="route-map-title">

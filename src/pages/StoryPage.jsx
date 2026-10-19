@@ -251,7 +251,7 @@ function StoryPage() {
   const storyHeroImage = getDetailHeroImage(story, 'story')
 
   return (
-    <section className="story-detail-page">
+    <section className="story-detail-page story-detail-content-page">
       <PageMetadata
         title={storyTitle}
         description={storyDescription}
@@ -259,20 +259,21 @@ function StoryPage() {
         image={storyHeroImage || getContentSocialImage(story, { preferHero: true })}
         type="article"
       />
+      <DetailHero imageUrl={storyHeroImage}>
+        <header className="story-detail-header">
+          <p className="eyebrow">Story</p>
+          <h1>{storyTitle}</h1>
+          <ShareControl type="story" title={storyTitle} url={storyUrl} description={typeof story.excerpt === 'string' && story.excerpt.trim() ? story.excerpt.trim() : undefined} />
+          {(countryLabel || publishedLabel) && (
+            <div className="story-detail-meta" aria-label="Story metadata">
+              {countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>}
+              {publishedLabel && <span>{publishedLabel}</span>}
+            </div>
+          )}
+          {story.excerpt && <p className="story-detail-excerpt">{story.excerpt}</p>}
+        </header>
+      </DetailHero>
       <Link className="route-detail-back" to="/explore?view=stories">Back to Explore</Link>
-      <DetailHero imageUrl={storyHeroImage} />
-      <header className="story-detail-header">
-        <p className="eyebrow">Story</p>
-        <h1>{storyTitle}</h1>
-        <ShareControl type="story" title={storyTitle} url={storyUrl} description={typeof story.excerpt === 'string' && story.excerpt.trim() ? story.excerpt.trim() : undefined} />
-        {(countryLabel || publishedLabel) && (
-          <div className="story-detail-meta" aria-label="Story metadata">
-            {countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>}
-            {publishedLabel && <span>{publishedLabel}</span>}
-          </div>
-        )}
-        {story.excerpt && <p className="story-detail-excerpt">{story.excerpt}</p>}
-      </header>
 
       {story.body && <div className="story-detail-body">{story.body}</div>}
 

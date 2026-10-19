@@ -104,15 +104,16 @@ function FoodPage() {
         path={foodPath}
         image={foodHeroImage || getContentSocialImage(food)}
       />
+      <DetailHero imageUrl={foodHeroImage}>
+        <header className="food-detail-header">
+          <p className="eyebrow">{formatActivityLabel(food.food_type) || 'Food'}</p>
+          <h1>{foodTitle}</h1>
+          <ShareControl type="food" title={foodTitle} url={foodUrl} description={typeof food.summary === 'string' && food.summary.trim() ? food.summary.trim() : undefined} />
+          <div className="food-card-meta">{countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>}{published && <span>{published}</span>}</div>
+          {food.summary && <p className="route-detail-summary">{food.summary}</p>}
+        </header>
+      </DetailHero>
       <Link className="route-detail-back" to="/food">Back to Food</Link>
-      <DetailHero imageUrl={foodHeroImage} />
-      <header className="food-detail-header">
-        <p className="eyebrow">{formatActivityLabel(food.food_type) || 'Food'}</p>
-        <h1>{foodTitle}</h1>
-        <ShareControl type="food" title={foodTitle} url={foodUrl} description={typeof food.summary === 'string' && food.summary.trim() ? food.summary.trim() : undefined} />
-        <div className="food-card-meta">{countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>}{published && <span>{published}</span>}</div>
-        {food.summary && <p className="route-detail-summary">{food.summary}</p>}
-      </header>
       {food.body && <article className="food-body">{food.body}</article>}
       <dl className="food-recipe-meta">
         {food.prep_time_minutes != null && food.prep_time_minutes !== '' && <div><dt>Prep time</dt><dd>{food.prep_time_minutes} minutes</dd></div>}

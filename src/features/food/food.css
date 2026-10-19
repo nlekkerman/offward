@@ -163,6 +163,8 @@
   margin: 30px 0;
 }
 
+.food-page.food-detail-page { padding-top: 0; }
+
 .food-detail-header h1 {
   font-size: clamp(2.4rem, 5vw, 4.6rem);
   line-height: 1.1;
@@ -241,6 +243,7 @@
   .food-page {
     padding: 28px 18px 56px;
   }
+  .food-page.food-detail-page { padding-top: 0; }
   .food-grid,
   .food-recipe {
     grid-template-columns: minmax(0, 1fr);

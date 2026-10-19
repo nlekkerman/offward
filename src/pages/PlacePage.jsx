@@ -166,25 +166,26 @@ function PlacePage() {
   const placeHeroImage = getDetailHeroImage(place, 'place')
 
   return (
-    <section className="place-detail-page">
+    <section className="place-detail-page place-detail-content-page">
       <PageMetadata
         title={placeTitle}
         description={placeDescription}
         path={placePath}
         image={placeHeroImage || getContentSocialImage(place)}
       />
+      <DetailHero imageUrl={placeHeroImage}>
+        <header className="place-detail-header">
+          <p className="eyebrow">PUBLIC PLACE</p>
+          <h1>{placeTitle}</h1>
+          <ShareControl type="place" title={placeTitle} url={placeUrl} description={typeof place.summary === 'string' && place.summary.trim() ? place.summary.trim() : undefined} />
+          <div className="route-detail-meta" aria-label="Place metadata">
+            <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
+            {place.visited_at && <span>Visited {place.visited_at}</span>}
+          </div>
+          {place.summary && <p className="route-detail-summary">{place.summary}</p>}
+        </header>
+      </DetailHero>
       <Link className="route-detail-back" to="/explore?view=places">Back to Explore</Link>
-      <DetailHero imageUrl={placeHeroImage} />
-      <header className="place-detail-header">
-        <p className="eyebrow">PUBLIC PLACE</p>
-        <h1>{placeTitle}</h1>
-        <ShareControl type="place" title={placeTitle} url={placeUrl} description={typeof place.summary === 'string' && place.summary.trim() ? place.summary.trim() : undefined} />
-        <div className="route-detail-meta" aria-label="Place metadata">
-          <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
-          {place.visited_at && <span>Visited {place.visited_at}</span>}
-        </div>
-        {place.summary && <p className="route-detail-summary">{place.summary}</p>}
-      </header>
       <div className="place-detail-layout">
         {place.body && (
           <article className="place-detail-copy">
