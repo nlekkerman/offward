@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import offwardLogo from '../../assets/images/home/logo_offward.webp'
 
-function DetailHero({ imageUrl, children }) {
+function DetailHero({ imageUrl, onOpenGallery, children }) {
   const [failedImageUrl, setFailedImageUrl] = useState(null)
 
   useEffect(() => {
@@ -22,6 +22,14 @@ function DetailHero({ imageUrl, children }) {
         />
       ) : (
         <img className="detail-hero-logo" src={offwardLogo} alt="" aria-hidden="true" />
+      )}
+      {showImage && onOpenGallery && (
+        <button
+          type="button"
+          className="detail-hero-gallery-trigger"
+          onClick={onOpenGallery}
+          aria-label="Open hero image in gallery"
+        />
       )}
       <div className="detail-hero-content">{children}</div>
     </section>

@@ -2720,6 +2720,25 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   object-position: center;
 }
 
+.detail-hero-gallery-trigger {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.detail-hero-gallery-trigger:hover {
+  background: rgba(243, 239, 230, 0.035);
+}
+
+.detail-hero-gallery-trigger:focus-visible {
+  outline: 2px solid #f3efe6;
+  outline-offset: -6px;
+}
+
 .detail-hero-fallback {
   background:
     radial-gradient(ellipse at center, rgba(120, 35, 32, 0.24), transparent 65%),

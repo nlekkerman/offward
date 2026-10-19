@@ -18,7 +18,7 @@ import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
-import { getDetailHeroImage } from '../shared/utils/detailHeroImage.js'
+import { getDetailHeroSource, getDetailHeroSourceIndex } from '../shared/utils/detailHeroImage.js'
 
 function formatCountrySlug(value) {
   if (!value || typeof value !== 'string') {
@@ -111,20 +111,30 @@ function PlacePage() {
     return storyCatalog.stories.filter((story) => ids.has(String(story.id)))
   }, [place, storyCatalog.stories])
 
-  const openGallery = async (galleryPreview) => {
+  const openGallery = async (galleryPreview, startIndex = 0, heroSource = null) => {
     const collectionId = galleryPreview?.id ? String(galleryPreview.id) : ''
     if (!collectionId || galleryLoadingId === collectionId) return
     setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: null }))
     const cached = galleryCacheRef.current.get(collectionId)
     if (cached) {
-      setLightbox({ gallery: cached, index: 0 })
+      const imageIndex = startIndex >= 0 ? startIndex : getDetailHeroSourceIndex(cached, heroSource, 'place')
+      if (imageIndex < 0) {
+        setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Hero image is not available in this gallery.' }))
+        return
+      }
+      setLightbox({ gallery: cached, index: Math.min(imageIndex, Math.max(0, (cached.images || []).length - 1)) })
       return
     }
     setGalleryLoadingId(collectionId)
     try {
       const fullCollection = await getPublicImageCollection(collectionId)
       galleryCacheRef.current.set(collectionId, fullCollection)
-      setLightbox({ gallery: fullCollection, index: 0 })
+      const imageIndex = startIndex >= 0 ? startIndex : getDetailHeroSourceIndex(fullCollection, heroSource, 'place')
+      if (imageIndex < 0) {
+        setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Hero image is not available in this gallery.' }))
+        return
+      }
+      setLightbox({ gallery: fullCollection, index: Math.min(imageIndex, Math.max(0, (fullCollection.images || []).length - 1)) })
     } catch {
       setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Unable to load gallery. Try again.' }))
     } finally {
@@ -163,7 +173,11 @@ function PlacePage() {
   const placeDescription = getContentDescription(place.summary, placeTitle, place.country ? countryLabel : '')
   const placePath = `/places/${encodeURIComponent(placeSlug)}`
   const placeUrl = getPublicUrl(placePath)
-  const placeHeroImage = getDetailHeroImage(place, 'place')
+  const placeHeroSource = getDetailHeroSource(place, 'place')
+  const placeHeroImage = placeHeroSource?.imageUrl
+  const openPlaceHeroGallery = placeHeroSource?.sourceType === 'collection' && placeHeroSource.collection?.id
+    ? () => openGallery(placeHeroSource.collection, placeHeroSource.index, placeHeroSource)
+    : undefined
 
   return (
     <section className="place-detail-page place-detail-content-page">
@@ -173,7 +187,7 @@ function PlacePage() {
         path={placePath}
         image={placeHeroImage || getContentSocialImage(place)}
       />
-      <DetailHero imageUrl={placeHeroImage}>
+      <DetailHero imageUrl={placeHeroImage} onOpenGallery={openPlaceHeroGallery}>
         <header className="place-detail-header">
           <p className="eyebrow">PUBLIC PLACE</p>
           <h1>{placeTitle}</h1>

@@ -21,7 +21,7 @@ import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
-import { getDetailHeroImage } from '../shared/utils/detailHeroImage.js'
+import { getDetailHeroSource, getDetailHeroSourceIndex } from '../shared/utils/detailHeroImage.js'
 import VideoPlayerDialog from '../features/video/VideoPlayerDialog.jsx'
 import NotFoundPage from './NotFoundPage.jsx'
 
@@ -193,13 +193,18 @@ function RoutePage() {
     setSelectedWaypointId(null)
     setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
   }
-  const openGallery = async (gallery, startIndex = 0) => {
+  const openGallery = async (gallery, startIndex = 0, heroSource = null) => {
     const collectionId = gallery?.id ? String(gallery.id) : ''
     if (!collectionId || galleryLoadingId === collectionId) return
 
     const embeddedImages = orderedCollectionImages(gallery)
     if (embeddedImages.length > 0) {
-      setLightbox({ gallery: { ...gallery, images: embeddedImages }, index: Math.min(startIndex, embeddedImages.length - 1) })
+      const imageIndex = startIndex >= 0 ? startIndex : getDetailHeroSourceIndex(gallery, heroSource, 'route')
+      if (imageIndex < 0) {
+        setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Hero image is not available in this gallery.' }))
+        return
+      }
+      setLightbox({ gallery: { ...gallery, images: embeddedImages }, index: Math.min(imageIndex, embeddedImages.length - 1) })
       return
     }
 
@@ -220,8 +225,12 @@ function RoutePage() {
       if (!images.length) {
         throw new Error('No public images are available in this gallery.')
       }
+      const imageIndex = startIndex >= 0 ? startIndex : getDetailHeroSourceIndex(collection, heroSource, 'route')
+      if (imageIndex < 0) {
+        throw new Error('The hero image is not available in this gallery.')
+      }
       galleryCacheRef.current.set(collectionId, collection)
-      setLightbox({ gallery: { ...collection, images }, index: Math.min(startIndex, images.length - 1) })
+      setLightbox({ gallery: { ...collection, images }, index: Math.min(imageIndex, images.length - 1) })
     } catch {
       setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Unable to load gallery images. Try again.' }))
     } finally {
@@ -337,7 +346,11 @@ function RoutePage() {
   const routeDescription = getContentDescription(route?.summary, routeTitle, route?.country ? countryLabel : '')
   const routePath = `/routes/${encodeURIComponent(routeSlug)}`
   const routeUrl = getPublicUrl(routePath)
-  const routeHeroImage = getDetailHeroImage(route, 'route')
+  const routeHeroSource = getDetailHeroSource(route, 'route')
+  const routeHeroImage = routeHeroSource?.imageUrl
+  const openRouteHeroGallery = routeHeroSource?.sourceType === 'collection' && routeHeroSource.collection?.id
+    ? () => openGallery(routeHeroSource.collection, routeHeroSource.index, routeHeroSource)
+    : undefined
 
   if (routeStatus === 'loading') {
     return <section className="route-detail-page"><p className="route-detail-status" role="status">Loading route...</p></section>
@@ -368,7 +381,7 @@ function RoutePage() {
         path={routePath}
         image={routeHeroImage || getContentSocialImage(route)}
       />
-      <DetailHero imageUrl={routeHeroImage}>
+      <DetailHero imageUrl={routeHeroImage} onOpenGallery={openRouteHeroGallery}>
         <header className="route-detail-header">
           <div>
             <p className="eyebrow">PUBLIC ROUTE</p>

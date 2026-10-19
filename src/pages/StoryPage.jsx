@@ -9,7 +9,7 @@ import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
-import { getDetailHeroImage } from '../shared/utils/detailHeroImage.js'
+import { getDetailHeroSource } from '../shared/utils/detailHeroImage.js'
 import CompactRelatedEntityCard from '../shared/components/CompactRelatedEntityCard.jsx'
 import { collectionCount } from '../features/management/imageCollectionUtils.js'
 import { formatActivityLabel } from '../features/home/latestContentFormatting.js'
@@ -49,7 +49,7 @@ function StoryPage() {
   const [placeCatalog, setPlaceCatalog] = useState({ status: 'idle', places: [], next: null })
   const [routeCatalog, setRouteCatalog] = useState({ status: 'idle', routes: [], next: null })
   // Lightbox state is scoped to a single collection key so previous/next never crosses collections.
-  const [lightbox, setLightbox] = useState({ collectionKey: null, index: -1 })
+  const [lightbox, setLightbox] = useState({ collectionKey: null, index: -1, standaloneImage: null })
 
   useEffect(() => {
     let isCurrent = true
@@ -248,7 +248,24 @@ function StoryPage() {
   const storyDescription = getContentDescription(story.excerpt, storyTitle, countryLabel || '')
   const storyPath = `/stories/${encodeURIComponent(storySlug)}`
   const storyUrl = getPublicUrl(storyPath)
-  const storyHeroImage = getDetailHeroImage(story, 'story')
+  const storyHeroSource = getDetailHeroSource(story, 'story')
+  const storyHeroImage = storyHeroSource?.imageUrl
+  const storyHeroViewerImage = storyHeroSource?.sourceType === 'standalone'
+    ? {
+      ...(storyHeroSource.image && typeof storyHeroSource.image === 'object' ? storyHeroSource.image : {}),
+      url: storyHeroImage,
+    }
+    : null
+  const openStoryHeroGallery = storyHeroSource?.sourceType === 'collection' && storyHeroSource.index >= 0
+    ? () => {
+      const collectionKey = storyHeroSource.collection.id
+        || storyHeroSource.collection.title
+        || story.image_collections.indexOf(storyHeroSource.collection)
+      setLightbox({ collectionKey, index: storyHeroSource.index, standaloneImage: null })
+    }
+    : storyHeroViewerImage
+      ? () => setLightbox({ collectionKey: null, index: 0, standaloneImage: storyHeroViewerImage })
+      : undefined
 
   return (
     <section className="story-detail-page story-detail-content-page">
@@ -259,7 +276,7 @@ function StoryPage() {
         image={storyHeroImage || getContentSocialImage(story, { preferHero: true })}
         type="article"
       />
-      <DetailHero imageUrl={storyHeroImage}>
+      <DetailHero imageUrl={storyHeroImage} onOpenGallery={openStoryHeroGallery}>
         <header className="story-detail-header">
           <p className="eyebrow">Story</p>
           <h1>{storyTitle}</h1>
@@ -316,8 +333,8 @@ function StoryPage() {
             <div className="story-detail-media-group">
               <p className="story-detail-media-group-label">{story.image_collections.length > 1 ? 'Galleries' : 'Gallery'}</p>
               <div className="story-detail-gallery-grid">
-                {story.image_collections.map((collection) => {
-                  const collectionKey = collection.id || collection.title
+                {story.image_collections.map((collection, galleryIndex) => {
+                  const collectionKey = collection.id || collection.title || galleryIndex
                   const images = getCollectionImages(collection)
                   return (
                     <article className="story-gallery-card" key={collectionKey}>
@@ -335,7 +352,7 @@ function StoryPage() {
                               <button
                                 type="button"
                                 className="story-detail-image-button"
-                                onClick={() => setLightbox({ collectionKey, index })}
+                                onClick={() => setLightbox({ collectionKey, index, standaloneImage: null })}
                                 aria-label={`Open image ${index + 1} of ${images.length}${collection.title ? ` from ${collection.title}` : ''}`}
                               >
                                 <img src={getImageUrl(image)} alt={image.alt_text || image.caption || `${collection.title || 'Gallery'} image ${index + 1}`} loading="lazy" />
@@ -345,12 +362,12 @@ function StoryPage() {
                           </figure>
                         ))}
                       </div>
-                      {lightbox.collectionKey === collectionKey && (
+                      {lightbox.collectionKey === collectionKey && !lightbox.standaloneImage && (
                         <ImageLightbox
                           images={images}
                           activeIndex={lightbox.index}
                           isOpen={lightbox.index >= 0}
-                          onClose={() => setLightbox({ collectionKey: null, index: -1 })}
+                          onClose={() => setLightbox({ collectionKey: null, index: -1, standaloneImage: null })}
                           onPrevious={() => setLightbox((current) => ({ ...current, index: (current.index - 1 + images.length) % images.length }))}
                           onNext={() => setLightbox((current) => ({ ...current, index: (current.index + 1) % images.length }))}
                         />
@@ -362,6 +379,17 @@ function StoryPage() {
             </div>
           )}
         </section>
+      )}
+
+      {lightbox.standaloneImage && (
+        <ImageLightbox
+          images={[lightbox.standaloneImage]}
+          activeIndex={lightbox.index}
+          isOpen={lightbox.index >= 0}
+          onClose={() => setLightbox({ collectionKey: null, index: -1, standaloneImage: null })}
+          onPrevious={() => {}}
+          onNext={() => {}}
+        />
       )}
 
       {relatedPlaces.length > 0 && (
