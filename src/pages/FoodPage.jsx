@@ -53,7 +53,8 @@ function FoodPage() {
     const requestSlug = slug
     const embeddedImages = orderedCollectionImages(preview)
     if (embeddedImages.length) {
-      const imageIndex = startIndex >= 0 ? startIndex : getDetailHeroSourceIndex(preview, heroSource, 'food')
+      const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(preview, heroSource, 'food') : -1
+      const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
       if (imageIndex < 0) {
         setGalleryStatus((value) => ({ ...value, errors: { ...value.errors, [id]: 'Hero image is not available in this gallery.' } }))
         return
@@ -72,7 +73,8 @@ function FoodPage() {
       if (!fetchedImages.length) {
         throw new Error('No public images are available in this gallery.')
       }
-      const imageIndex = startIndex >= 0 ? startIndex : getDetailHeroSourceIndex(collection, heroSource, 'food')
+      const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(collection, heroSource, 'food') : -1
+      const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
       if (imageIndex < 0) {
         throw new Error('The hero image is not available in this gallery.')
       }

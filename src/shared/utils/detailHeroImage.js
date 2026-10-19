@@ -26,13 +26,45 @@ function imageUrlFrom(image, fields) {
 
 function imageIdentity(image) {
   if (!image || typeof image !== 'object') return null
-  return String(image.image_asset_id || image.image_id || image.asset_id || image.image?.id || image.id || '') || null
+  return String(
+    image.image_asset_id
+      || image.image_id
+      || image.asset_id
+      || image.image?.id
+      || image.image_asset?.id
+      || image.asset?.id
+      || image.id
+      || '',
+  ) || null
+}
+
+function normalizedImageUrl(image, fields) {
+  const url = imageUrlFrom(image, fields)
+  if (!url) return null
+
+  try {
+    const parsed = new URL(url)
+    return `${parsed.host.toLowerCase()}${decodeURIComponent(parsed.pathname).replace(/\/+$/, '').toLowerCase()}`
+  } catch {
+    return url.trim().toLowerCase().replace(/[?#].*$/, '').replace(/\/+$/, '')
+  }
+}
+
+function normalizedImageUrls(image, imageUrl) {
+  return new Set([
+    normalizedImageUrl(image, FULL_IMAGE_FIELDS),
+    normalizedImageUrl(image, THUMBNAIL_FIELDS),
+    normalizedImageUrl(imageUrl, FULL_IMAGE_FIELDS),
+  ].filter(Boolean))
 }
 
 function imageMatches(candidate, image, imageUrl) {
   if (candidate === image) return true
   const identity = imageIdentity(image)
   if (identity && imageIdentity(candidate) === identity) return true
+  const sourceUrls = normalizedImageUrls(image, imageUrl)
+  const candidateUrls = normalizedImageUrls(candidate)
+  if ([...sourceUrls].some((url) => candidateUrls.has(url))) return true
   return imageUrlFrom(candidate, FULL_IMAGE_FIELDS) === imageUrl
     || imageUrlFrom(candidate, THUMBNAIL_FIELDS) === imageUrl
 }
@@ -75,7 +107,7 @@ function collectionSource(collections, fields, entityType) {
       || imageUrlFrom(collection?.preview_image_url, fields)
       || imageUrlFrom(collection, fields)
     if (url) {
-      const image = previewImage && imageUrlFrom(previewImage, fields) === url ? previewImage : null
+      const image = previewImage || null
       return {
         imageUrl: url,
         sourceType: 'collection',

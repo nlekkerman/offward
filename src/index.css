@@ -2763,6 +2763,12 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   max-width: 1280px;
   margin: 0 auto;
   padding: 4.25rem 2rem 3.5rem;
+  pointer-events: none;
+}
+
+.detail-hero-content a,
+.detail-hero-content button {
+  pointer-events: auto;
 }
 
 .detail-hero .route-detail-header,

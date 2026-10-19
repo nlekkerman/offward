@@ -199,7 +199,8 @@ function RoutePage() {
 
     const embeddedImages = orderedCollectionImages(gallery)
     if (embeddedImages.length > 0) {
-      const imageIndex = startIndex >= 0 ? startIndex : getDetailHeroSourceIndex(gallery, heroSource, 'route')
+      const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(gallery, heroSource, 'route') : -1
+      const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
       if (imageIndex < 0) {
         setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Hero image is not available in this gallery.' }))
         return
@@ -213,7 +214,13 @@ function RoutePage() {
     if (cached) {
       const images = orderedCollectionImages(cached)
       if (images.length > 0) {
-        setLightbox({ gallery: { ...cached, images }, index: Math.min(startIndex, images.length - 1) })
+        const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(cached, heroSource, 'route') : -1
+        const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
+        if (imageIndex < 0) {
+          setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Hero image is not available in this gallery.' }))
+          return
+        }
+        setLightbox({ gallery: { ...cached, images }, index: Math.min(imageIndex, images.length - 1) })
         return
       }
     }
@@ -225,7 +232,8 @@ function RoutePage() {
       if (!images.length) {
         throw new Error('No public images are available in this gallery.')
       }
-      const imageIndex = startIndex >= 0 ? startIndex : getDetailHeroSourceIndex(collection, heroSource, 'route')
+      const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(collection, heroSource, 'route') : -1
+      const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
       if (imageIndex < 0) {
         throw new Error('The hero image is not available in this gallery.')
       }

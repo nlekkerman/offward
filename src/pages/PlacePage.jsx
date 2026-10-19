@@ -117,7 +117,8 @@ function PlacePage() {
     setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: null }))
     const cached = galleryCacheRef.current.get(collectionId)
     if (cached) {
-      const imageIndex = startIndex >= 0 ? startIndex : getDetailHeroSourceIndex(cached, heroSource, 'place')
+      const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(cached, heroSource, 'place') : -1
+      const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
       if (imageIndex < 0) {
         setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Hero image is not available in this gallery.' }))
         return
@@ -129,7 +130,8 @@ function PlacePage() {
     try {
       const fullCollection = await getPublicImageCollection(collectionId)
       galleryCacheRef.current.set(collectionId, fullCollection)
-      const imageIndex = startIndex >= 0 ? startIndex : getDetailHeroSourceIndex(fullCollection, heroSource, 'place')
+      const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(fullCollection, heroSource, 'place') : -1
+      const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
       if (imageIndex < 0) {
         setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Hero image is not available in this gallery.' }))
         return
