@@ -4,10 +4,12 @@ import VideoPlayer from '../features/video/VideoPlayer.jsx'
 import RelatedFood from '../features/food/RelatedFood.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
+import DetailHero from '../shared/components/DetailHero.jsx'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
+import { getDetailHeroImage } from '../shared/utils/detailHeroImage.js'
 import CompactRelatedEntityCard from '../shared/components/CompactRelatedEntityCard.jsx'
 import { collectionCount } from '../features/management/imageCollectionUtils.js'
 import { formatActivityLabel } from '../features/home/latestContentFormatting.js'
@@ -246,6 +248,7 @@ function StoryPage() {
   const storyDescription = getContentDescription(story.excerpt, storyTitle, countryLabel || '')
   const storyPath = `/stories/${encodeURIComponent(storySlug)}`
   const storyUrl = getPublicUrl(storyPath)
+  const storyHeroImage = getDetailHeroImage(story, 'story')
 
   return (
     <section className="story-detail-page">
@@ -253,10 +256,11 @@ function StoryPage() {
         title={storyTitle}
         description={storyDescription}
         path={storyPath}
-        image={getContentSocialImage(story, { preferHero: true })}
+        image={storyHeroImage || getContentSocialImage(story, { preferHero: true })}
         type="article"
       />
       <Link className="route-detail-back" to="/explore?view=stories">Back to Explore</Link>
+      <DetailHero imageUrl={storyHeroImage} />
       <header className="story-detail-header">
         <p className="eyebrow">Story</p>
         <h1>{storyTitle}</h1>
@@ -269,12 +273,6 @@ function StoryPage() {
         )}
         {story.excerpt && <p className="story-detail-excerpt">{story.excerpt}</p>}
       </header>
-
-      {getImageUrl(story.hero_image) && (
-        <figure className="story-detail-hero">
-          <img src={getImageUrl(story.hero_image)} alt={story.hero_image.alt_text || story.title} />
-        </figure>
-      )}
 
       {story.body && <div className="story-detail-body">{story.body}</div>}
 

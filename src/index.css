@@ -2503,6 +2503,38 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .route-detail-page .eyebrow { letter-spacing: 0; }
 
+.detail-hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: clamp(300px, 40vw, 520px);
+  margin: 1rem 0 2rem;
+  overflow: hidden;
+  background: #171b18;
+}
+
+.detail-hero > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.detail-hero-fallback {
+  border: 1px solid #30362f;
+  background:
+    radial-gradient(ellipse at center, rgba(120, 35, 32, 0.2), transparent 65%),
+    #171b18;
+}
+
+.detail-hero-fallback > img {
+  width: min(38%, 280px);
+  height: 42%;
+  object-fit: contain;
+}
+
 .route-detail-back {
   display: inline-flex;
   align-items: center;
@@ -3392,9 +3424,6 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   margin-bottom: 2.5rem;
 }
 
-.story-detail-hero { margin: 0 0 2.5rem; }
-.story-detail-hero img { display: block; width: 100%; max-height: 520px; object-fit: cover; }
-
 .story-detail-header h1 {
   margin: 0.45rem 0 0;
   color: #f3efe6;
@@ -3856,6 +3885,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .explore-field { min-width: 0; width: 100%; }
   .explore-map { height: 52svh; min-height: 360px; }
   .route-detail-page { padding: 1.5rem 1.25rem 3rem; }
+  .detail-hero { height: clamp(230px, 68vw, 320px); margin: 0.75rem 0 1.5rem; }
   .route-detail-context { margin-bottom: 1.35rem; }
   .route-detail-context-card { align-items: flex-start; min-height: 0; padding: 0.9rem 1rem; }
   .route-detail-context-route, .route-detail-context-subtitle { white-space: normal; }

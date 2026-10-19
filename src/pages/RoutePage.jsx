@@ -15,11 +15,13 @@ import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
+import DetailHero from '../shared/components/DetailHero.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
+import { getDetailHeroImage } from '../shared/utils/detailHeroImage.js'
 import VideoPlayerDialog from '../features/video/VideoPlayerDialog.jsx'
 import NotFoundPage from './NotFoundPage.jsx'
 
@@ -335,6 +337,7 @@ function RoutePage() {
   const routeDescription = getContentDescription(route?.summary, routeTitle, route?.country ? countryLabel : '')
   const routePath = `/routes/${encodeURIComponent(routeSlug)}`
   const routeUrl = getPublicUrl(routePath)
+  const routeHeroImage = getDetailHeroImage(route, 'route')
 
   if (routeStatus === 'loading') {
     return <section className="route-detail-page"><p className="route-detail-status" role="status">Loading route...</p></section>
@@ -363,9 +366,10 @@ function RoutePage() {
         title={routeTitle}
         description={routeDescription}
         path={routePath}
-        image={getContentSocialImage(route)}
+        image={routeHeroImage || getContentSocialImage(route)}
       />
       <Link className="route-detail-back" to="/explore">Back to Explore</Link>
+      <DetailHero imageUrl={routeHeroImage} />
       <header className="route-detail-header">
         <div>
           <p className="eyebrow">PUBLIC ROUTE</p>

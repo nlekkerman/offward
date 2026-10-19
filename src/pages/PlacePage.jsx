@@ -13,10 +13,12 @@ import { getPublicStories } from '../services/storiesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
+import DetailHero from '../shared/components/DetailHero.jsx'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
+import { getDetailHeroImage } from '../shared/utils/detailHeroImage.js'
 
 function formatCountrySlug(value) {
   if (!value || typeof value !== 'string') {
@@ -161,6 +163,7 @@ function PlacePage() {
   const placeDescription = getContentDescription(place.summary, placeTitle, place.country ? countryLabel : '')
   const placePath = `/places/${encodeURIComponent(placeSlug)}`
   const placeUrl = getPublicUrl(placePath)
+  const placeHeroImage = getDetailHeroImage(place, 'place')
 
   return (
     <section className="place-detail-page">
@@ -168,9 +171,10 @@ function PlacePage() {
         title={placeTitle}
         description={placeDescription}
         path={placePath}
-        image={getContentSocialImage(place)}
+        image={placeHeroImage || getContentSocialImage(place)}
       />
       <Link className="route-detail-back" to="/explore?view=places">Back to Explore</Link>
+      <DetailHero imageUrl={placeHeroImage} />
       <header className="place-detail-header">
         <p className="eyebrow">PUBLIC PLACE</p>
         <h1>{placeTitle}</h1>
