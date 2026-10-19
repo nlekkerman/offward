@@ -3457,6 +3457,31 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   outline-offset: 2px;
 }
 
+.route-directions-modes {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.route-directions-mode {
+  min-height: 42px;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #706b61;
+  border-radius: 4px;
+  background: #262923;
+  color: #d8d1c3;
+  cursor: pointer;
+}
+
+.route-directions-mode[aria-pressed="true"] {
+  border-color: #d8b47c;
+  color: #f2ece4;
+}
+
+.route-directions-mode:focus-visible {
+  outline: 2px solid #d8b47c;
+  outline-offset: 2px;
+}
+
 .route-directions-feedback {
   flex-basis: 100%;
   margin: 0;

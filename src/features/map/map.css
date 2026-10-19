@@ -377,19 +377,32 @@
   --waypoint-name-color: rgba(43, 38, 32, 0.72);
 }
 
-.public-route-waypoint-marker.is-directions-start .route-waypoint-pill {
-  outline: 3px solid #d9232e;
-  outline-offset: 3px;
-  box-shadow: 0 0 0 6px rgba(217, 35, 46, 0.2), 0 4px 14px rgba(0, 0, 0, 0.55);
-  animation: route-directions-start-pulse 1.8s ease-in-out infinite;
+.public-route-waypoint-marker.is-directions-start {
+  --waypoint-bg: #ffd166;
+  --waypoint-border: #704600;
+  --waypoint-text: #241b0b;
+  --waypoint-number-color: #241b0b;
+  --waypoint-name-color: rgba(36, 27, 11, 0.82);
+  --waypoint-divider-color: rgba(36, 27, 11, 0.42);
+  --waypoint-selected-bg: #ffd166;
+  --waypoint-selected-border: #704600;
+  --waypoint-selected-text: #241b0b;
+  --waypoint-selected-shadow: var(--waypoint-shadow);
+}
+
+.public-route-waypoint-marker.is-directions-start.is-selected .route-waypoint-pill {
+  transform: none;
+  box-shadow: var(--waypoint-shadow);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .public-route-waypoint-marker.is-directions-start:not(.is-selected) .route-waypoint-pill:hover {
+    box-shadow: var(--waypoint-shadow);
+  }
 }
 
 .route-marker-zoom-hidden .route-waypoint-marker.is-directions-start {
   display: block;
-}
-
-@keyframes route-directions-start-pulse {
-  50% { box-shadow: 0 0 0 9px rgba(217, 35, 46, 0.08), 0 4px 14px rgba(0, 0, 0, 0.55); }
 }
 
 .offward-user-location-icon {
@@ -423,12 +436,6 @@
   color: #f2ece4;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
   font: 700 0.68rem/1.2 sans-serif;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .public-route-waypoint-marker.is-directions-start .route-waypoint-pill {
-    animation: none;
-  }
 }
 
 .public-place-marker {

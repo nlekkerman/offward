@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
 import RouteDirectionsLayer from '../features/map/components/RouteDirectionsLayer.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
+import { isRouteDirectionsConfigured, MAX_LOCAL_DIRECTIONS_KM } from '../services/routeDirectionsApi.js'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
@@ -101,8 +102,8 @@ function RoutePage() {
   const galleryCacheRef = useRef(new Map())
   const [routeFocusRequest, setRouteFocusRequest] = useState(0)
   const [directionsActive, setDirectionsActive] = useState(false)
-  const [directionsWaiting, setDirectionsWaiting] = useState(false)
-  const [directionsError, setDirectionsError] = useState(null)
+  const [directionsMode, setDirectionsMode] = useState('foot-walking')
+  const [directionsStatus, setDirectionsStatus] = useState(null)
   const hoverCloseTimerRef = useRef(null)
   const supportsHover = useHoverCapability()
 
@@ -115,8 +116,8 @@ function RoutePage() {
       setSelectedWaypointId(null)
       setSelectedSegmentId(null)
       setDirectionsActive(false)
-      setDirectionsWaiting(false)
-      setDirectionsError(null)
+      setDirectionsMode('foot-walking')
+      setDirectionsStatus(null)
       setActiveVideo(null)
       setLightbox({ gallery: null, index: -1 })
       try {
@@ -170,11 +171,20 @@ function RoutePage() {
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
   const canonicalStartWaypoint = useMemo(() => {
-    if (!Array.isArray(route?.waypoints)) return null
-    const waypoint = route.waypoints.find((item) => item?.type === 'start')
+    if (route?.id === null || route?.id === undefined || !Array.isArray(route?.waypoints)) return null
+    const starts = route.waypoints.filter((item) =>
+      item &&
+      typeof item === 'object' &&
+      item.type === 'start' &&
+      item.route_id === route.id
+    )
+    if (starts.length !== 1) return null
+    const waypoint = starts[0]
     const latitude = waypoint?.coordinates?.lat
     const longitude = waypoint?.coordinates?.lng
     if (
+      typeof waypoint.id !== 'string' ||
+      waypoint.id.length === 0 ||
       typeof latitude !== 'number' ||
       !Number.isFinite(latitude) ||
       latitude < -90 ||
@@ -364,20 +374,20 @@ function RoutePage() {
   }
   const showFullRoute = () => setRouteFocusRequest((current) => current + 1)
   const startDirections = () => {
-    if (!canonicalStartWaypoint) return
-    setDirectionsError(null)
-    setDirectionsWaiting(true)
+    if (!canonicalStartWaypoint || !isRouteDirectionsConfigured()) return
+    setDirectionsStatus({ status: 'locating' })
     setDirectionsActive(true)
   }
   const stopDirections = () => {
     setDirectionsActive(false)
-    setDirectionsWaiting(false)
-    setDirectionsError(null)
+    setDirectionsMode('foot-walking')
+    setDirectionsStatus(null)
   }
-  const handleLocationReady = useCallback(() => setDirectionsWaiting(false), [])
+  const handleDirectionsStatusChange = useCallback((status) => {
+    setDirectionsStatus(status)
+  }, [])
   const handleLocationError = useCallback((message) => {
-    setDirectionsError(message)
-    setDirectionsWaiting(false)
+    setDirectionsStatus({ status: 'error', message })
     setDirectionsActive(false)
   }, [])
   const viewMapEntityDetails = (detail) => {
@@ -457,17 +467,65 @@ function RoutePage() {
                 type="button"
                 className={`route-directions-button ${directionsActive ? 'danger-button' : 'primary-button'}`}
                 onClick={directionsActive ? stopDirections : startDirections}
-                disabled={!directionsActive && !canonicalStartWaypoint}
-                aria-describedby={(directionsWaiting || directionsError || !canonicalStartWaypoint) ? 'route-directions-feedback' : undefined}
+                disabled={!directionsActive && (!canonicalStartWaypoint || !isRouteDirectionsConfigured())}
+                aria-describedby={(directionsStatus || !canonicalStartWaypoint || !isRouteDirectionsConfigured()) ? 'route-directions-feedback' : undefined}
               >
                 {directionsActive ? 'Stop directions' : 'Directions to start'}
               </button>
-              {directionsWaiting && <p className="route-directions-feedback" id="route-directions-feedback" role="status">Waiting for your location...</p>}
-              {directionsError && <p className="route-directions-feedback is-error" id="route-directions-feedback" role="alert">{directionsError}</p>}
+              {!directionsActive && canonicalStartWaypoint && !isRouteDirectionsConfigured() && (
+                <p className="route-directions-feedback" id="route-directions-feedback">
+                  Local directions are unavailable until VITE_OPENROUTESERVICE_API_KEY is configured. This key is public in the browser.
+                </p>
+              )}
               {!canonicalStartWaypoint && (
                 <p className="route-directions-feedback" id="route-directions-feedback">
-                  Directions are unavailable because this Route has no valid, explicitly typed start waypoint.
+                  Directions are unavailable because this Route does not have exactly one valid, Route-owned start waypoint.
                 </p>
+              )}
+              {directionsActive && (
+                <>
+                  <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
+                    <button
+                      type="button"
+                      className="route-directions-mode"
+                      aria-pressed={directionsMode === 'foot-walking'}
+                      onClick={() => setDirectionsMode('foot-walking')}
+                    >
+                      Walking
+                    </button>
+                    <button
+                      type="button"
+                      className="route-directions-mode"
+                      aria-pressed={directionsMode === 'driving-car'}
+                      onClick={() => setDirectionsMode('driving-car')}
+                    >
+                      Driving
+                    </button>
+                  </div>
+                  {directionsStatus?.status === 'locating' && (
+                    <p className="route-directions-feedback" id="route-directions-feedback" role="status">Waiting for your location...</p>
+                  )}
+                  {directionsStatus?.status === 'routing' && (
+                    <p className="route-directions-feedback" id="route-directions-feedback" role="status">
+                      Calculating {directionsMode === 'foot-walking' ? 'walking' : 'driving'} directions...
+                    </p>
+                  )}
+                  {directionsStatus?.status === 'too-far' && (
+                    <p className="route-directions-feedback" id="route-directions-feedback" role="status">
+                      You're more than {MAX_LOCAL_DIRECTIONS_KM} km from this route's starting point. Local directions are available when you're closer.
+                    </p>
+                  )}
+                  {directionsStatus?.status === 'ready' && (
+                    <p className="route-directions-feedback" id="route-directions-feedback" role="status">
+                      {directionsMode === 'foot-walking' ? 'Walking' : 'Driving'} route: {(directionsStatus.distanceMeters / 1000).toFixed(1)} km
+                    </p>
+                  )}
+                  {directionsStatus?.status === 'error' && (
+                    <p className="route-directions-feedback is-error" id="route-directions-feedback" role="alert">
+                      {directionsStatus.message}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -495,7 +553,8 @@ function RoutePage() {
               <RouteDirectionsLayer
                 active={directionsActive}
                 startCoordinates={canonicalStartWaypoint.coordinates}
-                onPositionReady={handleLocationReady}
+                mode={directionsMode}
+                onStatusChange={handleDirectionsStatusChange}
                 onError={handleLocationError}
               />
             ) : null}

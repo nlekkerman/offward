@@ -7,6 +7,15 @@ Place, Story, and Food requests. In Netlify, make the existing
 `VITE_API_BASE_URL` variable available to Edge Functions; the Edge Function uses
 it to fetch public detail records. No additional API URL is required.
 
+## Route local directions
+
+Set `VITE_OPENROUTESERVICE_API_KEY` in the frontend build environment to enable
+walking and driving directions on public Route pages. OpenRouteService's hosted
+free-tier directions API is called directly by the browser. Vite embeds this
+value in the client bundle, so it is publicly visible and is not a secret;
+configure the key and its provider-side limits accordingly. Without the
+variable, local directions remain unavailable.
+
 ## Management gallery images
 
 [Gallery editing](src/pages/manage/galleries/GalleryEditPage.jsx) normalizes management
