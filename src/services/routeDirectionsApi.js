@@ -1,12 +1,9 @@
+import { apiClient } from './apiClient.js'
+
 export const MAX_LOCAL_DIRECTIONS_KM = 30
 
-const OPENROUTESERVICE_DIRECTIONS_URL = 'https://api.openrouteservice.org/v2/directions'
 const EARTH_RADIUS_KM = 6371.0088
-
-export function isRouteDirectionsConfigured() {
-  return typeof import.meta.env.VITE_OPENROUTESERVICE_API_KEY === 'string' &&
-    import.meta.env.VITE_OPENROUTESERVICE_API_KEY.trim().length > 0
-}
+const VALID_PROFILES = new Set(['walking', 'driving'])
 
 export function getStraightLineDistanceKm(origin, destination) {
   const toRadians = (degrees) => (degrees * Math.PI) / 180
@@ -23,73 +20,117 @@ export function getStraightLineDistanceKm(origin, destination) {
   return 2 * EARTH_RADIUS_KM * Math.atan2(Math.sqrt(boundedHaversine), Math.sqrt(1 - boundedHaversine))
 }
 
-function getRoutingError(response) {
-  if (response.status === 401 || response.status === 403) {
-    return new Error('The routing service rejected its API key. Check the VITE_OPENROUTESERVICE_API_KEY configuration.')
+function getResponseErrorText(value) {
+  if (typeof value === 'string') {
+    return value
   }
-  if (response.status === 429) {
-    return new Error('The routing service rate limit was reached. Please wait a moment and try again.')
+  if (Array.isArray(value)) {
+    return value.map(getResponseErrorText).join(' ')
   }
-  return new Error('The routing service could not calculate directions. Please try again.')
+  if (value && typeof value === 'object') {
+    return Object.entries(value)
+      .map(([key, nestedValue]) => `${key} ${getResponseErrorText(nestedValue)}`)
+      .join(' ')
+  }
+  return ''
 }
 
-export async function getRouteDirections(origin, destination, profile, signal) {
-  if (!isRouteDirectionsConfigured()) {
-    throw new Error('Local directions are not configured. Set VITE_OPENROUTESERVICE_API_KEY for the frontend build.')
-  }
-  if (profile !== 'foot-walking' && profile !== 'driving-car') {
-    throw new Error('The selected directions mode is not supported.')
+function getDirectionsError(error) {
+  const response = error?.response
+  if (!response) {
+    return new Error('Unable to connect to Offward directions. Check your connection and try again.')
   }
 
-  const response = await fetch(`${OPENROUTESERVICE_DIRECTIONS_URL}/${profile}/geojson`, {
-    method: 'POST',
-    headers: {
-      Authorization: import.meta.env.VITE_OPENROUTESERVICE_API_KEY.trim(),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      coordinates: [
-        [origin.longitude, origin.latitude],
-        [destination.lng, destination.lat],
-      ],
-    }),
-    signal,
-  })
+  const responseText = getResponseErrorText(response.data).replaceAll('_', ' ').toLowerCase()
 
-  if (!response.ok) {
-    throw getRoutingError(response)
+  if (response.status === 429) {
+    return new Error('The limit of 5 directions requests per hour per IP has been reached. Please try again later.')
+  }
+  if (response.status >= 500) {
+    return new Error('The routing service is unavailable or its quota has been exhausted. Please try again later.')
+  }
+  if (/30\s*(?:km|kilomet(?:er|re)s?)/i.test(responseText)) {
+    return new Error(`You must be within ${MAX_LOCAL_DIRECTIONS_KM} km of this Route's starting point for directions.`)
+  }
+  if (
+    response.status === 404 ||
+    response.status === 409 ||
+    /start(?:ing)? waypoint|waypoint.{0,30}(?:missing|ambiguous|unique|found)/i.test(responseText)
+  ) {
+    return new Error('This Route does not have a uniquely identified starting waypoint.')
+  }
+  if (response.status === 400 || response.status === 422) {
+    const invalidOriginOrProfile = /\b(?:origin|profile)\b/.test(responseText)
+    return new Error(invalidOriginOrProfile
+      ? 'Your location or travel mode is invalid. Check them and try again.'
+      : 'The directions request was invalid, or this Route does not have a unique starting waypoint.')
+  }
+
+  return new Error('Offward could not calculate directions. Please try again.')
+}
+
+function isValidCoordinate(value, minimum, maximum) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= minimum && value <= maximum
+}
+
+function validateDirectionsResponse(data, profile) {
+  const coordinates = data?.geometry?.coordinates
+  const validCoordinates = Array.isArray(coordinates) &&
+    coordinates.length >= 2 &&
+    coordinates.every((coordinate) =>
+      Array.isArray(coordinate) &&
+      isValidCoordinate(coordinate[0], -180, 180) &&
+      isValidCoordinate(coordinate[1], -90, 90)
+    )
+
+  if (
+    !data ||
+    typeof data !== 'object' ||
+    Array.isArray(data) ||
+    data.profile !== profile ||
+    data.geometry?.type !== 'LineString' ||
+    !validCoordinates ||
+    typeof data.distance_km !== 'number' ||
+    !Number.isFinite(data.distance_km) ||
+    data.distance_km < 0
+  ) {
+    throw new Error('Offward returned an invalid directions response.')
+  }
+}
+
+export async function getRouteDirections(routeSlug, origin, profile, signal) {
+  if (typeof routeSlug !== 'string' || routeSlug.trim().length === 0) {
+    throw new Error('A Route is required to request directions.')
+  }
+  if (
+    !origin ||
+    !isValidCoordinate(origin.lat, -90, 90) ||
+    !isValidCoordinate(origin.lng, -180, 180)
+  ) {
+    throw new Error('Your location is invalid. Check your location and try again.')
+  }
+  if (!VALID_PROFILES.has(profile)) {
+    throw new Error('The selected travel mode is invalid. Choose walking or driving.')
   }
 
   let data
   try {
-    data = await response.json()
-  } catch {
-    throw new Error('The routing service returned an unreadable directions response.')
-  }
-  const feature = data?.features?.[0]
-  const coordinates = feature?.geometry?.coordinates
-  const distanceMeters = feature?.properties?.summary?.distance
-  if (
-    feature?.geometry?.type !== 'LineString' ||
-    !Array.isArray(coordinates) ||
-    coordinates.length < 2 ||
-    !coordinates.every((coordinate) =>
-      Array.isArray(coordinate) &&
-      typeof coordinate[0] === 'number' &&
-      Number.isFinite(coordinate[0]) &&
-      coordinate[0] >= -180 &&
-      coordinate[0] <= 180 &&
-      typeof coordinate[1] === 'number' &&
-      Number.isFinite(coordinate[1]) &&
-      coordinate[1] >= -90 &&
-      coordinate[1] <= 90
-    ) ||
-    typeof distanceMeters !== 'number' ||
-    !Number.isFinite(distanceMeters) ||
-    distanceMeters < 0
-  ) {
-    throw new Error('The routing service returned an invalid directions response.')
+    const response = await apiClient.post(
+      `/api/offward/routes/${encodeURIComponent(routeSlug)}/directions/`,
+      {
+        origin: { lat: origin.lat, lng: origin.lng },
+        profile,
+      },
+      { signal },
+    )
+    data = response.data
+  } catch (error) {
+    if (signal?.aborted || error?.code === 'ERR_CANCELED') {
+      throw error
+    }
+    throw getDirectionsError(error)
   }
 
-  return { coordinates, distanceMeters }
+  validateDirectionsResponse(data, profile)
+  return data
 }

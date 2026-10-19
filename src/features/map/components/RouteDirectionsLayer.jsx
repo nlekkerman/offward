@@ -59,7 +59,7 @@ function DirectionsViewportController({ active, position, navigationPositions })
   return null
 }
 
-function RouteDirectionsLayer({ active, startCoordinates, mode, onStatusChange, onError }) {
+function RouteDirectionsLayer({ active, routeSlug, startCoordinates, mode, onStatusChange, onError }) {
   const { position, error, start, stop } = useUserLocation()
   const requestedModeRef = useRef(null)
   const currentModeRef = useRef(null)
@@ -108,23 +108,23 @@ function RouteDirectionsLayer({ active, startCoordinates, mode, onStatusChange, 
     requestControllerRef.current = controller
     onStatusChange({ status: 'routing' })
 
-    getRouteDirections(position, startCoordinates, mode, controller.signal)
+    getRouteDirections(routeSlug, { lat: position.latitude, lng: position.longitude }, mode, controller.signal)
       .then((result) => {
         if (controller.signal.aborted) return
-        const navigationPositions = result.coordinates.map(([longitude, latitude]) => [latitude, longitude])
-        setNavigationResult({ navigationPositions, distanceMeters: result.distanceMeters })
-        onStatusChange({ status: 'ready', distanceMeters: result.distanceMeters })
+        const navigationPositions = result.geometry.coordinates.map(([longitude, latitude]) => [latitude, longitude])
+        setNavigationResult({ navigationPositions, distanceKm: result.distance_km })
+        onStatusChange({ status: 'ready', distanceKm: result.distance_km })
       })
       .catch((routingError) => {
-        if (controller.signal.aborted || routingError?.name === 'AbortError') return
+        if (controller.signal.aborted || routingError?.name === 'AbortError' || routingError?.code === 'ERR_CANCELED') return
         onStatusChange({
           status: 'error',
           message: routingError instanceof Error
             ? routingError.message
-            : 'The routing service could not calculate directions. Please try again.',
+            : 'Offward could not calculate directions. Please try again.',
         })
       })
-  }, [active, mode, onStatusChange, position, startCoordinates])
+  }, [active, mode, onStatusChange, position, routeSlug, startCoordinates])
 
   useEffect(() => () => {
     requestControllerRef.current?.abort()

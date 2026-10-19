@@ -377,16 +377,16 @@
   --waypoint-name-color: rgba(43, 38, 32, 0.72);
 }
 
-.public-route-waypoint-marker.is-directions-start {
-  --waypoint-bg: #ffd166;
-  --waypoint-border: #704600;
-  --waypoint-text: #241b0b;
-  --waypoint-number-color: #241b0b;
-  --waypoint-name-color: rgba(36, 27, 11, 0.82);
-  --waypoint-divider-color: rgba(36, 27, 11, 0.42);
-  --waypoint-selected-bg: #ffd166;
-  --waypoint-selected-border: #704600;
-  --waypoint-selected-text: #241b0b;
+.public-route-waypoint-marker.is-directions-start.is-start .route-waypoint-pill {
+  --waypoint-bg: #ff3838;
+  --waypoint-border: #b91f2a;
+  --waypoint-text: #fff;
+  --waypoint-number-color: #fff;
+  --waypoint-name-color: rgba(255, 255, 255, 0.88);
+  --waypoint-divider-color: rgba(255, 255, 255, 0.55);
+  --waypoint-selected-bg: #ff3838;
+  --waypoint-selected-border: #b91f2a;
+  --waypoint-selected-text: #fff;
   --waypoint-selected-shadow: var(--waypoint-shadow);
 }
 
@@ -397,6 +397,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .public-route-waypoint-marker.is-directions-start:not(.is-selected) .route-waypoint-pill:hover {
+    border-color: var(--waypoint-border);
     box-shadow: var(--waypoint-shadow);
   }
 }
