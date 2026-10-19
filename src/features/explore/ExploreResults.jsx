@@ -4,7 +4,8 @@ import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
 import { formatActivityLabel, formatCountryLabel } from '../home/latestContentFormatting.js'
 import { isRenderablePlace } from '../map/mapGeometry.js'
-import { getExplorePreview } from './exploreUtils.js'
+import LocationPinFallback from '../../shared/components/LocationPinFallback.jsx'
+import { getExplorePreview, getPlacePreview } from './exploreUtils.js'
 
 export function ExploreCard({ item, mode, countries, selectedId, onSelect, compact = false, showCountry = true }) {
   const [failedPreview, setFailedPreview] = useState(null)
@@ -12,15 +13,18 @@ export function ExploreCard({ item, mode, countries, selectedId, onSelect, compa
   const title = route ? item.title : item.name
   const country = findCountry(countries, item.country_id || item.country)
   const countryLabel = showCountry && (country?.name || formatCountryLabel(item.country))
-  const preview = getExplorePreview(item)
+  const preview = route ? getExplorePreview(item) : getPlacePreview(item)
+  const hasPreview = Boolean(preview) && preview !== failedPreview
   const mapped = route ? item.is_map_renderable === true : isRenderablePlace(item)
 
   return (
-    <article className={`explore-discovery-card${compact ? ' is-compact' : ''}${selectedId === item.id ? ' is-selected' : ''}${preview && preview !== failedPreview ? ' has-preview' : ''}`}>
+    <article className={`explore-discovery-card${compact ? ' is-compact' : ''}${selectedId === item.id ? ' is-selected' : ''}${hasPreview ? ' has-preview' : ''}`}>
       <Link className="explore-discovery-card-link" to={`/${mode}/${encodeURIComponent(item.slug)}`}>
-        {preview && preview !== failedPreview && (
-          <div className="explore-discovery-media">
-            <img src={preview} alt="" loading="lazy" decoding="async" onError={() => setFailedPreview(preview)} />
+        {(hasPreview || !route) && (
+          <div className={`explore-discovery-media${hasPreview ? '' : ' is-fallback'}`}>
+            {hasPreview
+              ? <img src={preview} alt="" loading="lazy" decoding="async" onError={() => setFailedPreview(preview)} />
+              : <LocationPinFallback />}
           </div>
         )}
         <div className="explore-discovery-card-body">

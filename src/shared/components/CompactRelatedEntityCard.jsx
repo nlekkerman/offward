@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { collectionPreview, imagePreviewUrl, imageUrl } from '../../features/management/imageCollectionUtils.js'
+import { collectionPreview, firstCollectionPreview, imagePreviewUrl, imageUrl } from '../../features/management/imageCollectionUtils.js'
 import CountryFlag from './CountryFlag.jsx'
+import LocationPinFallback from './LocationPinFallback.jsx'
 
-function getPreview(entity) {
+function getPreview(entity, entityType) {
+  if (entityType === 'Place') return firstCollectionPreview(entity?.image_collections)
   const firstCollection = Array.isArray(entity?.image_collections) ? entity.image_collections[0] : null
   return imageUrl(entity?.hero_image)
     || collectionPreview(firstCollection)
@@ -22,16 +24,19 @@ function CompactRelatedEntityCard({
   activityLabel,
 }) {
   const [failedPreview, setFailedPreview] = useState(null)
-  const preview = getPreview(entity)
+  const preview = getPreview(entity, entityType)
+  const hasPreview = Boolean(preview) && preview !== failedPreview
   const title = entity?.title || entity?.name || entityType
   const metaLabel = [countryLabel, activityLabel].filter(Boolean).join(' · ')
 
   return (
     <Link to={href} className="compact-related-card">
       <span className="compact-related-card-media">
-        {preview && preview !== failedPreview
+        {hasPreview
           ? <img src={preview} alt="" loading="lazy" onError={() => setFailedPreview(preview)} />
-          : <span className="compact-related-card-fallback" aria-hidden="true">{entityType === 'Route' ? '⤳' : '◈'}</span>}
+          : entityType === 'Place'
+            ? <LocationPinFallback />
+            : <span className="compact-related-card-fallback" aria-hidden="true">{entityType === 'Route' ? '⤳' : '◈'}</span>}
       </span>
       <span className="compact-related-card-body">
         <span className="compact-related-card-eyebrow">{entityType}</span>

@@ -80,6 +80,15 @@ export function collectionPreview(collection) {
   return imagePreviewUrl(collection?.preview_image) || collection?.preview_image_url || imageUrl(collection?.images?.[0])
 }
 
+export function firstCollectionPreview(collections) {
+  if (!Array.isArray(collections)) return ''
+  for (const collection of collections) {
+    const preview = imagePreviewUrl(collection?.preview_image) || collection?.preview_image_url
+    if (preview) return preview
+  }
+  return ''
+}
+
 export function collectionCount(collection) {
   return collection?.image_count ?? collection?.images_count ?? collection?.images?.length ?? 0
 }

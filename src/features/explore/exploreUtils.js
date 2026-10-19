@@ -1,4 +1,4 @@
-import { collectionPreview } from '../management/imageCollectionUtils.js'
+import { collectionPreview, firstCollectionPreview } from '../management/imageCollectionUtils.js'
 import { getCombinedMapBounds, getRenderablePlaces, isRenderableRoute } from '../map/mapGeometry.js'
 
 export const EXPLORE_BATCH_SIZE = 12
@@ -11,6 +11,10 @@ export function getExplorePreview(entity) {
   const collection = Array.isArray(entity.image_collections) ? entity.image_collections[0] : null
   return imageUrl(entity.hero_image) || collectionPreview(collection)
     || imageUrl(entity.preview_image) || imageUrl(entity.image) || imageUrl(entity.thumbnail)
+}
+
+export function getPlacePreview(place) {
+  return firstCollectionPreview(place?.image_collections)
 }
 
 export function getExploreBounds(routes, places, selectedId) {

@@ -3517,6 +3517,34 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   background: #0e110e;
 }
 
+.location-pin-fallback {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 84px;
+  place-items: center;
+  overflow: hidden;
+  background-color: #17211a;
+  background-image:
+    linear-gradient(28deg, transparent 48%, #d8b47c0a 49%, #d8b47c0a 50%, transparent 51%),
+    linear-gradient(152deg, transparent 48%, #d8b47c0a 49%, #d8b47c0a 50%, transparent 51%);
+  color: #c2b58e;
+}
+
+.location-pin-fallback svg {
+  position: relative;
+  width: 2rem;
+  height: 2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.location-pin-fallback circle { fill: currentColor; stroke: none; }
+
 .compact-related-card-media img {
   display: block;
   width: 100%;
