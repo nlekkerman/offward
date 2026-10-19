@@ -54,6 +54,20 @@ button, input, select, textarea { font: inherit; }
   border-bottom-color: rgba(243, 239, 230, 0.2);
 }
 
+.app-shell-detail-hero {
+  position: relative;
+}
+
+.app-shell-detail-hero .app-header {
+  position: absolute;
+  z-index: 20;
+  inset: 0 0 auto;
+  background: rgba(8, 12, 10, 0.32);
+  border-bottom-color: rgba(243, 239, 230, 0.16);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
 .app-header nav { justify-content: flex-end; gap: 0.5rem 1.5rem; font-family: 'Trebuchet MS', sans-serif; font-size: 0.95rem; font-weight: 500; letter-spacing: 0; }
 .app-header nav a {
   position: relative;
@@ -2707,6 +2721,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
     linear-gradient(180deg, rgba(12, 19, 15, 0.48), rgba(12, 19, 15, 0.18) 34%, rgba(12, 19, 15, 0.8)),
     linear-gradient(90deg, rgba(12, 19, 15, 0.7), rgba(12, 19, 15, 0.34) 58%, rgba(12, 19, 15, 0.12));
   content: '';
+  pointer-events: none;
 }
 
 .detail-hero-image {
@@ -4102,6 +4117,10 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 @media (max-width: 600px) {
   .app-header { align-items: center; gap: 1.25rem; padding: 1rem 1.25rem; height: 81px; z-index: 31; }
   .app-header.mobile-menu-open { background: #202220; border-bottom-color: #3c3e3b; }
+  .app-shell-detail-hero .app-header.mobile-menu-open {
+    background: rgba(8, 12, 10, 0.86);
+    border-bottom-color: rgba(243, 239, 230, 0.2);
+  }
   .brand-logo { width: 48px; height: 48px; }
   .mobile-nav-toggle {
     display: inline-flex; align-items: center; justify-content: center;
@@ -4135,6 +4154,11 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
     border-bottom: 1px solid #3c3e3b; font-size: 1.2rem; line-height: 1.4;
     opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-8px);
     transition: opacity 240ms ease, transform 240ms ease, visibility 240ms;
+  }
+  .app-shell-detail-hero .app-header nav {
+    background: rgba(8, 12, 10, 0.94);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
   .app-header.mobile-menu-open nav { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
   .app-header nav a { width: 100%; max-width: 100%; padding: 0.8rem 0; overflow-wrap: anywhere; }

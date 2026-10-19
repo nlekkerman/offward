@@ -36,6 +36,7 @@ function getActiveSection(pathname, search) {
 function AppShell() {
   const { pathname, search, key: locationKey } = useLocation()
   const activeSection = getActiveSection(pathname, search)
+  const isDetailHeroPage = /^\/(?:routes|places|stories|food)\/[^/]+\/?$/.test(pathname)
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 600px)').matches)
   const [menuLocation, setMenuLocation] = useState(null)
   const isMenuOpen = isMobile && menuLocation === locationKey
@@ -114,7 +115,7 @@ function AppShell() {
   }, [])
 
   return (
-    <div className={`app-shell${pathname === '/' ? ' app-shell-home' : ''}`}>
+    <div className={`app-shell${pathname === '/' ? ' app-shell-home' : ''}${isDetailHeroPage ? ' app-shell-detail-hero' : ''}`}>
       <div className={`mobile-nav-backdrop${isMenuOpen ? ' is-open' : ''}`} aria-hidden="true" />
       <header ref={headerRef} className={`app-header${isMenuOpen ? ' mobile-menu-open' : ''}`}>
         <Link to="/" className="brand" aria-label="Offward home">
