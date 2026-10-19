@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
+import RouteDirectionsLayer from '../features/map/components/RouteDirectionsLayer.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
@@ -99,6 +100,9 @@ function RoutePage() {
   const [galleryErrorByCollectionId, setGalleryErrorByCollectionId] = useState({})
   const galleryCacheRef = useRef(new Map())
   const [routeFocusRequest, setRouteFocusRequest] = useState(0)
+  const [directionsActive, setDirectionsActive] = useState(false)
+  const [directionsWaiting, setDirectionsWaiting] = useState(false)
+  const [directionsError, setDirectionsError] = useState(null)
   const hoverCloseTimerRef = useRef(null)
   const supportsHover = useHoverCapability()
 
@@ -110,6 +114,9 @@ function RoutePage() {
     async function loadRoute() {
       setSelectedWaypointId(null)
       setSelectedSegmentId(null)
+      setDirectionsActive(false)
+      setDirectionsWaiting(false)
+      setDirectionsError(null)
       setActiveVideo(null)
       setLightbox({ gallery: null, index: -1 })
       try {
@@ -162,6 +169,25 @@ function RoutePage() {
   const route = routeResult.slug === routeSlug ? routeResult.route : null
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
+  const canonicalStartWaypoint = useMemo(() => {
+    if (!Array.isArray(route?.waypoints)) return null
+    const waypoint = route.waypoints.find((item) => item?.type === 'start')
+    const latitude = waypoint?.coordinates?.lat
+    const longitude = waypoint?.coordinates?.lng
+    if (
+      typeof latitude !== 'number' ||
+      !Number.isFinite(latitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      typeof longitude !== 'number' ||
+      !Number.isFinite(longitude) ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      return null
+    }
+    return waypoint
+  }, [route])
   const segments = useMemo(() => (Array.isArray(route?.segments) ? route.segments : []), [route])
   const foodIds = useMemo(() => getRouteFoodIds(route), [route])
   const routeImageCollections = useMemo(() => orderedImageCollections(route), [route])
@@ -337,6 +363,23 @@ function RoutePage() {
     setSelectedWaypointId(null)
   }
   const showFullRoute = () => setRouteFocusRequest((current) => current + 1)
+  const startDirections = () => {
+    if (!canonicalStartWaypoint) return
+    setDirectionsError(null)
+    setDirectionsWaiting(true)
+    setDirectionsActive(true)
+  }
+  const stopDirections = () => {
+    setDirectionsActive(false)
+    setDirectionsWaiting(false)
+    setDirectionsError(null)
+  }
+  const handleLocationReady = useCallback(() => setDirectionsWaiting(false), [])
+  const handleLocationError = useCallback((message) => {
+    setDirectionsError(message)
+    setDirectionsWaiting(false)
+    setDirectionsActive(false)
+  }, [])
   const viewMapEntityDetails = (detail) => {
     const target = getMapEntityDetailPath(routeSlug, detail)
     if (target) navigate(target)
@@ -409,6 +452,24 @@ function RoutePage() {
         <section className="route-map-section" aria-labelledby="route-map-title">
           <div className="route-map-heading">
             <h2 id="route-map-title">Route Map</h2>
+            <div className="route-directions-controls">
+              <button
+                type="button"
+                className={`route-directions-button ${directionsActive ? 'danger-button' : 'primary-button'}`}
+                onClick={directionsActive ? stopDirections : startDirections}
+                disabled={!directionsActive && !canonicalStartWaypoint}
+                aria-describedby={(directionsWaiting || directionsError || !canonicalStartWaypoint) ? 'route-directions-feedback' : undefined}
+              >
+                {directionsActive ? 'Stop directions' : 'Directions to start'}
+              </button>
+              {directionsWaiting && <p className="route-directions-feedback" id="route-directions-feedback" role="status">Waiting for your location...</p>}
+              {directionsError && <p className="route-directions-feedback is-error" id="route-directions-feedback" role="alert">{directionsError}</p>}
+              {!canonicalStartWaypoint && (
+                <p className="route-directions-feedback" id="route-directions-feedback">
+                  Directions are unavailable because this Route has no valid, explicitly typed start waypoint.
+                </p>
+              )}
+            </div>
           </div>
           {(!route.geometry || route.is_map_renderable === false) && <p className="route-map-message">This Route does not yet have a published map path.</p>}
           {hasMalformedGeometry && <p className="route-map-message" role="status">The published map path could not be displayed.</p>}
@@ -418,6 +479,7 @@ function RoutePage() {
             waypoints={waypoints}
             waypointMediaCountById={waypointMediaCountById}
             selectedWaypointId={selectedWaypointId}
+            directionsStartWaypointId={directionsActive ? canonicalStartWaypoint?.id : null}
             onWaypointSelect={selectWaypoint}
             onWaypointHoverStart={supportsHover ? previewWaypoint : undefined}
             onWaypointHoverEnd={supportsHover ? scheduleHoverClose : undefined}
@@ -429,6 +491,14 @@ function RoutePage() {
             routeFocusRequest={routeFocusRequest}
             initialCenter={[50, 10]}
             initialZoom={4}
+            mapChildren={directionsActive && canonicalStartWaypoint ? (
+              <RouteDirectionsLayer
+                active={directionsActive}
+                startCoordinates={canonicalStartWaypoint.coordinates}
+                onPositionReady={handleLocationReady}
+                onError={handleLocationError}
+              />
+            ) : null}
           >
             <RouteSections
               segments={segments}

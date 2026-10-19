@@ -377,6 +377,60 @@
   --waypoint-name-color: rgba(43, 38, 32, 0.72);
 }
 
+.public-route-waypoint-marker.is-directions-start .route-waypoint-pill {
+  outline: 3px solid #d9232e;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(217, 35, 46, 0.2), 0 4px 14px rgba(0, 0, 0, 0.55);
+  animation: route-directions-start-pulse 1.8s ease-in-out infinite;
+}
+
+.route-marker-zoom-hidden .route-waypoint-marker.is-directions-start {
+  display: block;
+}
+
+@keyframes route-directions-start-pulse {
+  50% { box-shadow: 0 0 0 9px rgba(217, 35, 46, 0.08), 0 4px 14px rgba(0, 0, 0, 0.55); }
+}
+
+.offward-user-location-icon {
+  border: 0;
+  background: transparent;
+}
+
+.offward-user-location-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.offward-user-location-dot {
+  display: block;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #f3efe6;
+  border-radius: 50%;
+  background: #d9232e;
+  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.8);
+}
+
+.offward-user-location-label {
+  padding: 0.24rem 0.42rem;
+  border: 1px solid rgba(216, 180, 124, 0.75);
+  border-radius: 999px;
+  background: rgba(18, 21, 16, 0.94);
+  color: #f2ece4;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  font: 700 0.68rem/1.2 sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-route-waypoint-marker.is-directions-start .route-waypoint-pill {
+    animation: none;
+  }
+}
+
 .public-place-marker {
   display: flex;
   align-items: center;

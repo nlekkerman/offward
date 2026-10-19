@@ -22,6 +22,7 @@ function MapViewContent({
   waypointMediaCountById = new Map(),
   selectedRouteId = null,
   selectedWaypointId = null,
+  directionsStartWaypointId = null,
   places = [],
   selectedPlaceId = null,
   showPlaceLabel = false,
@@ -37,6 +38,7 @@ function MapViewContent({
   onSegmentSelect,
   routeFocusRequest = 0,
   resetViewWhenRoutesEmpty = false,
+  mapChildren = null,
 }) {
   const center = normalizeCenter(initialCenter)
   const zoom = typeof initialZoom === 'number' ? initialZoom : 4
@@ -69,6 +71,7 @@ function MapViewContent({
           attribution={MAP_TILE_LAYER.attribution}
           url={MAP_TILE_LAYER.url}
         />
+        {mapChildren}
         <WaypointMarkerZoomController onVisibilityChange={onWaypointVisibilityChange} />
         <MapResizeController />
         <RouteLayer
@@ -86,6 +89,7 @@ function MapViewContent({
           waypoints={validWaypoints}
           waypointMediaCountById={waypointMediaCountById}
           selectedWaypointId={selectedWaypointId}
+          directionsStartWaypointId={directionsStartWaypointId}
           onWaypointSelect={onWaypointSelect}
           onWaypointHoverStart={onWaypointHoverStart}
           onWaypointHoverEnd={onWaypointHoverEnd}
