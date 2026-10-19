@@ -5,6 +5,7 @@ import { FOOD_TYPES } from '../features/food/foodConstants.js'
 import { getNextPage, loadPublicFoodPage } from '../features/food/publicFoodCache.js'
 import usePublicCountries from '../features/food/usePublicCountries.js'
 import { formatActivityLabel } from '../features/home/latestContentFormatting.js'
+import ListingPageHeader from '../shared/components/ListingPageHeader.jsx'
 
 function FoodsListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -61,8 +62,8 @@ function FoodsListPage() {
   }
 
   return (
-    <section className="food-page">
-      <header className="explore-heading"><div><p className="eyebrow">PUBLIC FOOD</p><h1>Food</h1></div>{current.count !== undefined && <p className="explore-count" aria-live="polite">{current.foods.length} of {current.count} Food items</p>}</header>
+    <section className="food-page food-listing-page">
+      <ListingPageHeader eyebrow="PUBLIC FOOD" title="Food" aside={current.count !== undefined && <p className="explore-count" aria-live="polite">{current.foods.length} of {current.count} Food items</p>} />
       <div className="food-filters">
         <label>Country<select aria-describedby="food-country-catalog-note" value={country} onChange={(event) => updateFilter('country', event.target.value)}><option value="">All countries</option>{countries.countries.map((item) => <option key={item.id || item.slug} value={item.slug || item.id}>{item.name}</option>)}</select></label>
         <label>Food type<select value={foodType} onChange={(event) => updateFilter('food_type', event.target.value)}><option value="">All types</option>{FOOD_TYPES.map((type) => <option key={type} value={type}>{formatActivityLabel(type)}</option>)}</select></label>

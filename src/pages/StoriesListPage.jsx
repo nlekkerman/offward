@@ -6,6 +6,7 @@ import { getPublicStoriesPage } from '../services/storiesApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
 import { findCountry } from '../shared/utils/country.js'
 import { collectionPreview, imagePreviewUrl } from '../features/management/imageCollectionUtils.js'
+import ListingPageHeader from '../shared/components/ListingPageHeader.jsx'
 
 function getImageUrl(image) {
   return image?.url || image?.image_url || image?.thumbnail_url || image?.image?.url || image?.image?.image_url || ''
@@ -86,17 +87,13 @@ function StoriesListPage() {
 
   return (
     <section className="explore-page">
-      <div className="explore-heading">
-        <div>
-          <p className="eyebrow">PUBLIC STORIES</p>
-          <h1>Stories</h1>
-        </div>
-        {result.status !== 'loading' && result.status !== 'error' && (
-          <p className="explore-count" aria-live="polite">
-            Showing {result.stories.length} of {result.count} stories
-          </p>
+      <ListingPageHeader
+        eyebrow="PUBLIC STORIES"
+        title="Stories"
+        aside={result.status !== 'loading' && result.status !== 'error' && (
+          <p className="explore-count" aria-live="polite">Showing {result.stories.length} of {result.count} stories</p>
         )}
-      </div>
+      />
 
       {result.status === 'loading' && <p className="explore-status" role="status">Loading stories...</p>}
       {result.status === 'error' && <div className="explore-status" role="alert"><p>Unable to load stories.</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>Retry</button></div>}
@@ -113,7 +110,7 @@ function StoriesListPage() {
             const publishedLabel = formatPublishedDate(story.published_at)
 
             return (
-              <Link key={story.id || story.slug} to={`/stories/${story.slug}`} className="story-list-card" aria-label={`Read story: ${story.title}`}>
+              <Link key={story.id || story.slug} to={`/stories/${story.slug}`} className={`story-list-card${previewUrl ? ' has-preview' : ''}`} aria-label={`Read story: ${story.title}`}>
                 {previewUrl && (
                   <div className="story-list-card-media">
                     <img src={previewUrl} alt="" loading="lazy" />

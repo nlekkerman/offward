@@ -18,7 +18,7 @@ export function ExploreCard({ item, mode, countries, selectedId, onSelect, compa
   const mapped = route ? item.is_map_renderable === true : isRenderablePlace(item)
 
   return (
-    <article className={`explore-discovery-card${compact ? ' is-compact' : ''}${selectedId === item.id ? ' is-selected' : ''}${hasPreview ? ' has-preview' : ''}`}>
+    <article className={`explore-discovery-card${route ? ' is-route' : ' is-place'}${compact ? ' is-compact' : ''}${selectedId === item.id ? ' is-selected' : ''}${hasPreview ? ' has-preview' : ''}`}>
       <Link className="explore-discovery-card-link" to={`/${mode}/${encodeURIComponent(item.slug)}`}>
         {(hasPreview || !route) && (
           <div className={`explore-discovery-media${hasPreview ? '' : ' is-fallback'}`}>

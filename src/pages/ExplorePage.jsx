@@ -5,15 +5,18 @@ import ExploreFilters from '../features/explore/ExploreFilters.jsx'
 import ExploreResults from '../features/explore/ExploreResults.jsx'
 import useExploreData from '../features/explore/useExploreData.js'
 import '../features/explore/explore.css'
+import ListingPageHeader from '../shared/components/ListingPageHeader.jsx'
 
 const ExploreMapBrowser = lazy(() => import('../features/explore/ExploreMapBrowser.jsx'))
 
-function ExploreHeader({ mapMode, onMapChange }) {
+function ExploreHeader({ mode, mapMode, onMapChange }) {
+  const modeLabel = mode === 'routes' ? 'Routes' : 'Places'
   return (
-    <header className="explore-discovery-heading">
-      <div><p className="explore-discovery-eyebrow">Offward / Discovery</p><h1>Explore</h1></div>
-      <button type="button" className="explore-discovery-button" aria-pressed={mapMode} onClick={() => onMapChange(!mapMode)}>{mapMode ? 'Back to discovery' : 'View on map'}</button>
-    </header>
+    <ListingPageHeader
+      eyebrow={`PUBLIC ${modeLabel.toUpperCase()}`}
+      title={modeLabel}
+      aside={<button type="button" className="explore-discovery-button" aria-pressed={mapMode} onClick={() => onMapChange(!mapMode)}>{mapMode ? 'Back to discovery' : 'View on map'}</button>}
+    />
   )
 }
 
@@ -53,7 +56,7 @@ function ExplorePage() {
 
   return (
     <section className="explore-page explore-discovery">
-      <ExploreHeader mapMode={mapMode} onMapChange={(value) => { resetSelection(); setMapMode(value) }} />
+      <ExploreHeader mode={mode} mapMode={mapMode} onMapChange={(value) => { resetSelection(); setMapMode(value) }} />
       <ExploreCategoryNav activeView={mode} onViewChange={(view) => {
         if (view === mode) return
         resetSelection()

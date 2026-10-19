@@ -4,6 +4,8 @@
   padding: 48px 32px 80px;
 }
 
+.food-page.food-listing-page { max-width: 1440px; }
+
 .food-filters {
   display: flex;
   flex-wrap: wrap;
@@ -21,16 +23,21 @@
 .food-filters select {
   padding: 12px 16px;
   color: #f5eeea;
-  background: #171414;
-  border: 1px solid #514541;
+  background: #151b16;
+  border: 1px solid #3d493f;
   border-radius: 3px;
   font: inherit;
+}
+
+.food-filters select:focus-visible {
+  outline: 2px solid #e56555;
+  outline-offset: 3px;
 }
 
 .food-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  gap: 20px;
 }
 
 .food-card {
@@ -39,34 +46,61 @@
   overflow: hidden;
   color: inherit;
   text-decoration: none;
-  background: #171414;
-  border: 1px solid #3b302d;
+  background: linear-gradient(145deg, #1b211b, #121713 78%);
+  border: 1px solid #364037;
   border-radius: 4px;
-  transition: border-color 160ms ease, background 160ms ease;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2);
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
 .food-card:hover {
-  background: #201817;
-  border-color: #be493d;
+  background: #1d251e;
+  border-color: #a9473d;
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
 }
 
 .food-card:focus-visible,
 .food-button:focus-visible,
 .food-filters select:focus-visible,
 .food-link-list a:focus-visible {
-  outline: 2px solid #e85b4b;
+  outline: 2px solid #e56555;
   outline-offset: 4px;
 }
 
 .food-card-media {
+  position: relative;
   aspect-ratio: 16 / 10;
   overflow: hidden;
+  background: #222820;
 }
 
 .food-card-media img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 350ms ease;
+}
+
+.food-card-media::after {
+  position: absolute;
+  inset: 58% 0 0;
+  background: linear-gradient(180deg, transparent, rgba(8, 12, 9, 0.36));
+  content: '';
+  pointer-events: none;
+}
+
+.food-card:hover .food-card-media img,
+.food-card:focus-visible .food-card-media img {
+  transform: scale(1.035);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .food-card,
+  .food-card-media img {
+    transition: none;
+  }
 }
 
 .food-card-copy {
@@ -76,21 +110,22 @@
 .food-card .eyebrow,
 .food-page .eyebrow,
 .related-food > .eyebrow {
-  color: #e26756 !important;
+  color: #e16a58 !important;
 }
 
 .food-card h3 {
   margin: 8px 0 14px;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 1.7rem;
+  font-size: 1.8rem;
   line-height: 1.2;
+  color: #f3efe6;
 }
 
 .food-card-summary {
-  color: #cec3bd;
+  color: #c6c6ba;
   line-height: 1.65;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -100,7 +135,7 @@
   flex-wrap: wrap;
   gap: 12px 20px;
   margin: 18px 0 0;
-  color: #b9aaa2;
+  color: #b5b7aa;
   font-size: 0.86rem;
 }
 

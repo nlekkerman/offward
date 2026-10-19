@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getPublicCountriesPage } from '../services/countriesApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
+import ListingPageHeader from '../shared/components/ListingPageHeader.jsx'
 
 function CountriesListPage() {
   const [attempt, setAttempt] = useState(0)
@@ -54,17 +55,13 @@ function CountriesListPage() {
 
   return (
     <section className="explore-page">
-      <div className="explore-heading">
-        <div>
-          <p className="eyebrow">PUBLIC COUNTRIES</p>
-          <h1>Countries</h1>
-        </div>
-        {result.status !== 'loading' && result.status !== 'error' && (
-          <p className="explore-count" aria-live="polite">
-            Showing {result.countries.length} of {result.count} countries
-          </p>
+      <ListingPageHeader
+        eyebrow="PUBLIC COUNTRIES"
+        title="Countries"
+        aside={result.status !== 'loading' && result.status !== 'error' && (
+          <p className="explore-count" aria-live="polite">Showing {result.countries.length} of {result.count} countries</p>
         )}
-      </div>
+      />
 
       {result.status === 'loading' && <p className="explore-status" role="status">Loading countries...</p>}
       {result.status === 'error' && <div className="explore-status" role="alert"><p>Unable to load countries.</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>Retry</button></div>}
@@ -73,9 +70,9 @@ function CountriesListPage() {
       )}
 
       {result.countries.length > 0 && (
-        <div className="explore-route-list" aria-label="Countries">
+        <div className="country-list-grid" aria-label="Countries">
           {result.countries.map((country) => (
-            <Link key={country.id || country.slug} to={`/countries/${country.slug}`} className="explore-route-item">
+            <Link key={country.id || country.slug} to={`/countries/${country.slug}`} className="country-list-card">
               <span className="country-card-identity">
                 <CountryFlag code={country.code} countryName={country.name} size="medium" />
                 <span>
@@ -83,7 +80,7 @@ function CountriesListPage() {
                   {country.code && <small>{country.code.toUpperCase()}</small>}
                 </span>
               </span>
-              {country.summary && <span>{country.summary}</span>}
+              {country.summary && <span className="country-list-summary">{country.summary}</span>}
             </Link>
           ))}
         </div>
