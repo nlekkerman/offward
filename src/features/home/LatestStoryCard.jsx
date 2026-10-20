@@ -25,7 +25,7 @@ function LatestStoryCard({ story, countryRecords = [] }) {
 
   if (!story.slug) {
     return (
-      <article className="latest-rail-card latest-rail-card-story" aria-label="Latest story">
+      <article className={`latest-rail-card latest-rail-card-story${heroUrl ? ' has-image' : ''}`} aria-label="Latest story">
         {cardContent}
       </article>
     )
@@ -33,7 +33,7 @@ function LatestStoryCard({ story, countryRecords = [] }) {
 
   return (
     <Link
-      className="latest-rail-card latest-rail-card-story latest-rail-card-link"
+      className={`latest-rail-card latest-rail-card-story${heroUrl ? ' has-image' : ''} latest-rail-card-link`}
       to={`/stories/${story.slug}`}
       aria-label={`Read story: ${story.title}`}
     >
