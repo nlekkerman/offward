@@ -16,8 +16,7 @@ async function loadLatestVideo() {
 }
 
 /**
- * Single horizontal rail for publicly visible content with a published date,
- * directly below the Home hero.
+ * Floating panels for publicly visible content with a published date.
  */
 function LatestContentRail() {
   const [status, setStatus] = useState('loading')
@@ -47,6 +46,8 @@ function LatestContentRail() {
       if (storyResult.status === 'fulfilled' && storyResult.value) {
         nextItems.push({ key: `story-${storyResult.value.id}`, type: 'story', data: storyResult.value, countries })
       }
+
+      nextItems.sort((a, b) => new Date(b.data.published_at || 0) - new Date(a.data.published_at || 0))
 
       setItems(nextItems)
       setStatus('ready')
@@ -82,9 +83,9 @@ function LatestContentRail() {
       <div className="latest-content-rail-header">
         <h2 className="latest-content-rail-title">Latest</h2>
       </div>
-      <ul className="latest-content-rail-track">
-        {items.map((item) => (
-          <li className="latest-rail-item" key={item.key}>
+      <ul className={`latest-content-rail-track${items.length === 1 ? ' is-single' : ''}`}>
+        {items.map((item, index) => (
+          <li className={`latest-rail-item${index === 0 ? ' is-featured' : ''}`} key={item.key}>
             {item.type === 'video' && <LatestVideoCard video={item.data} />}
             {item.type === 'story' && <LatestStoryCard story={item.data} countryRecords={item.countries} />}
           </li>
