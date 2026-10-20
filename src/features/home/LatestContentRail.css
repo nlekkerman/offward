@@ -23,6 +23,7 @@
 
 .latest-content-rail-track {
   display: grid;
+  grid-template-columns: repeat(var(--latest-column-count), minmax(0, 1fr));
   align-items: stretch;
   list-style: none;
   margin: 0;

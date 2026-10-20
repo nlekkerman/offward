@@ -139,7 +139,7 @@ function LatestContentRail() {
       {items.length > 0 ? (
         <ul
           className="latest-content-rail-track"
-          style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+          style={{ '--latest-column-count': items.length }}
         >
           {items.map((item) => (
             <li className={`latest-rail-item latest-rail-item-${item.type}`} key={item.key}>
