@@ -1,21 +1,18 @@
 import { Link } from 'react-router-dom'
 import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
+import { getDetailHeroImage } from '../../shared/utils/detailHeroImage.js'
 import { formatCountryLabel, formatPublishedDate } from './latestContentFormatting.js'
-
-function getHeroUrl(heroImage) {
-  return heroImage?.url || heroImage?.image_url || heroImage?.image?.url || heroImage?.image?.image_url || ''
-}
 
 function LatestStoryCard({ story, countryRecords = [] }) {
   const countryLabel = formatCountryLabel(story.country)
   const country = findCountry(countryRecords, story.country)
   const publishedLabel = formatPublishedDate(story.published_at)
-  const heroUrl = getHeroUrl(story.hero_image)
+  const heroUrl = getDetailHeroImage(story, 'story')
 
   const cardContent = (
     <>
-      {heroUrl && <img className="latest-rail-story-image" src={heroUrl} alt="" />}
+      {heroUrl && <img className="latest-rail-story-image" src={heroUrl} alt="" fetchPriority="high" />}
       <p className="latest-rail-type">Story</p>
       <h3 className="latest-rail-title">{story.title}</h3>
       {story.excerpt && <p className="latest-rail-excerpt">{story.excerpt}</p>}

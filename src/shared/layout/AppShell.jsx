@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { getOffwardAccess } from '../../services/authApi.js'
 import desktopLogo from '../../assets/images/home/logo_offward.webp'
 import mobileLogo from '../../assets/images/home/logo_arrow_only.webp'
+import HomeNavigationRibbon from './HomeNavigationRibbon.jsx'
 
 const NAV_LINKS = [
   { section: 'home', label: 'Home', to: '/' },
@@ -117,6 +118,7 @@ function AppShell() {
   return (
     <div className={`app-shell${pathname === '/' ? ' app-shell-home' : ''}${isDetailHeroPage ? ' app-shell-detail-hero' : ''}`}>
       <div className={`mobile-nav-backdrop${isMenuOpen ? ' is-open' : ''}`} aria-hidden="true" />
+      {pathname === '/' && <HomeNavigationRibbon activeSection={activeSection} />}
       <header ref={headerRef} className={`app-header${isMenuOpen ? ' mobile-menu-open' : ''}`}>
         <Link to="/" className="brand" aria-label="Offward home">
           <picture>

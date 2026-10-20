@@ -1,54 +1,98 @@
 import { useEffect, useState } from 'react'
 import { getCountries } from '../../services/countriesApi.js'
+import { getPublicFoods } from '../../services/foodsApi.js'
+import { getPublicPlaces } from '../../services/placesApi.js'
+import { getPublicRoutes } from '../../services/routesApi.js'
 import { getLatestPublicStory } from '../../services/storiesApi.js'
 import { getPublicVideos } from '../../services/videosApi.js'
+import LatestFoodCard from './LatestFoodCard.jsx'
+import LatestPlaceCard from './LatestPlaceCard.jsx'
+import LatestRouteCard from './LatestRouteCard.jsx'
 import LatestStoryCard from './LatestStoryCard.jsx'
 import LatestVideoCard from './LatestVideoCard.jsx'
 import './LatestContentRail.css'
 
-async function loadLatestVideo() {
-  const videos = await getPublicVideos()
-
-  return videos
-    .filter((video) => video.playback_url)
+function newestItem(items) {
+  return items
     .slice()
     .sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0))[0] || null
 }
 
+async function loadLatestVideo() {
+  const videos = await getPublicVideos()
+
+  return newestItem(videos.filter((video) => video.playback_url))
+}
+
+async function loadLatestRoute() {
+  const page = await getPublicRoutes({ status: 'active', includeGeometry: true, page: 1, pageSize: 1 })
+  return page.results[0] || null
+}
+
+async function loadLatestPlace() {
+  const page = await getPublicPlaces({ page: 1, pageSize: 12 })
+  return newestItem(page.results)
+}
+
+async function loadLatestFood() {
+  const page = await getPublicFoods({ page: 1, page_size: 12 })
+  return newestItem(page.results)
+}
+
 /**
- * Floating panels for publicly visible content with a published date.
+ * Homepage previews from the existing public content endpoints.
  */
 function LatestContentRail() {
   const [status, setStatus] = useState('loading')
   const [items, setItems] = useState([])
+  const [failedSources, setFailedSources] = useState([])
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let isCurrent = true
 
     async function loadLatest() {
-      const [videoResult, storyResult, countriesResult] = await Promise.allSettled([
-        loadLatestVideo(),
+      const sources = [
         getLatestPublicStory(),
+        loadLatestRoute(),
+        loadLatestPlace(),
+        loadLatestVideo(),
+        loadLatestFood(),
         getCountries(),
-      ])
+      ]
+      const results = await Promise.allSettled(sources)
 
       if (!isCurrent) {
         return
       }
 
       const nextItems = []
+      const [storyResult, routeResult, placeResult, videoResult, foodResult, countriesResult] = results
       const countries = countriesResult.status === 'fulfilled' ? countriesResult.value : []
+      const contentResults = [
+        ['story', storyResult],
+        ['route', routeResult],
+        ['place', placeResult],
+        ['video', videoResult],
+        ['food', foodResult],
+      ]
 
-      if (videoResult.status === 'fulfilled' && videoResult.value) {
-        nextItems.push({ key: `video-${videoResult.value.id}`, type: 'video', data: videoResult.value })
+      for (const [type, result] of contentResults) {
+        if (result.status === 'fulfilled' && result.value) {
+          nextItems.push({
+            key: `${type}-${result.value.id || result.value.slug || type}`,
+            type,
+            data: result.value,
+            countries,
+          })
+        }
       }
 
-      if (storyResult.status === 'fulfilled' && storyResult.value) {
-        nextItems.push({ key: `story-${storyResult.value.id}`, type: 'story', data: storyResult.value, countries })
-      }
-
-      nextItems.sort((a, b) => new Date(b.data.published_at || 0) - new Date(a.data.published_at || 0))
-
+      setFailedSources(results.flatMap((result, index) => (
+        result.status === 'rejected'
+          ? [index < 5 ? ['Stories', 'Routes', 'Places', 'Videos', 'Food'][index] : 'Country details']
+          : []
+      )))
       setItems(nextItems)
       setStatus('ready')
     }
@@ -58,24 +102,19 @@ function LatestContentRail() {
     return () => {
       isCurrent = false
     }
-  }, [])
+  }, [attempt])
 
   if (status === 'loading') {
     return (
-      <section className="latest-content-rail" aria-hidden="true">
+      <section className="latest-content-rail" aria-label="Latest">
         <div className="latest-content-rail-header">
           <h2 className="latest-content-rail-title">Latest</h2>
         </div>
-        <div className="latest-content-rail-track">
-          <div className="latest-rail-skeleton" />
-          <div className="latest-rail-skeleton" />
+        <div className="latest-content-rail-track" aria-hidden="true">
+          {Array.from({ length: 5 }, (_, index) => <div className="latest-rail-skeleton" key={index} />)}
         </div>
       </section>
     )
-  }
-
-  if (items.length === 0) {
-    return null
   }
 
   return (
@@ -83,14 +122,35 @@ function LatestContentRail() {
       <div className="latest-content-rail-header">
         <h2 className="latest-content-rail-title">Latest</h2>
       </div>
-      <ul className={`latest-content-rail-track${items.length === 1 ? ' is-single' : ''}`}>
-        {items.map((item, index) => (
-          <li className={`latest-rail-item${index === 0 ? ' is-featured' : ''}`} key={item.key}>
-            {item.type === 'video' && <LatestVideoCard video={item.data} />}
-            {item.type === 'story' && <LatestStoryCard story={item.data} countryRecords={item.countries} />}
-          </li>
-        ))}
-      </ul>
+      {failedSources.length > 0 && (
+        <div className="latest-content-error" role="alert">
+          <p>Some latest content could not be loaded ({failedSources.join(', ')}).</p>
+          <button
+            type="button"
+            onClick={() => {
+              setStatus('loading')
+              setAttempt((value) => value + 1)
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      {items.length > 0 ? (
+        <ul className={`latest-content-rail-track${items.length === 1 ? ' is-single' : ''}${items.some((item) => item.type === 'story') ? ' has-story' : ' without-story'}`}>
+          {items.map((item) => (
+            <li className={`latest-rail-item latest-rail-item-${item.type}`} key={item.key}>
+              {item.type === 'story' && <LatestStoryCard story={item.data} countryRecords={item.countries} />}
+              {item.type === 'route' && <LatestRouteCard route={item.data} countryRecords={item.countries} />}
+              {item.type === 'place' && <LatestPlaceCard place={item.data} countryRecords={item.countries} />}
+              {item.type === 'video' && <LatestVideoCard video={item.data} />}
+              {item.type === 'food' && <LatestFoodCard food={item.data} countryRecords={item.countries} />}
+            </li>
+          ))}
+        </ul>
+      ) : failedSources.length === 0 ? (
+        <p className="latest-content-empty">No public content is available yet.</p>
+      ) : null}
     </section>
   )
 }

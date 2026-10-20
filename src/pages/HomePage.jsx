@@ -1,5 +1,6 @@
 import heroImage from '../assets/images/home/topographic-mountain.webp'
 import LatestContentRail from '../features/home/LatestContentRail.jsx'
+import '../shared/layout/HomePage.css'
 
 function HomePage() {
   return (
