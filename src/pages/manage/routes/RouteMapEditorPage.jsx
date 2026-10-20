@@ -6,7 +6,7 @@ import SegmentList from '../../../features/routes/routeMap/components/SegmentLis
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
 import ContentVideoManager from '../../../features/video/ContentVideoManager.jsx'
-import { buildManualSegmentGeometry, buildWaypointPayload, createEmptyWaypoint, deriveWaypointPairs, getPlaceCoordinates, normalizeRouteMap, normalizeWaypoints, reorderWaypoints, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
+import { buildManualSegmentGeometry, buildWaypointPayload, createEmptyWaypoint, deriveWaypointPairs, getPlaceCoordinates, getRouteMapStatus, normalizeRouteMap, normalizeWaypoints, reorderWaypoints, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
 import { managementApis } from '../../../services/management/index.js'
 import { routeMapApi } from '../../../services/management/routeMapApi.js'
 
@@ -58,7 +58,6 @@ function RouteMapEditorPage() {
   const [waypoints, setWaypoints] = useState([])
   const [segments, setSegments] = useState([])
   const [mapRevision, setMapRevision] = useState('')
-  const [isMapRenderable, setIsMapRenderable] = useState(false)
   const [selectedWaypointId, setSelectedWaypointId] = useState('')
   const [quickEditWaypointId, setQuickEditWaypointId] = useState('')
   const [quickEditSaving, setQuickEditSaving] = useState(false)
@@ -103,7 +102,6 @@ function RouteMapEditorPage() {
         setSegments(routeMapData.segments)
         setSavedWaypointSignature(getWaypointSignature(nextWaypoints))
         setMapRevision(getRouteMapRevision(routeData, normalizedMap))
-        setIsMapRenderable(routeMapData.isMapRenderable)
         setSelectedWaypointId(nextWaypoints[0]?.id || '')
         if (nextWaypoints.length > 1) {
           const firstPair = deriveWaypointPairs(nextWaypoints)[0]
@@ -157,6 +155,7 @@ function RouteMapEditorPage() {
       end: savedWaypoints.find((waypoint) => waypoint.id === pair.end_waypoint_id),
     }
   }), [segments, savedWaypoints, waypointPairs])
+  const routeMapStatus = getRouteMapStatus(route, connections)
   const selectedConnection = useMemo(() => connections.find((connection) => connection.id === selectedConnectionId), [connections, selectedConnectionId])
   const drawingConnection = useMemo(() => connections.find((connection) => connection.id === manualDrawing?.connectionId), [connections, manualDrawing?.connectionId])
   const editingDisabled = hasUnsavedChanges
@@ -207,7 +206,6 @@ function RouteMapEditorPage() {
     setSavedWaypointSignature(getWaypointSignature(normalizedMap.waypoints))
     setSegments(canonicalMap.segments)
     setMapRevision(normalizedMap.mapRevision)
-    setIsMapRenderable(canonicalMap.isMapRenderable)
     setConnectionPreview(null)
     setManualDrawing(null)
     setWaypointMovePreview(null)
@@ -750,7 +748,7 @@ function RouteMapEditorPage() {
           <button type="button" className="primary-button small-button" onClick={saveRouteMap} disabled={saving}>Save waypoint changes</button>
         </div>
       )}
-      {connections.length > 0 && (!isMapRenderable || connections.some(({ segment }) => !segment.geometry)) && (
+      {connections.length > 0 && routeMapStatus.hasUnresolvedConnections && (
         <div className="management-empty route-map-notice" role="status">Route incomplete — unresolved connections must be resolved before the Route geometry can be rendered.</div>
       )}
       {addMode && <div className="management-empty route-map-notice" role="status">Map click mode is active. Click the map to add the next waypoint.</div>}
@@ -838,7 +836,7 @@ function RouteMapEditorPage() {
       {activePanel === 'connections' && (
         <SegmentList
           connections={connections}
-        routeComplete={isMapRenderable && connections.length > 0 && connections.every(({ segment }) => Boolean(segment.geometry))}
+          routeComplete={routeMapStatus.isComplete}
           selectedConnectionId={selectedConnectionId}
           profile={routingProfile}
           editingDisabled={editingDisabled}

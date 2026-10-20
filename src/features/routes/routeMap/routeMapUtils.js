@@ -217,6 +217,14 @@ export function normalizeRouteMap(data = {}) {
   }
 }
 
+export function getRouteMapStatus(route, connections) {
+  const hasUnresolvedConnections = connections.some(({ segment }) => !segment.geometry)
+  return {
+    hasUnresolvedConnections,
+    isComplete: route?.is_map_renderable === true && connections.length > 0 && !hasUnresolvedConnections,
+  }
+}
+
 export function normalizeCandidate(data = {}) {
   const source = data.candidate && typeof data.candidate === 'object' ? { ...data, ...data.candidate } : data
   const geometry = normalizeGeometry(source.candidate_geometry || source.candidateGeometry || source.geometry)

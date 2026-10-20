@@ -159,6 +159,30 @@ test('complete canonical connections display a complete Route state', async () =
   assert.match(html, /Resolved straight/)
 })
 
+test('Route status trusts canonical geometry status and warns only for unresolved connections', async () => {
+  const { getRouteMapStatus } = await server.ssrLoadModule('/src/features/routes/routeMap/routeMapUtils.js')
+  const resolvedConnections = [
+    { segment: { geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] } } },
+    { segment: { geometry: { type: 'LineString', coordinates: [[1, 1], [2, 2]] } } },
+  ]
+
+  assert.deepEqual(getRouteMapStatus({ is_map_renderable: true }, resolvedConnections), {
+    hasUnresolvedConnections: false,
+    isComplete: true,
+  })
+  assert.deepEqual(getRouteMapStatus({ is_map_renderable: false }, resolvedConnections), {
+    hasUnresolvedConnections: false,
+    isComplete: false,
+  })
+  assert.deepEqual(getRouteMapStatus({ is_map_renderable: true }, [
+    ...resolvedConnections.slice(0, 1),
+    { segment: { geometry: null } },
+  ]), {
+    hasUnresolvedConnections: true,
+    isComplete: false,
+  })
+})
+
 test('segment candidate request uses route revision and selected segment endpoint', async () => {
   const { apiClient } = await server.ssrLoadModule('/src/services/apiClient.js')
   const { routeMapApi } = await server.ssrLoadModule('/src/services/management/routeMapApi.js')
