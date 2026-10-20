@@ -10,24 +10,24 @@
   display: flex;
   min-height: 34px;
   align-items: center;
-  padding: 7px 16px 5px;
+  padding: 7px 18px 5px;
 }
 
 .latest-content-rail-title {
   margin: 0;
   color: var(--public-text);
-  font: 600 0.7rem/1.2 'Trebuchet MS', sans-serif;
+  font: 600 0.74rem/1.2 'Trebuchet MS', sans-serif;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
 .latest-content-rail-track {
   display: grid;
-  grid-template-columns: repeat(var(--latest-column-count), minmax(0, 1fr));
+  grid-template-columns: repeat(var(--latest-column-count, 5), minmax(0, 1fr));
   align-items: stretch;
   list-style: none;
   margin: 0;
-  padding: 0 8px 10px;
+  padding: 0 10px 10px;
 }
 
 .latest-content-rail-track[aria-hidden='true'] {
@@ -36,21 +36,29 @@
 
 .latest-rail-item {
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 14px;
   border-left: 1px solid rgba(229, 238, 239, 0.2);
+  transition: background-color 180ms ease, box-shadow 180ms ease;
 }
 
 .latest-rail-item:first-child {
   border-left: 0;
 }
 
+.latest-rail-item:hover,
+.latest-rail-item:focus-within {
+  background: rgba(255, 64, 64, 0.045);
+  box-shadow: inset 1px 0 rgba(255, 87, 87, 0.24);
+}
+
 .latest-rail-card {
   display: flex;
   min-width: 0;
+  height: 100%;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.32rem;
-  padding: 0.15rem 0;
+  gap: 0.28rem;
+  padding: 0.1rem 0;
   color: var(--public-text);
 }
 
@@ -77,21 +85,37 @@ a.latest-rail-card {
 .latest-rail-story-image,
 .latest-rail-content-image {
   display: block;
-  width: min(100%, 148px);
-  height: 66px;
+  width: 100%;
+  height: clamp(72px, 6vw, 92px);
   flex: 0 0 auto;
-  margin: 0 0 0.1rem;
+  margin: 0 0 0.16rem;
   object-fit: cover;
   object-position: center;
+  filter: brightness(0.82) saturate(0.84);
+  transition: filter 180ms ease;
 }
 
 .latest-rail-mini-map {
-  width: min(100%, 148px);
-  height: 66px;
+  width: 100%;
+  height: clamp(72px, 6vw, 92px);
   flex: 0 0 auto;
-  margin: 0 0 0.1rem;
+  margin: 0 0 0.16rem;
   border: 0;
+  filter: brightness(0.78) contrast(1.08) saturate(0.82);
   pointer-events: none;
+  transition: filter 180ms ease;
+}
+
+.latest-rail-item:hover .latest-rail-story-image,
+.latest-rail-item:hover .latest-rail-content-image,
+.latest-rail-item:focus-within .latest-rail-story-image,
+.latest-rail-item:focus-within .latest-rail-content-image {
+  filter: brightness(0.98) saturate(1.08) contrast(1.04);
+}
+
+.latest-rail-item:hover .latest-rail-mini-map,
+.latest-rail-item:focus-within .latest-rail-mini-map {
+  filter: brightness(0.9) contrast(1.12) saturate(0.92);
 }
 
 .latest-rail-type {
@@ -99,7 +123,7 @@ a.latest-rail-card {
   margin: 0;
   overflow: hidden;
   color: #ff8585;
-  font: 600 0.63rem/1.25 'Trebuchet MS', sans-serif;
+  font: 600 0.67rem/1.25 'Trebuchet MS', sans-serif;
   letter-spacing: 0.14em;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -112,7 +136,7 @@ a.latest-rail-card {
   margin: 0;
   overflow: hidden;
   color: inherit;
-  font: 500 0.94rem/1.25 'Trebuchet MS', sans-serif;
+  font: 500 1rem/1.25 'Trebuchet MS', sans-serif;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -124,7 +148,7 @@ a.latest-rail-card {
   margin: 0;
   overflow: hidden;
   color: rgba(243, 239, 230, 0.78);
-  font: 0.72rem/1.35 'Trebuchet MS', sans-serif;
+  font: 0.76rem/1.35 'Trebuchet MS', sans-serif;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -137,7 +161,7 @@ a.latest-rail-card {
   gap: 0.2rem 0.55rem;
   margin: 0.05rem 0 0;
   color: rgba(243, 239, 230, 0.72);
-  font: 0.66rem/1.3 'Trebuchet MS', sans-serif;
+  font: 0.68rem/1.3 'Trebuchet MS', sans-serif;
 }
 
 .latest-rail-meta-row > span {
@@ -154,27 +178,27 @@ a.latest-rail-card {
 }
 
 .latest-rail-card-video .video-player {
-  width: min(100%, 148px);
+  width: 100%;
   max-width: none;
   flex: 0 0 auto;
-  margin: 0 0 0.1rem;
+  margin: 0 0 0.16rem;
 }
 
 .latest-rail-card-video .video-player-frame {
   border: 0;
-  border-radius: 3px;
+  border-radius: 0;
   background: transparent;
 }
 
 .latest-rail-card-video .video-player-play-control {
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-color: rgba(255, 125, 125, 0.6);
   background: rgba(18, 19, 15, 0.58);
 }
 
 .latest-rail-skeleton {
-  min-height: 100px;
+  min-height: 120px;
   border-left: 1px solid rgba(229, 238, 239, 0.2);
 }
 
@@ -185,7 +209,7 @@ a.latest-rail-card {
 .latest-content-error,
 .latest-content-empty {
   margin: 0;
-  padding: 0.6rem 16px 0.8rem;
+  padding: 0.6rem 18px 0.8rem;
   color: var(--public-text);
   font: 0.82rem/1.45 'Trebuchet MS', sans-serif;
 }
@@ -224,7 +248,13 @@ a.latest-rail-card {
   }
 
   .latest-rail-item {
-    padding-block: 8px;
+    padding-block: 10px;
+  }
+
+  .latest-rail-story-image,
+  .latest-rail-content-image,
+  .latest-rail-mini-map {
+    height: clamp(90px, 11vw, 130px);
   }
 }
 
@@ -259,13 +289,18 @@ a.latest-rail-card {
   .latest-rail-content-image,
   .latest-rail-mini-map,
   .latest-rail-card-video .video-player {
-    width: min(100%, 280px);
+    width: min(100%, 360px);
   }
 
   .latest-rail-story-image,
-  .latest-rail-content-image {
+  .latest-rail-content-image,
+  .latest-rail-mini-map {
     height: auto;
     aspect-ratio: 16 / 9;
+  }
+
+  .latest-rail-title {
+    font-size: 1.08rem;
   }
 
   .latest-content-error {
@@ -275,7 +310,11 @@ a.latest-rail-card {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .latest-rail-card-link {
+  .latest-rail-item,
+  .latest-rail-card-link,
+  .latest-rail-story-image,
+  .latest-rail-content-image,
+  .latest-rail-mini-map {
     transition: none;
   }
 }

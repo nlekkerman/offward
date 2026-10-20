@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import './HomePage.css'
 
@@ -14,35 +13,11 @@ const HOME_NAV_LINKS = [
 ]
 
 function HomeNavigationRibbon({ activeSection }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
-  const [isFocused, setIsFocused] = useState(false)
   const { pathname, search } = useLocation()
   const params = new URLSearchParams(search)
-  const isVisuallyExpanded = isExpanded || isHovered || isFocused
 
   return (
-    <nav
-      className={`home-navigation-ribbon${isVisuallyExpanded ? ' is-expanded' : ''}`}
-      aria-label="Homepage navigation"
-      onPointerEnter={() => setIsHovered(true)}
-      onPointerLeave={() => setIsHovered(false)}
-      onFocusCapture={() => setIsFocused(true)}
-      onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setIsFocused(false)
-      }}
-    >
-      <button
-        className="home-navigation-toggle"
-        type="button"
-        aria-label={isVisuallyExpanded ? 'Collapse navigation' : 'Expand navigation'}
-        aria-expanded={isVisuallyExpanded}
-        onClick={() => setIsExpanded((expanded) => !expanded)}
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d={isVisuallyExpanded ? 'm14 6-6 6 6 6' : 'm10 6 6 6-6 6'} />
-        </svg>
-      </button>
+    <nav className="home-navigation-ribbon" aria-label="Homepage navigation">
       {HOME_NAV_LINKS.map(({ section, label, to, icon }) => {
         const isActive = section === 'explore'
           ? pathname === '/explore' && !params.has('view')
