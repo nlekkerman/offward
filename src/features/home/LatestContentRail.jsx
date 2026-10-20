@@ -137,7 +137,10 @@ function LatestContentRail() {
         </div>
       )}
       {items.length > 0 ? (
-        <ul className={`latest-content-rail-track${items.length === 1 ? ' is-single' : ''}${items.some((item) => item.type === 'story') ? ' has-story' : ' without-story'}`}>
+        <ul
+          className="latest-content-rail-track"
+          style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+        >
           {items.map((item) => (
             <li className={`latest-rail-item latest-rail-item-${item.type}`} key={item.key}>
               {item.type === 'story' && <LatestStoryCard story={item.data} countryRecords={item.countries} />}
