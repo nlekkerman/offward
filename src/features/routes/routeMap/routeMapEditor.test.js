@@ -220,6 +220,75 @@ test('canonical map refresh reads route revision, waypoint IDs, segments, and co
   }
 })
 
+test('waypoint collection PUT sends current revision at top level and returns refreshed Route revision', async () => {
+  const { apiClient } = await server.ssrLoadModule('/src/services/apiClient.js')
+  const { routeMapApi } = await server.ssrLoadModule('/src/services/management/routeMapApi.js')
+  const calls = []
+  const originalPut = apiClient.put
+  const originalGet = apiClient.get
+  apiClient.put = async (path, payload) => {
+    calls.push(['put', path, payload])
+    if (!payload || Array.isArray(payload) || !Number.isInteger(payload.expected_map_revision)) {
+      throw {
+        response: {
+          status: 400,
+          data: {
+            errors: [{
+              code: 'required',
+              field: 'expected_map_revision[0]',
+              message: 'This field is required.',
+            }],
+          },
+        },
+      }
+    }
+    return { data: { waypoints: payload.waypoints } }
+  }
+  apiClient.get = async (path) => {
+    calls.push(['get', path])
+    return { data: { map_revision: 13, geometry: null } }
+  }
+
+  try {
+    const waypoints = [{
+      id: 'waypoint-uuid',
+      order: 1,
+      type: 'start',
+      latitude: '51',
+      longitude: '-1',
+    }]
+    const result = await routeMapApi.updateWaypoints('route-uuid', waypoints, 12)
+    assert.deepEqual(calls[0], [
+      'put',
+      '/api/offward/manage/routes/route-uuid/waypoints/',
+      {
+        expected_map_revision: 12,
+        waypoints: [{
+          id: 'waypoint-uuid',
+          order: 1,
+          type: 'start',
+          coordinates: { lat: 51, lng: -1 },
+          name: '',
+          label: '',
+          place_id: null,
+          media_ids: [],
+          image_collection_ids: [],
+        }],
+      },
+    ])
+    assert.equal(result.mapRevision, 13)
+    assert.deepEqual(calls[1], ['get', '/api/offward/manage/routes/route-uuid/'])
+    await assert.rejects(
+      routeMapApi.updateWaypoints('route-uuid', waypoints, undefined),
+      /current Route map revision is required/,
+    )
+    assert.equal(calls.length, 2)
+  } finally {
+    apiClient.put = originalPut
+    apiClient.get = originalGet
+  }
+})
+
 test('manual and straight writes PATCH only the selected connection', async () => {
   const { apiClient } = await server.ssrLoadModule('/src/services/apiClient.js')
   const { routeMapApi } = await server.ssrLoadModule('/src/services/management/routeMapApi.js')

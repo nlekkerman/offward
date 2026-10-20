@@ -5,6 +5,19 @@ function routeMapPath(routeId, suffix = '') {
   return `/api/offward/manage/routes/${routeId}/${suffix}`
 }
 
+function getExpectedMapRevision(mapRevision) {
+  if (mapRevision === undefined || mapRevision === null || mapRevision === '') {
+    throw new Error('A current Route map revision is required to save waypoints.')
+  }
+
+  const revision = Number(mapRevision)
+  if (!Number.isSafeInteger(revision) || revision < 0) {
+    throw new Error('The current Route map revision must be a non-negative integer.')
+  }
+
+  return revision
+}
+
 export const routeMapApi = {
   getWaypoints: async (routeId) => {
     const { data } = await apiClient.get(routeMapPath(routeId, 'waypoints/'))
@@ -24,8 +37,9 @@ export const routeMapApi = {
       route: routeData,
     }
   },
-  updateWaypoints: async (routeId, waypoints) => {
+  updateWaypoints: async (routeId, waypoints, mapRevision) => {
     const { data: waypointData } = await apiClient.put(routeMapPath(routeId, 'waypoints/'), {
+      expected_map_revision: getExpectedMapRevision(mapRevision),
       waypoints: buildWaypointPayload(waypoints),
     })
     const { data: routeData } = await apiClient.get(routeMapPath(routeId))

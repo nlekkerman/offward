@@ -152,14 +152,15 @@ function ContentVideoManager({
       if (!routeId) {
         throw new Error('A Route is required to update Waypoint media.')
       }
-      const { waypoints } = await routeMapApi.getWaypoints(routeId)
+      const routeMap = await routeMapApi.getWaypoints(routeId)
+      const { waypoints, mapRevision } = routeMap
       const nextWaypoints = waypoints.map((waypoint) => {
         if (String(waypoint.id) !== String(waypointId)) {
           return waypoint
         }
         return { ...waypoint, media_ids: [...nextVideoIds] }
       })
-      await routeMapApi.updateWaypoints(routeId, nextWaypoints)
+      await routeMapApi.updateWaypoints(routeId, nextWaypoints, mapRevision)
       return nextVideoIds
     }
 

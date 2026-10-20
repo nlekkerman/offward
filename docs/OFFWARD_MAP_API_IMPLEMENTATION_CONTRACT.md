@@ -125,7 +125,7 @@ The following concrete Django model additions are required on `Route`:
   1. the Waypoint collection changes (via atomic collection replacement)
   2. accepted Route geometry changes or is explicitly cleared
 - Non-increment rules: descriptive Route edits (updating title, summary, activity_type, status, country) must NOT increment `map_revision`. Segment-only edits must NOT increment `map_revision`.
-- Purpose: this is the v1 optimistic concurrency token for route-calculation acceptance.
+- Purpose: this is the v1 optimistic concurrency token for waypoint collection replacement and route-geometry acceptance.
 - Candidate response includes the current `map_revision`.
 - Acceptance requests must include `expected_map_revision`.
 - A mismatched revision fails with `stale_acceptance_request`.
@@ -779,6 +779,8 @@ The public Route detail response includes waypoints in a shallow shape:
 
 ### 8.2 Subordinate write strategy: atomic collection replacement only
 Standalone individual Waypoint create, update, or delete endpoints are not supported in v1. The single v1 write strategy for Waypoints on a Route is atomic collection replacement via `PUT /api/offward/manage/routes/<uuid:uuid>/waypoints/`.
+
+The request body is an object containing the current Route revision as a top-level `expected_map_revision` integer and the ordered `waypoints` array. `expected_map_revision` is a sibling of `waypoints`, not a waypoint item field. A successful replacement increments `Route.map_revision`.
 
 ### 8.3 Waypoint item payload shape
 When supplying items within the atomic collection replacement payload, each item follows this shape:
