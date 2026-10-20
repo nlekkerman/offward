@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
 import RouteDirectionsLayer from '../features/map/components/RouteDirectionsLayer.jsx'
+import RouteUserLocationLayer from '../features/map/components/RouteUserLocationLayer.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
+import { createRouteArrivalDetector } from '../features/map/routeProximity.js'
 import { MAX_LOCAL_DIRECTIONS_KM } from '../services/routeDirectionsApi.js'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
@@ -21,6 +23,7 @@ import DetailHero from '../shared/components/DetailHero.jsx'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
+import useUserLocation from '../shared/hooks/useUserLocation.js'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import { getDetailHeroSource, getDetailHeroSourceIndex } from '../shared/utils/detailHeroImage.js'
@@ -89,6 +92,8 @@ function RoutePage() {
   const { routeSlug } = useParams()
   const navigate = useNavigate()
   const [routeResult, setRouteResult] = useState({ slug: null, status: 'loading', route: null })
+  const routeStatus = routeResult.slug === routeSlug ? routeResult.status : 'loading'
+  const route = routeResult.slug === routeSlug ? routeResult.route : null
   const [countries, setCountries] = useState([])
   const [countriesStatus, setCountriesStatus] = useState('loading')
   const [selectedWaypointId, setSelectedWaypointId] = useState(null)
@@ -101,11 +106,34 @@ function RoutePage() {
   const [galleryErrorByCollectionId, setGalleryErrorByCollectionId] = useState({})
   const galleryCacheRef = useRef(new Map())
   const [routeFocusRequest, setRouteFocusRequest] = useState(0)
-  const [directionsActive, setDirectionsActive] = useState(false)
+  const [navigationState, setNavigationState] = useState('idle')
   const [directionsMode, setDirectionsMode] = useState('walking')
   const [directionsStatus, setDirectionsStatus] = useState(null)
+  const [locationFollowing, setLocationFollowing] = useState(false)
+  const [recenterRequest, setRecenterRequest] = useState(0)
+  const arrivalDetectorRef = useRef(createRouteArrivalDetector())
   const hoverCloseTimerRef = useRef(null)
   const supportsHover = useHoverCapability()
+  const handleLocationUpdate = useCallback((position) => {
+    if (navigationState !== 'approaching') return
+    const arrived = arrivalDetectorRef.current.process(
+      position,
+      route?.is_map_renderable === true ? route.geometry : null,
+      directionsMode,
+    )
+    if (arrived) {
+      setNavigationState('exploring')
+      setLocationFollowing(true)
+      setDirectionsStatus(null)
+    }
+  }, [directionsMode, navigationState, route])
+  const {
+    position: userPosition,
+    active: locationActive,
+    error: locationError,
+    start: startLocation,
+    stop: stopLocation,
+  } = useUserLocation(handleLocationUpdate)
 
   useEffect(() => () => window.clearTimeout(hoverCloseTimerRef.current), [])
 
@@ -115,9 +143,12 @@ function RoutePage() {
     async function loadRoute() {
       setSelectedWaypointId(null)
       setSelectedSegmentId(null)
-      setDirectionsActive(false)
+      setNavigationState('idle')
       setDirectionsMode('walking')
       setDirectionsStatus(null)
+      setLocationFollowing(false)
+      arrivalDetectorRef.current.reset()
+      stopLocation()
       setActiveVideo(null)
       setLightbox({ gallery: null, index: -1 })
       try {
@@ -139,7 +170,7 @@ function RoutePage() {
     return () => {
       isCurrent = false
     }
-  }, [routeSlug])
+  }, [routeSlug, stopLocation])
 
   useEffect(() => {
     let isCurrent = true
@@ -166,8 +197,6 @@ function RoutePage() {
     }
   }, [])
 
-  const routeStatus = routeResult.slug === routeSlug ? routeResult.status : 'loading'
-  const route = routeResult.slug === routeSlug ? routeResult.route : null
   const countryNames = useMemo(() => new Map(countries.map((country) => [country.slug, country.name])), [countries])
   const waypoints = useMemo(() => getOrderedRouteWaypoints(route), [route])
   const canonicalStartWaypoint = useMemo(() => {
@@ -372,24 +401,45 @@ function RoutePage() {
     clearHoveredWaypoint()
     setSelectedWaypointId(null)
   }
-  const showFullRoute = () => setRouteFocusRequest((current) => current + 1)
+  const showFullRoute = () => {
+    setLocationFollowing(false)
+    setRouteFocusRequest((current) => current + 1)
+  }
   const startDirections = () => {
     if (!canonicalStartWaypoint) return
+    arrivalDetectorRef.current.reset()
+    if (!locationActive) startLocation()
     setDirectionsStatus({ status: 'locating' })
-    setDirectionsActive(true)
+    setNavigationState('approaching')
   }
   const stopDirections = () => {
-    setDirectionsActive(false)
+    setNavigationState('idle')
+    setLocationFollowing(false)
     setDirectionsMode('walking')
     setDirectionsStatus(null)
   }
+  const stopTracking = () => {
+    arrivalDetectorRef.current.reset()
+    stopLocation()
+    setNavigationState('idle')
+    setLocationFollowing(false)
+    setDirectionsMode('walking')
+    setDirectionsStatus(null)
+  }
+  const recenterOnLocation = () => {
+    setLocationFollowing(true)
+    setRecenterRequest((current) => current + 1)
+  }
+  const handleManualMapMovement = useCallback(() => {
+    setLocationFollowing(false)
+  }, [])
   const handleDirectionsStatusChange = useCallback((status) => {
     setDirectionsStatus(status)
   }, [])
-  const handleLocationError = useCallback((message) => {
-    setDirectionsStatus({ status: 'error', message })
-    setDirectionsActive(false)
-  }, [])
+  const handleTravelModeChange = (mode) => {
+    arrivalDetectorRef.current.reset()
+    setDirectionsMode(mode)
+  }
   const viewMapEntityDetails = (detail) => {
     const target = getMapEntityDetailPath(routeSlug, detail)
     if (target) navigate(target)
@@ -404,6 +454,7 @@ function RoutePage() {
   const countryLabel = countryName(country, countryFallback) || 'Country pending'
   const activityLabel = formatActivity(route?.activity_type)
   const routeTitle = route?.title || 'Route'
+  const directionsActive = navigationState === 'approaching'
   const routeDescription = getContentDescription(route?.summary, routeTitle, route?.country ? countryLabel : '')
   const routePath = `/routes/${encodeURIComponent(routeSlug)}`
   const routeUrl = getPublicUrl(routePath)
@@ -478,49 +529,55 @@ function RoutePage() {
                 </p>
               )}
               {directionsActive && (
-                <>
-                  <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
-                    <button
-                      type="button"
-                      className="route-directions-mode"
-                      aria-pressed={directionsMode === 'walking'}
-                      onClick={() => setDirectionsMode('walking')}
-                    >
-                      Walking
-                    </button>
-                    <button
-                      type="button"
-                      className="route-directions-mode"
-                      aria-pressed={directionsMode === 'driving'}
-                      onClick={() => setDirectionsMode('driving')}
-                    >
-                      Driving
-                    </button>
-                  </div>
-                  {directionsStatus?.status === 'locating' && (
-                    <p className="route-directions-feedback" id="route-directions-feedback" role="status">Waiting for your location...</p>
-                  )}
-                  {directionsStatus?.status === 'routing' && (
-                    <p className="route-directions-feedback" id="route-directions-feedback" role="status">
-                      Calculating {directionsMode === 'walking' ? 'walking' : 'driving'} directions...
-                    </p>
-                  )}
-                  {directionsStatus?.status === 'too-far' && (
-                    <p className="route-directions-feedback" id="route-directions-feedback" role="status">
-                      You're more than {MAX_LOCAL_DIRECTIONS_KM} km from this Route's starting point. Directions are available when you're closer.
-                    </p>
-                  )}
-                  {directionsStatus?.status === 'ready' && (
-                    <p className="route-directions-feedback" id="route-directions-feedback" role="status">
-                      {directionsMode === 'walking' ? 'Walking' : 'Driving'} route: {directionsStatus.distanceKm.toFixed(1)} km
-                    </p>
-                  )}
-                  {directionsStatus?.status === 'error' && (
-                    <p className="route-directions-feedback is-error" id="route-directions-feedback" role="alert">
-                      {directionsStatus.message}
-                    </p>
-                  )}
-                </>
+                <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
+                  <button
+                    type="button"
+                    className="route-directions-mode"
+                    aria-pressed={directionsMode === 'walking'}
+                    onClick={() => handleTravelModeChange('walking')}
+                  >
+                    Walking
+                  </button>
+                  <button
+                    type="button"
+                    className="route-directions-mode"
+                    aria-pressed={directionsMode === 'driving'}
+                    onClick={() => handleTravelModeChange('driving')}
+                  >
+                    Driving
+                  </button>
+                </div>
+              )}
+              {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
+                <p className="route-directions-feedback" id="route-directions-feedback" role="status">Waiting for your location...</p>
+              )}
+              {directionsActive && directionsStatus?.status === 'routing' && (
+                <p className="route-directions-feedback" id="route-directions-feedback" role="status">
+                  Calculating {directionsMode === 'walking' ? 'walking' : 'driving'} directions...
+                </p>
+              )}
+              {directionsActive && directionsStatus?.status === 'too-far' && (
+                <p className="route-directions-feedback" id="route-directions-feedback" role="status">
+                  You're more than {MAX_LOCAL_DIRECTIONS_KM} km from this Route's starting point. Directions are available when you're closer.
+                </p>
+              )}
+              {directionsActive && directionsStatus?.status === 'ready' && (
+                <p className="route-directions-feedback" id="route-directions-feedback" role="status">
+                  {directionsMode === 'walking' ? 'Walking' : 'Driving'} route: {directionsStatus.distanceKm.toFixed(1)} km
+                </p>
+              )}
+              {directionsStatus?.status === 'error' && (
+                <p className="route-directions-feedback is-error" id="route-directions-feedback" role="alert">
+                  {directionsStatus.message}
+                </p>
+              )}
+              {locationError && (
+                <p className="route-directions-feedback is-error" role="alert">
+                  {locationError}{' '}
+                  <button type="button" className="route-directions-mode" onClick={startDirections}>
+                    Retry location
+                  </button>
+                </p>
               )}
             </div>
           </div>
@@ -544,17 +601,48 @@ function RoutePage() {
             routeFocusRequest={routeFocusRequest}
             initialCenter={[50, 10]}
             initialZoom={4}
-            mapChildren={directionsActive && canonicalStartWaypoint ? (
-              <RouteDirectionsLayer
-                active={directionsActive}
-                routeSlug={routeSlug}
-                startCoordinates={canonicalStartWaypoint.coordinates}
-                mode={directionsMode}
-                onStatusChange={handleDirectionsStatusChange}
-                onError={handleLocationError}
-              />
-            ) : null}
+            followEnabled={locationFollowing && Boolean(userPosition)}
+            mapChildren={(
+              <>
+                <RouteDirectionsLayer
+                  active={directionsActive && Boolean(canonicalStartWaypoint)}
+                  position={userPosition}
+                  routeSlug={routeSlug}
+                  startCoordinates={canonicalStartWaypoint?.coordinates}
+                  mode={directionsMode}
+                  onStatusChange={handleDirectionsStatusChange}
+                />
+                <RouteUserLocationLayer
+                  position={userPosition}
+                  followEnabled={locationFollowing && Boolean(userPosition)}
+                  recenterRequest={recenterRequest}
+                  onManualMovement={handleManualMapMovement}
+                />
+              </>
+            )}
           >
+            {navigationState === 'exploring' && (
+              <p className="route-arrival-notice" role="status">You're on the route now. Let's wander Offward!</p>
+            )}
+            {(locationActive || userPosition || directionsActive) && (
+              <div className="route-location-controls" aria-label="Location tracking controls">
+                <button
+                  type="button"
+                  className="route-location-control"
+                  onClick={recenterOnLocation}
+                  disabled={!userPosition}
+                >
+                  Recenter
+                </button>
+                <button
+                  type="button"
+                  className="route-location-control"
+                  onClick={stopTracking}
+                >
+                  Stop tracking
+                </button>
+              </div>
+            )}
             <RouteSections
               segments={segments}
               selectedSegmentId={selectedSegmentId}

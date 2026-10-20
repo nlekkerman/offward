@@ -4,8 +4,9 @@ import { getCombinedBounds, getCombinedMapBounds, getWaypointBounds } from '../m
 
 // Fits the viewport to Route/waypoint bounds on data change and focuses the
 // selected Route, without resetting the viewport during normal interaction.
-function MapViewportController({ validRoutes, validSegments, validWaypoints, validPlaces, selectedRouteId, selectedSegmentId, selectedWaypointId, selectedPlaceId, routeFocusRequest, resetViewWhenRoutesEmpty, initialCenter, initialZoom }) {
+function MapViewportController({ validRoutes, validSegments, validWaypoints, validPlaces, selectedRouteId, selectedSegmentId, selectedWaypointId, selectedPlaceId, routeFocusRequest, resetViewWhenRoutesEmpty, initialCenter, initialZoom, followEnabled }) {
   const map = useMap()
+  const followRef = useRef(followEnabled)
   const prevRouteSignatureRef = useRef(null)
   const prevSelectedRouteIdRef = useRef(null)
   const prevSelectedSegmentIdRef = useRef(null)
@@ -13,6 +14,11 @@ function MapViewportController({ validRoutes, validSegments, validWaypoints, val
   const prevSelectedPlaceIdRef = useRef(null)
 
   useEffect(() => {
+    followRef.current = followEnabled
+  }, [followEnabled])
+
+  useEffect(() => {
+    if (followRef.current) return
     const routeSignature = validRoutes
       .map((r) => {
         const id = r.id ?? r.slug
@@ -55,6 +61,7 @@ function MapViewportController({ validRoutes, validSegments, validWaypoints, val
   }, [map, selectedSegmentId, validRoutes, validWaypoints, validPlaces])
 
   useEffect(() => {
+    if (followRef.current) return
     if (!selectedSegmentId) {
       const hadSelectedSegment = prevSelectedSegmentIdRef.current
       prevSelectedSegmentIdRef.current = null
@@ -88,6 +95,7 @@ function MapViewportController({ validRoutes, validSegments, validWaypoints, val
   }, [map, selectedSegmentId, validSegments, validRoutes, validPlaces, validWaypoints])
 
   useEffect(() => {
+    if (followRef.current) return
     if (!selectedWaypointId) {
       prevSelectedWaypointIdRef.current = null
       return
@@ -108,6 +116,7 @@ function MapViewportController({ validRoutes, validSegments, validWaypoints, val
   }, [map, selectedWaypointId, validWaypoints])
 
   useEffect(() => {
+    if (followRef.current) return
     if (!selectedRouteId) {
       const hadSelectedRoute = prevSelectedRouteIdRef.current
       prevSelectedRouteIdRef.current = null
@@ -136,12 +145,14 @@ function MapViewportController({ validRoutes, validSegments, validWaypoints, val
   }, [map, selectedRouteId, validRoutes, resetViewWhenRoutesEmpty, initialCenter, initialZoom])
 
   useEffect(() => {
+    if (followRef.current) return
     if (!routeFocusRequest) return
     const bounds = getCombinedMapBounds(validRoutes, validPlaces) || getWaypointBounds(validWaypoints)
     if (bounds) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13, animate: false })
   }, [map, routeFocusRequest, validPlaces, validRoutes, validWaypoints])
 
   useEffect(() => {
+    if (followRef.current) return
     if (!selectedPlaceId) {
       prevSelectedPlaceIdRef.current = null
       return

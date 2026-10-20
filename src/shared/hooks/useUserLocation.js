@@ -36,15 +36,17 @@ function normalizePosition(position) {
   }
 
   const accuracy = position.coords.accuracy
+  const speed = position.coords.speed
   return {
     latitude,
     longitude,
     accuracy: typeof accuracy === 'number' && Number.isFinite(accuracy) ? accuracy : null,
+    speed: typeof speed === 'number' && Number.isFinite(speed) && speed >= 0 ? speed : null,
     timestamp: Number.isFinite(position.timestamp) ? position.timestamp : null,
   }
 }
 
-export default function useUserLocation() {
+export default function useUserLocation(onPosition) {
   const [position, setPosition] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -52,6 +54,11 @@ export default function useUserLocation() {
   const watcherIdRef = useRef(null)
   const activeRef = useRef(false)
   const generationRef = useRef(0)
+  const onPositionRef = useRef(onPosition)
+
+  useEffect(() => {
+    onPositionRef.current = onPosition
+  }, [onPosition])
 
   const clearWatcher = useCallback(() => {
     if (watcherIdRef.current === null) return
@@ -97,6 +104,7 @@ export default function useUserLocation() {
       }
       setPosition(nextPosition)
       setLoading(false)
+      onPositionRef.current?.(nextPosition)
     }
 
     const handleError = (browserError) => {

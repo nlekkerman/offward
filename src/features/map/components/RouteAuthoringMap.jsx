@@ -26,10 +26,9 @@ function geometryBounds(geometry) {
   return normalized.coordinates.map(([lng, lat]) => [lat, lng])
 }
 
-function getMapBounds({ waypoints, acceptedGeometry, candidateGeometry, previewGeometry, segments }) {
+function getMapBounds({ waypoints, candidateGeometry, previewGeometry, segments }) {
   const points = [
     ...waypoints.map(toLatLng).filter(Boolean),
-    ...geometryBounds(acceptedGeometry),
     ...geometryBounds(candidateGeometry),
     ...geometryBounds(previewGeometry),
     ...segments.flatMap((segment) => geometryBounds(segment.geometry)),
@@ -42,22 +41,22 @@ function getMapBounds({ waypoints, acceptedGeometry, candidateGeometry, previewG
   return points
 }
 
-function AuthoringViewport({ waypoints, acceptedGeometry, candidateGeometry, previewGeometry, segments }) {
+function AuthoringViewport({ waypoints, candidateGeometry, previewGeometry, segments }) {
   const map = useMap()
   const signatureRef = useRef('')
 
   useEffect(() => {
-    const signature = JSON.stringify({ waypoints, acceptedGeometry, candidateGeometry, previewGeometry, segments })
+    const signature = JSON.stringify({ waypoints, candidateGeometry, previewGeometry, segments })
     if (signatureRef.current === signature) {
       return
     }
 
     signatureRef.current = signature
-    const bounds = getMapBounds({ waypoints, acceptedGeometry, candidateGeometry, previewGeometry, segments })
+    const bounds = getMapBounds({ waypoints, candidateGeometry, previewGeometry, segments })
     if (bounds) {
       map.fitBounds(bounds, { padding: [44, 44], maxZoom: 14, animate: false })
     }
-  }, [acceptedGeometry, candidateGeometry, map, previewGeometry, segments, waypoints])
+  }, [candidateGeometry, map, previewGeometry, segments, waypoints])
 
   return null
 }
@@ -74,7 +73,8 @@ function getMarkerDisplayName(waypoint, places) {
   return typeof placeName === 'string' ? placeName.trim() : ''
 }
 
-function WaypointMarker({ waypoint, places, latLng, selected, onWaypointSelect }) {
+function WaypointMarker({ waypoint, places, latLng, selected, draggable, onWaypointSelect, onWaypointDragStart, onWaypointDragEnd }) {
+  const map = useMap()
   const displayName = getMarkerDisplayName(waypoint, places)
   const icon = useMemo(
     () => createWaypointMarkerIcon({ order: waypoint.order, displayName, selected, extraClassNames: ['route-authoring-waypoint-marker'] }),
@@ -85,8 +85,24 @@ function WaypointMarker({ waypoint, places, latLng, selected, onWaypointSelect }
     <Marker
       position={latLng}
       icon={icon}
+      draggable={draggable}
+      bubblingMouseEvents={false}
       title={displayName ? `${waypoint.order} · ${displayName}` : String(waypoint.order)}
-      eventHandlers={{ click: () => onWaypointSelect(waypoint.id) }}
+      eventHandlers={{
+        click: (event) => {
+          event.originalEvent?.stopPropagation()
+          onWaypointSelect(waypoint.id)
+        },
+        dragstart: () => {
+          map.dragging.disable()
+          onWaypointDragStart?.(waypoint.id)
+        },
+        dragend: (event) => {
+          map.dragging.enable()
+          const { lat, lng } = event.target.getLatLng()
+          onWaypointDragEnd?.(waypoint.id, { latitude: lat, longitude: lng })
+        },
+      }}
     />
   )
 }
@@ -111,12 +127,9 @@ function MapClickHandler({ addMode, drawingManually, onMapAddWaypoint, onManualD
   return null
 }
 
-const ACCEPTED_STYLE = {
-  color: '#4F8A3C',
-  weight: 7,
-  opacity: 0.95,
-  lineCap: 'round',
-  lineJoin: 'round',
+function selectConnectionFromMap(event, connectionId, onSegmentSelect) {
+  event.originalEvent?.stopPropagation()
+  onSegmentSelect?.(connectionId)
 }
 
 const CANDIDATE_STYLE = {
@@ -138,25 +151,30 @@ const PREVIEW_STYLE = {
 }
 
 const SEGMENT_STYLE = {
-  color: '#c4b9a2',
+  color: '#8e9a98',
   weight: 5,
-  opacity: 0.45,
+  opacity: 0.75,
+  dashArray: '5 7',
   lineCap: 'round',
   lineJoin: 'round',
+}
+
+const RESOLVED_STYLES = {
+  calculated: { color: '#4f8a3c', weight: 5, opacity: 0.9 },
+  manual: { color: '#2d9db2', weight: 5, opacity: 0.95, dashArray: '10 5' },
+  straight: { color: '#c4b9a2', weight: 5, opacity: 0.9, dashArray: '3 6' },
 }
 
 const SELECTED_SEGMENT_STYLE = {
-  color: '#D28A22',
-  weight: 9,
-  opacity: 0.95,
+  color: '#ef342c',
+  weight: 8,
+  opacity: 1,
   lineCap: 'round',
   lineJoin: 'round',
 }
 
-function RouteAuthoringMapContent({ waypoints, places = [], acceptedGeometry, candidateGeometry, previewGeometry, segments = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint }) {
+function RouteAuthoringMapContent({ waypoints, places = [], candidateGeometry, previewGeometry, connections = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, waypointMovePreview, canDragWaypoints, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint, onWaypointDragStart, onWaypointDragEnd }) {
   const validWaypoints = useMemo(() => waypoints.map((waypoint) => ({ waypoint, latLng: toLatLng(waypoint) })).filter((item) => item.latLng), [waypoints])
-  const waypointLine = validWaypoints.map((item) => item.latLng)
-  const accepted = normalizeGeometry(acceptedGeometry)
   const candidate = normalizeGeometry(candidateGeometry)
   const preview = normalizeGeometry(previewGeometry)
   const manualPoints = Array.isArray(manualDrawing?.points) ? manualDrawing.points : []
@@ -170,23 +188,26 @@ function RouteAuthoringMapContent({ waypoints, places = [], acceptedGeometry, ca
       <MapContainer center={[50, 10]} zoom={4} scrollWheelZoom={true} className="offward-map-inner">
         <TileLayer attribution={MAP_TILE_LAYER.attribution} url={MAP_TILE_LAYER.url} />
         <WaypointMarkerZoomController />
-        {accepted && <GeoJSON key={`accepted-${JSON.stringify(accepted.coordinates)}`} data={{ type: 'Feature', geometry: accepted, properties: {} }} style={ACCEPTED_STYLE} />}
-        {candidate && <GeoJSON key={`candidate-${JSON.stringify(candidate.coordinates)}`} data={{ type: 'Feature', geometry: candidate, properties: {} }} style={CANDIDATE_STYLE} />}
-        {preview && <GeoJSON key={`gpx-preview-${JSON.stringify(preview.coordinates)}`} data={{ type: 'Feature', geometry: preview, properties: {} }} style={PREVIEW_STYLE} />}
-        {segments.map((segment) => {
+        {connections.map((connection) => {
+          const segment = connection.segment
           const geometry = normalizeGeometry(segment.geometry)
-          if (!geometry) return null
-          const selected = segment.id === selectedSegmentId
+          const selected = segment.id === selectedSegmentId || connection.key === selectedSegmentId
+          const style = selected
+            ? SELECTED_SEGMENT_STYLE
+            : geometry
+              ? (RESOLVED_STYLES[segment.mode] || RESOLVED_STYLES.calculated)
+              : SEGMENT_STYLE
+          const start = validWaypoints.find(({ waypoint }) => waypoint.id === connection.start_waypoint_id)?.latLng
+          const end = validWaypoints.find(({ waypoint }) => waypoint.id === connection.end_waypoint_id)?.latLng
+          if (!geometry && (!start || !end)) return null
           return (
-            <GeoJSON
-              key={`segment-${segment.id}-${JSON.stringify(geometry.coordinates)}`}
-              data={{ type: 'Feature', geometry, properties: {} }}
-              style={selected ? SELECTED_SEGMENT_STYLE : SEGMENT_STYLE}
-              eventHandlers={{ click: () => onSegmentSelect?.(segment.id) }}
-            />
+            geometry
+              ? <GeoJSON key={`segment-${segment.id}-${JSON.stringify(geometry.coordinates)}`} data={{ type: 'Feature', geometry, properties: {} }} style={style} bubblingMouseEvents={false} eventHandlers={{ click: (event) => selectConnectionFromMap(event, segment.id || connection.key, onSegmentSelect) }} />
+              : <Polyline key={`unresolved-${connection.key}`} positions={[start, end]} pathOptions={style} bubblingMouseEvents={false} eventHandlers={{ click: (event) => selectConnectionFromMap(event, segment.id || connection.key, onSegmentSelect) }} />
           )
         })}
-        {waypointLine.length > 1 && <Polyline positions={waypointLine} pathOptions={{ color: '#eee0bd', opacity: 0.35, weight: 2, dashArray: '4 7' }} />}
+        {candidate && <GeoJSON key={`candidate-${JSON.stringify(candidate.coordinates)}`} data={{ type: 'Feature', geometry: candidate, properties: {} }} style={CANDIDATE_STYLE} />}
+        {preview && <GeoJSON key={`connection-preview-${JSON.stringify(preview.coordinates)}`} data={{ type: 'Feature', geometry: preview, properties: {} }} style={PREVIEW_STYLE} />}
         {drawingManually && <Polyline positions={manualDrawingPositions} pathOptions={{ color: '#f0d39c', opacity: 1, weight: 6, dashArray: '10 7' }} interactive={false} />}
         {validWaypoints.map(({ waypoint, latLng }) => {
           const selected = waypoint.id === selectedWaypointId
@@ -195,13 +216,16 @@ function RouteAuthoringMapContent({ waypoints, places = [], acceptedGeometry, ca
               key={waypoint.id}
               waypoint={waypoint}
               places={places}
-              latLng={latLng}
+              latLng={waypointMovePreview?.id === waypoint.id ? [waypointMovePreview.latitude, waypointMovePreview.longitude] : latLng}
               selected={selected}
+              draggable={canDragWaypoints && !addMode && !drawingManually}
               onWaypointSelect={onWaypointSelect}
+              onWaypointDragStart={onWaypointDragStart}
+              onWaypointDragEnd={onWaypointDragEnd}
             />
           )
         })}
-        <AuthoringViewport waypoints={waypoints} acceptedGeometry={accepted} candidateGeometry={candidate} previewGeometry={preview} segments={segments} />
+        <AuthoringViewport waypoints={waypoints} candidateGeometry={candidate} previewGeometry={preview} segments={connections.map(({ segment }) => segment)} />
         <MapClickHandler addMode={addMode} drawingManually={drawingManually} onMapAddWaypoint={onMapAddWaypoint} onManualDrawPoint={onManualDrawPoint} />
       </MapContainer>
     </div>

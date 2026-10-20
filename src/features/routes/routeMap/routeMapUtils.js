@@ -218,12 +218,16 @@ export function normalizeRouteMap(data = {}) {
 }
 
 export function normalizeCandidate(data = {}) {
-  const geometry = normalizeGeometry(data.candidate_geometry || data.candidateGeometry)
+  const source = data.candidate && typeof data.candidate === 'object' ? { ...data, ...data.candidate } : data
+  const geometry = normalizeGeometry(source.candidate_geometry || source.candidateGeometry || source.geometry)
 
   return geometry ? {
     geometry,
-    distance_meters: data.distance_meters,
-    duration_seconds: data.duration_seconds,
+    distance_meters: source.distance_meters,
+    duration_seconds: source.duration_seconds,
+    candidateToken: source.candidate_token || source.candidateToken || '',
+    expiresAt: source.expires_at || source.expiresAt || '',
+    profile: source.profile || '',
   } : null
 }
 
@@ -248,6 +252,7 @@ export function buildWaypointPayload(waypoints) {
 
 export function normalizeSegment(segment = {}, index = 0) {
   return {
+    ...segment,
     ...(segment.id ? { id: segment.id } : { id: createDraftSegmentId(index + 1) }),
     route_id: segment.route_id || segment.routeId || '',
     order: Number(segment.order ?? index + 1),
@@ -257,6 +262,7 @@ export function normalizeSegment(segment = {}, index = 0) {
     start_waypoint_id: segment.start_waypoint_id || segment.startWaypointId || '',
     end_waypoint_id: segment.end_waypoint_id || segment.endWaypointId || '',
     needs_review: segment.needs_review === true,
+    mode: segment.mode || segment.connection_mode || segment.resolution_mode || segment.resolution || '',
     story_ids: Array.isArray(segment.story_ids) ? [...segment.story_ids] : [],
     media_ids: Array.isArray(segment.media_ids) ? [...segment.media_ids] : [],
     image_collection_ids: Array.isArray(segment.image_collection_ids) ? [...segment.image_collection_ids] : [],

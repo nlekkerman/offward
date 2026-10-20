@@ -1,16 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import L from 'leaflet'
-import { Circle, Marker, Polyline, useMap } from 'react-leaflet'
-import useUserLocation from '../../../shared/hooks/useUserLocation.js'
+import { useEffect, useRef, useState } from 'react'
+import { Polyline, useMap } from 'react-leaflet'
 import { getRouteDirections, getStraightLineDistanceKm, MAX_LOCAL_DIRECTIONS_KM } from '../../../services/routeDirectionsApi.js'
-
-const ACCURACY_CIRCLE_STYLE = {
-  color: '#d8b47c',
-  weight: 1,
-  opacity: 0.55,
-  fillColor: '#d8b47c',
-  fillOpacity: 0.12,
-}
 
 const NAVIGATION_PATH_STYLE = {
   color: '#438bd1',
@@ -59,25 +49,29 @@ function DirectionsViewportController({ active, position, navigationPositions })
   return null
 }
 
-function RouteDirectionsLayer({ active, routeSlug, startCoordinates, mode, onStatusChange, onError }) {
-  const { position, error, start, stop } = useUserLocation()
+function RouteDirectionsLayer({ active, position, routeSlug, startCoordinates, mode, onStatusChange }) {
   const requestedModeRef = useRef(null)
   const currentModeRef = useRef(null)
   const tooFarModeRef = useRef(null)
   const requestControllerRef = useRef(null)
+  const wasActiveRef = useRef(false)
   const [navigationResult, setNavigationResult] = useState(null)
 
   useEffect(() => {
-    if (active) {
-      start()
+    if (!active) {
+      if (wasActiveRef.current) {
+        requestControllerRef.current?.abort()
+        requestControllerRef.current = null
+        requestedModeRef.current = null
+        currentModeRef.current = null
+        tooFarModeRef.current = null
+        setNavigationResult(null)
+      }
+      wasActiveRef.current = false
       return
     }
-    stop()
-  }, [active, start, stop])
-
-  useEffect(() => {
-    if (error) onError(error)
-  }, [error, onError])
+    wasActiveRef.current = true
+  }, [active])
 
   useEffect(() => {
     if (!active || !position) return
@@ -126,17 +120,7 @@ function RouteDirectionsLayer({ active, routeSlug, startCoordinates, mode, onSta
       })
   }, [active, mode, onStatusChange, position, routeSlug, startCoordinates])
 
-  useEffect(() => () => {
-    requestControllerRef.current?.abort()
-    stop()
-  }, [stop])
-
-  const userLocationIcon = useMemo(() => L.divIcon({
-    className: 'offward-user-location-icon',
-    html: '<span class="offward-user-location-marker"><span class="offward-user-location-dot"></span><span class="offward-user-location-label">You are here</span></span>',
-    iconSize: [108, 32],
-    iconAnchor: [14, 16],
-  }), [])
+  useEffect(() => () => requestControllerRef.current?.abort(), [])
 
   if (!active || !position) {
     return (
@@ -147,10 +131,6 @@ function RouteDirectionsLayer({ active, routeSlug, startCoordinates, mode, onSta
     )
   }
 
-  const accuracy = position.accuracy
-  const hasAccuracy = typeof accuracy === 'number' && Number.isFinite(accuracy) && accuracy > 0
-  const markerPosition = [position.latitude, position.longitude]
-
   return (
     <>
       <NavigationPathPaneController />
@@ -158,21 +138,6 @@ function RouteDirectionsLayer({ active, routeSlug, startCoordinates, mode, onSta
         active={active}
         position={position}
         navigationPositions={navigationResult?.navigationPositions || null}
-      />
-      {hasAccuracy && (
-        <Circle
-          center={markerPosition}
-          radius={accuracy}
-          pathOptions={ACCURACY_CIRCLE_STYLE}
-        />
-      )}
-      <Marker
-        position={markerPosition}
-        icon={userLocationIcon}
-        title="You are here"
-        alt="Your current location"
-        keyboard={false}
-        zIndexOffset={1000}
       />
       {navigationResult && (
         <Polyline

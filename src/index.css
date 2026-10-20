@@ -1580,6 +1580,22 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   min-height: 420px;
 }
 
+.route-authoring-map .route-marker-zoom-hidden .route-authoring-waypoint-marker {
+  display: block;
+}
+
+.route-authoring-map .route-marker-zoom-hidden .route-authoring-waypoint-marker .route-waypoint-name {
+  display: none;
+}
+
+.route-authoring-waypoint-marker {
+  cursor: grab;
+}
+
+.route-authoring-waypoint-marker:active {
+  cursor: grabbing;
+}
+
 .route-map-main-column .offward-map-container {
   width: 100%;
   height: clamp(560px, 72vh, 860px);
@@ -1587,6 +1603,121 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .route-map-main-column .route-geometry-legend {
   flex: 0 0 auto;
+}
+
+.route-connection-editor {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0 0 0.85rem;
+  padding: 0.85rem;
+  border: 1px solid #343a33;
+  border-radius: 0.75rem;
+  background: #171a17;
+}
+
+.route-connection-editor .route-map-panel-header {
+  margin: 0;
+}
+
+.route-connection-editor .route-map-panel-header h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1rem;
+}
+
+.route-completion-state {
+  padding: 0.3rem 0.55rem;
+  border: 1px dashed #8e9a98;
+  border-radius: 999px;
+  color: #c3ceca;
+  font: 700 0.7rem/1 sans-serif;
+}
+
+.route-completion-state.is-complete {
+  border-style: solid;
+  border-color: #4f8a3c;
+  color: #b8d9ad;
+}
+
+.route-connection-list {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding: 0.1rem 0 0.35rem;
+}
+
+.route-connection-option {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.25rem;
+  min-width: 9.5rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #3b4338;
+  border-radius: 0.45rem;
+  background: #111410;
+  color: #e8e6dd;
+  text-align: left;
+  cursor: pointer;
+}
+
+.route-connection-option small {
+  color: #a9b3ae;
+  font: 0.7rem/1.2 sans-serif;
+}
+
+.route-connection-option.is-selected {
+  border-color: #ef342c;
+  box-shadow: inset 0 0 0 1px #ef342c;
+}
+
+.route-connection-option.is-selected small {
+  color: #f6b2ad;
+}
+
+.route-connection-controls {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.route-connection-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem;
+  color: #f2ece4;
+  font: 0.82rem/1.2 sans-serif;
+}
+
+.route-connection-summary span {
+  color: #a9b3ae;
+  font-size: 0.75rem;
+}
+
+.route-connection-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.route-connection-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #a9b3ae;
+  font: 0.75rem/1 sans-serif;
+}
+
+.route-connection-profile select {
+  min-height: 2.1rem;
+  padding: 0.35rem 1.7rem 0.35rem 0.5rem;
+  border: 1px solid #3b4338;
+  border-radius: 0.4rem;
+  background: #111410;
+  color: #eee;
+}
+
+.route-connection-editor .segment-drawing-controls {
+  padding: 0.55rem;
 }
 
 .route-map-toolbar {
@@ -2100,6 +2231,21 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .legend-line.candidate {
   border-top-color: #D28A22;
   border-top-style: dashed;
+}
+
+.legend-line.manual {
+  border-top-color: #2d9db2;
+  border-top-style: dashed;
+}
+
+.legend-line.straight,
+.legend-line.unresolved {
+  border-top-color: #8e9a98;
+  border-top-style: dashed;
+}
+
+.legend-line.selected {
+  border-top-color: #ef342c;
 }
 
 .legend-point {
