@@ -516,6 +516,24 @@
   background: #ff3838;
 }
 
+.place-directions-start-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+}
+
+.place-directions-start-marker span {
+  display: block;
+  width: 19px;
+  height: 19px;
+  border: 3px solid #f3efe6;
+  border-radius: 50%;
+  background: #e28a3b;
+  box-shadow: 0 1px 6px rgba(18, 19, 16, 0.85);
+}
+
 .place-detail-map .leaflet-tooltip.place-detail-marker-label {
   width: max-content;
   max-width: min(240px, calc(100vw - 3rem));
