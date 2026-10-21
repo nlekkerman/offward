@@ -1492,6 +1492,45 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   font: 0.85rem/1.45 sans-serif;
 }
 
+.place-access-metadata {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #30362f;
+}
+
+.place-access-metadata h2 {
+  margin: 0;
+  color: #f0efe9;
+  font-size: 1rem;
+}
+
+.place-access-metadata-hint {
+  margin: 0.35rem 0 0;
+  color: #c9c5b9;
+  font: 0.82rem/1.4 sans-serif;
+}
+
+.place-access-metadata-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 1rem;
+}
+
+.place-access-metadata-fields .form-input {
+  min-width: 0;
+}
+
+.place-access-metadata-fields textarea.form-input {
+  min-height: 90px;
+}
+
+.place-access-metadata-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .place-access-instruction,
 .place-access-drawing-actions p {
   margin: 0;
@@ -3561,6 +3600,58 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   font: 0.76rem/1.35 sans-serif;
 }
 
+.place-directions-summary-description {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0 0 0 1.75rem;
+  color: #c8c2b6;
+  font: 0.76rem/1.35 sans-serif;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.place-detail-map .leaflet-popup.place-directions-popup {
+  max-width: calc(100vw - 2rem);
+}
+
+.place-detail-map .place-directions-popup .leaflet-popup-content-wrapper {
+  border: 1px solid #394239;
+  border-radius: 0.5rem;
+  background: #1c221e;
+  color: #f2ece4;
+}
+
+.place-detail-map .place-directions-popup .leaflet-popup-content {
+  max-width: min(250px, calc(100vw - 4rem));
+  max-height: min(34vh, 14rem);
+  margin: 0.8rem 1rem;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  font: 0.85rem/1.45 sans-serif;
+}
+
+.place-directions-popup-content strong {
+  display: block;
+  padding-right: 1rem;
+  color: #f2ece4;
+  font-size: 0.95rem;
+}
+
+.place-directions-popup-content p {
+  margin: 0.45rem 0 0;
+  color: #c8c2b6;
+  white-space: pre-wrap;
+}
+
+.place-detail-map .place-directions-popup .leaflet-popup-close-button {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  color: #f2ece4;
+  font-size: 22px;
+}
+
 .place-directions-summary .route-directions-mode {
   justify-self: start;
   min-height: 34px;
@@ -3571,6 +3662,12 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .route-detail-map {
   height: clamp(420px, 52vh, 500px);
   min-height: 420px;
+}
+
+@media (max-width: 640px) {
+  .place-access-metadata-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .route-map-message,

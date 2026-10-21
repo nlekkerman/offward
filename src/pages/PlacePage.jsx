@@ -262,16 +262,9 @@ function PlacePage() {
       }
     : null
   const hasManualAccessPath = Boolean(accessGeometry && accessMarkerCoordinates)
-  const accessMarkerName = [
-    place?.access_start_name,
-    place?.directions_marker_name,
-    place?.access_marker_name,
-  ].find((value) => typeof value === 'string' && value.trim())?.trim() || 'directions marker'
-  const accessMarkerDescription = [
-    place?.access_start_description,
-    place?.directions_marker_description,
-    place?.access_marker_description,
-  ].find((value) => typeof value === 'string' && value.trim())?.trim() || 'Walking path starts here'
+  const accessMarkerName = typeof place?.access_start_name === 'string' ? place.access_start_name.trim() : ''
+  const accessMarkerDescription = typeof place?.access_start_description === 'string' ? place.access_start_description.trim() : ''
+  const accessMarkerSummaryName = accessMarkerName || 'the directions marker'
   const walkingDistanceMeters = accessGeometry ? getGeometryLengthMeters(accessGeometry) : 0
   const startDirections = () => {
     if (!directionsAvailable) return
@@ -427,10 +420,10 @@ function PlacePage() {
                       {(directionsRoute?.profile || directionsMode) === 'walking' ? '🚶' : '🚗'}
                     </span>
                     {directionsRoute
-                      ? `${directionsRoute.profile === 'walking' ? 'Walk' : 'Drive'} ${directionsRoute.distanceKm.toFixed(1)} km to the directions marker.`
+                      ? `${directionsRoute.profile === 'walking' ? 'Walk' : 'Drive'} ${directionsRoute.distanceKm.toFixed(1)} km to ${accessMarkerSummaryName}.`
                       : directionsStatus?.status === 'error'
-                        ? `${directionsMode === 'walking' ? 'Walking' : 'Driving'} route to the directions marker could not be calculated.`
-                        : `Calculating ${directionsMode === 'walking' ? 'walking' : 'driving'} route to the directions marker...`}
+                        ? `${directionsMode === 'walking' ? 'Walking' : 'Driving'} route to ${accessMarkerSummaryName} could not be calculated.`
+                        : `Calculating ${directionsMode === 'walking' ? 'walking' : 'driving'} route to ${accessMarkerSummaryName}...`}
                   </p>
                   <p className="place-directions-leg">
                     <span className="place-directions-icon" aria-hidden="true">🚶</span>
@@ -456,15 +449,18 @@ function PlacePage() {
                     <span className="place-directions-icon" aria-hidden="true">🚶</span>
                     {placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker
                       ? `Walk ${formatWalkingDistance(walkingDistanceMeters)} to ${placeTitle}.`
-                      : `Walk ${formatWalkingDistance(walkingDistanceMeters)} from ${accessMarkerName} to ${placeTitle}.`}
+                      : `Walk ${formatWalkingDistance(walkingDistanceMeters)} from ${accessMarkerSummaryName} to ${placeTitle}.`}
                   </p>
                   {placeJourneyPhase === 'walking' && !isAtAccessMarker && (
                     <p className="place-directions-note">The orange dashed line is the saved path from the directions marker; the visitor-to-marker route is not shown.</p>
                   )}
                   {(placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker) && (
-                    <p className="place-directions-note">The orange dashed saved walking path starts at {accessMarkerName}.</p>
+                    <p className="place-directions-note">The orange dashed saved walking path starts at {accessMarkerSummaryName}.</p>
                   )}
                 </>
+              )}
+              {accessMarkerDescription && (
+                <p className="place-directions-summary-description">{accessMarkerDescription}</p>
               )}
             </section>
           )}
@@ -479,9 +475,9 @@ function PlacePage() {
               initialZoom={10}
               mapChildren={(
                 <>
-                  {hasManualAccessPath ? (
+                  {accessMarkerCoordinates && (
                     <PlaceDirectionsLayer
-                      active={directionsActive && directionsAvailable}
+                      active={directionsActive && directionsAvailable && hasManualAccessPath}
                       phase={placeJourneyPhase}
                       onPhaseChange={setPlaceJourneyPhase}
                       mode={directionsMode}
@@ -495,7 +491,8 @@ function PlacePage() {
                       markerDescription={accessMarkerDescription}
                       onStatusChange={handleDirectionsStatusChange}
                     />
-                  ) : (
+                  )}
+                  {!hasManualAccessPath && (
                     <RouteDirectionsLayer
                       active={directionsActive && directionsAvailable}
                       position={userPosition}

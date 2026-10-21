@@ -20,7 +20,7 @@ function getAccessErrorMessage(error, operation = 'change') {
   if (status === 401) return 'Your management session has expired. Sign in again to access Place directions.'
   if (status === 403) return 'You do not have permission to access Place directions.'
   if (status === 409 && code === 'access_revision_mismatch') return 'Place access changed elsewhere. Reload the current access state before making another change.'
-  if (status === 409 && code === 'place_access_start_missing') return 'Set a directions marker before saving a walking path.'
+  if (status === 409 && code === 'place_access_start_missing') return 'The directions marker no longer exists. Reload the current Place access state before continuing.'
   if (status === 409) return 'Place access changed elsewhere. Reload the current access state before making another change.'
   if (status === 400 && code === 'access_endpoint_too_far') return 'The walking path endpoints are more than 100 metres from the saved directions marker or Place.'
   if (status === 400 && typeof code === 'string' && code.startsWith('geojson_')) {
@@ -78,9 +78,15 @@ function getPlaceAccessState(place, accessState = place) {
     longitude: place.longitude,
     access_start_latitude: accessState.access_start_latitude ?? null,
     access_start_longitude: accessState.access_start_longitude ?? null,
+    access_start_name: typeof accessState.access_start_name === 'string' ? accessState.access_start_name : '',
+    access_start_description: typeof accessState.access_start_description === 'string' ? accessState.access_start_description : '',
     access_geometry: accessGeometry,
     access_revision: revision,
   }
+}
+
+function normalizeMetadataValue(value) {
+  return typeof value === 'string' ? value.trim() : ''
 }
 
 function PlaceAccessEditorPage() {
@@ -95,9 +101,14 @@ function PlaceAccessEditorPage() {
   const [drawingPoints, setDrawingPoints] = useState(null)
   const [candidateGeometry, setCandidateGeometry] = useState(null)
   const [revisionConflict, setRevisionConflict] = useState(false)
+  const [markerName, setMarkerName] = useState('')
+  const [markerDescription, setMarkerDescription] = useState('')
 
   const applyPlaceResponse = useCallback((placeResponse, accessResponse = placeResponse) => {
-    setPlace(getPlaceAccessState(placeResponse, accessResponse))
+    const nextPlace = getPlaceAccessState(placeResponse, accessResponse)
+    setPlace(nextPlace)
+    setMarkerName(nextPlace.access_start_name)
+    setMarkerDescription(nextPlace.access_start_description)
     setError('')
     setNotice('')
     setRevisionConflict(false)
@@ -137,6 +148,12 @@ function PlaceAccessEditorPage() {
   ].some((coordinate) => coordinate !== null && coordinate !== undefined && coordinate !== '')
   const hasAcceptedGeometry = Boolean(normalizeGeometry(place?.access_geometry))
   const currentRevision = place?.access_revision
+  const normalizedMarkerName = normalizeMetadataValue(markerName)
+  const normalizedMarkerDescription = normalizeMetadataValue(markerDescription)
+  const markerMetadataChanged = Boolean(startValid && place && (
+    normalizedMarkerName !== normalizeMetadataValue(place.access_start_name) ||
+    normalizedMarkerDescription !== normalizeMetadataValue(place.access_start_description)
+  ))
   const actualCoordinates = useMemo(() => actualPlaceValid ? {
     latitude: Number(place.latitude),
     longitude: Number(place.longitude),
@@ -172,6 +189,18 @@ function PlaceAccessEditorPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const saveMarkerMetadata = () => {
+    if (!markerMetadataChanged) return
+    const payload = { action: 'update_metadata' }
+    if (normalizedMarkerName !== normalizeMetadataValue(place.access_start_name)) {
+      payload.access_start_name = normalizedMarkerName
+    }
+    if (normalizedMarkerDescription !== normalizeMetadataValue(place.access_start_description)) {
+      payload.access_start_description = normalizedMarkerDescription
+    }
+    runMutation(payload, 'Directions marker details saved.')
   }
 
   const handleStartMarkerClick = (coordinates) => {
@@ -330,6 +359,48 @@ function PlaceAccessEditorPage() {
             )}
           </div>
         </div>
+        <section className="place-access-metadata" aria-labelledby="place-access-metadata-title">
+          <div>
+            <h2 id="place-access-metadata-title">Directions marker details</h2>
+            {!startValid && <p className="place-access-metadata-hint">Set a directions marker before editing its name or instructions.</p>}
+          </div>
+          <div className="place-access-metadata-fields">
+            <label className="form-field" htmlFor="access-start-name">
+              Marker name
+              <input
+                id="access-start-name"
+                className="form-input"
+                type="text"
+                maxLength={120}
+                placeholder="Forest entrance"
+                value={markerName}
+                onChange={(event) => setMarkerName(event.target.value)}
+                disabled={!startValid || saving}
+              />
+            </label>
+            <label className="form-field" htmlFor="access-start-description">
+              Marker instructions
+              <textarea
+                id="access-start-description"
+                className="form-input"
+                placeholder="Optional instructions for visitors"
+                value={markerDescription}
+                onChange={(event) => setMarkerDescription(event.target.value)}
+                disabled={!startValid || saving}
+              />
+            </label>
+          </div>
+          <div className="place-access-metadata-actions">
+            <button
+              type="button"
+              className="primary-button"
+              onClick={saveMarkerMetadata}
+              disabled={!markerMetadataChanged || saving}
+            >
+              {saving ? 'Saving...' : 'Save marker details'}
+            </button>
+          </div>
+        </section>
         {pickingStart && <p className="place-access-instruction" role="status">Click the map where driving should end. This does not change the actual Place location.</p>}
         {drawingPoints && (
           <div className="place-access-drawing-actions" role="group" aria-label="Manual walking path tools">

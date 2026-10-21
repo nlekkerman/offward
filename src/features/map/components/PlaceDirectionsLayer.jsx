@@ -115,16 +115,21 @@ function PlaceDirectionsLayer({
   const phaseCallbackRef = useRef(onPhaseChange)
   const currentProfileRequestKeyRef = useRef(null)
   const wasActiveRef = useRef(false)
+  const markerRef = useRef(null)
+  const popupCloseTimerRef = useRef(null)
+  const popupPinnedRef = useRef(false)
 
   useEffect(() => {
     statusCallbackRef.current = onStatusChange
     phaseCallbackRef.current = onPhaseChange
   }, [onPhaseChange, onStatusChange])
 
-  const walkingPositions = useMemo(() => toLeafletPositions(accessGeometry), [accessGeometry])
+  const walkingPositions = useMemo(() => accessGeometry ? toLeafletPositions(accessGeometry) : [], [accessGeometry])
   const markerPosition = [markerCoordinates.latitude, markerCoordinates.longitude]
   const placePosition = [placeCoordinates.lat, placeCoordinates.lng]
   const directionsMarkerIcon = useMemo(createDirectionsMarkerIcon, [])
+  const popupMarkerName = markerName?.trim() || 'Walking path starts here'
+  const popupMarkerDescription = markerDescription?.trim() || ''
   const originKey = origin ? `${origin.latitude},${origin.longitude}` : ''
   const requestKey = `${placeSlug}|${originKey}`
   const routeProfile = phase === 'driving' || phase === 'walking-to-marker' ? mode : null
@@ -214,7 +219,31 @@ function PlaceDirectionsLayer({
   useEffect(() => () => {
     requestControllersRef.current.forEach((controller) => controller.abort())
     requestControllersRef.current.clear()
+    clearTimeout(popupCloseTimerRef.current)
   }, [])
+
+  const clearPopupCloseTimer = () => {
+    clearTimeout(popupCloseTimerRef.current)
+    popupCloseTimerRef.current = null
+  }
+  const closePopupAfterHover = () => {
+    clearPopupCloseTimer()
+    popupCloseTimerRef.current = setTimeout(() => {
+      if (!popupPinnedRef.current) markerRef.current?.closePopup()
+    }, 160)
+  }
+  const openPopupOnHover = () => {
+    clearPopupCloseTimer()
+    markerRef.current?.openPopup()
+  }
+  const pinPopupOpen = () => {
+    clearPopupCloseTimer()
+    popupPinnedRef.current = true
+  }
+  const handlePopupClose = () => {
+    clearPopupCloseTimer()
+    popupPinnedRef.current = false
+  }
 
   useEffect(() => {
     if (!active || (phase !== 'driving' && phase !== 'walking-to-marker') || !position) return
@@ -229,8 +258,6 @@ function PlaceDirectionsLayer({
     }
   }, [active, markerCoordinates.latitude, markerCoordinates.longitude, phase, position])
 
-  if (!active) return <DirectionsPaneController />
-
   const showRoute = routeProfile !== null
   const route = activeRoute?.key === requestKey ? activeRoute : null
   const routePositions = showRoute ? route?.navigationPositions || null : null
@@ -239,38 +266,62 @@ function PlaceDirectionsLayer({
   return (
     <>
       <DirectionsPaneController />
-      <DirectionsViewportController
-        active={active}
-        routeReady={routeReady}
-        origin={origin}
-        routePositions={routePositions}
-        walkingPositions={walkingPositions}
-        markerPosition={markerPosition}
-        placePosition={placePosition}
-      />
-      <Polyline
-        positions={walkingPositions}
-        pathOptions={SAVED_WALKING_PATH_STYLE}
-        pane={NAVIGATION_PATH_PANE}
-        interactive={false}
-      />
-      {routePositions && (
-        <Polyline
-          positions={routePositions}
-          pathOptions={route.profile === 'driving' ? DRIVING_PATH_STYLE : ROUTE_WALKING_PATH_STYLE}
-          pane={NAVIGATION_PATH_PANE}
-          interactive={false}
-        />
+      {active && (
+        <>
+          <DirectionsViewportController
+            active={active}
+            routeReady={routeReady}
+            origin={origin}
+            routePositions={routePositions}
+            walkingPositions={walkingPositions}
+            markerPosition={markerPosition}
+            placePosition={placePosition}
+          />
+          <Polyline
+            positions={walkingPositions}
+            pathOptions={SAVED_WALKING_PATH_STYLE}
+            pane={NAVIGATION_PATH_PANE}
+            interactive={false}
+          />
+          {routePositions && (
+            <Polyline
+              positions={routePositions}
+              pathOptions={route.profile === 'driving' ? DRIVING_PATH_STYLE : ROUTE_WALKING_PATH_STYLE}
+              pane={NAVIGATION_PATH_PANE}
+              interactive={false}
+            />
+          )}
+        </>
       )}
       <Marker
+        ref={markerRef}
         position={markerPosition}
         icon={directionsMarkerIcon}
-        title={markerName}
-        alt={markerName}
+        title={popupMarkerName}
+        alt={popupMarkerName}
+        eventHandlers={{
+          click: pinPopupOpen,
+          mouseover: openPopupOnHover,
+          mouseout: closePopupAfterHover,
+          popupclose: handlePopupClose,
+        }}
       >
-        <Popup>
-          <strong>{markerName}</strong>
-          {markerDescription && <p>{markerDescription}</p>}
+        <Popup
+          className="place-directions-popup"
+          maxWidth={280}
+          minWidth={160}
+          autoPan
+          keepInView
+          autoPanPadding={[12, 12]}
+        >
+          <div
+            className="place-directions-popup-content"
+            onMouseEnter={clearPopupCloseTimer}
+            onMouseLeave={closePopupAfterHover}
+          >
+            <strong>{popupMarkerName}</strong>
+            {popupMarkerDescription && <p>{popupMarkerDescription}</p>}
+          </div>
         </Popup>
       </Marker>
     </>

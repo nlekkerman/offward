@@ -36,6 +36,8 @@ function normalizeAccessResponse(data, placeId) {
     ...data,
     access_start_latitude: data.access_start_latitude ?? null,
     access_start_longitude: data.access_start_longitude ?? null,
+    access_start_name: typeof data.access_start_name === 'string' ? data.access_start_name : '',
+    access_start_description: typeof data.access_start_description === 'string' ? data.access_start_description : '',
     access_geometry: data.access_geometry ?? null,
     access_revision: Number(data.access_revision),
   }

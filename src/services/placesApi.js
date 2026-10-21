@@ -24,7 +24,11 @@ export async function getPublicPlaceBySlug(slug) {
       throw new Error('Public place detail response must be an object.')
     }
 
-    return data
+    return {
+      ...data,
+      access_start_name: typeof data.access_start_name === 'string' ? data.access_start_name : '',
+      access_start_description: typeof data.access_start_description === 'string' ? data.access_start_description : '',
+    }
   } catch (error) {
     if (error.response?.status === 404) {
       return null
