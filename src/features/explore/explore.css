@@ -132,7 +132,7 @@
   overflow: hidden;
   border: 1px solid #354039;
   border-radius: 4px;
-  background: linear-gradient(145deg, #1b241e, #111713 78%);
+  background: var(--public-card-surface);
   box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2);
   transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }

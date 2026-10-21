@@ -8,7 +8,6 @@
   overflow: hidden;
   padding: clamp(5.5rem, 9vh, 7rem) clamp(1rem, 3vw, 2.5rem) 2.5rem;
   isolation: isolate;
-  background: #0b1113;
 }
 
 .home-hero::after {
@@ -20,16 +19,6 @@
     linear-gradient(90deg, rgba(8, 13, 16, 0.12), transparent 58%);
   content: '';
   pointer-events: none;
-}
-
-.home-hero-image {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 48%;
 }
 
 .home-hero-content {
@@ -45,8 +34,17 @@
 }
 
 @media (min-width: 1080px) and (hover: hover) and (pointer: fine) {
-  .app-shell-home .app-header {
+  .app-shell-public .app-header {
     display: none;
+  }
+
+  .app-shell-public:not(.app-shell-home) main {
+    padding-left: 54px;
+  }
+
+  .app-shell-public:not(.app-shell-home) .detail-hero {
+    margin-right: calc(50% - 50vw + 27px);
+    margin-left: calc(50% - 50vw - 27px);
   }
 
   .home-hero {
@@ -67,21 +65,15 @@
     padding: 0;
     overflow: hidden;
     border: 0;
-    border-right: 1px solid rgba(255, 95, 95, 0.62);
     border-radius: 0;
-    background:
-      linear-gradient(145deg, rgba(245, 249, 249, 0.06), transparent 46%),
-      rgba(10, 16, 20, 0.5);
-    box-shadow: 5px 0 18px rgba(0, 0, 0, 0.28), 1px 0 8px rgba(255, 56, 56, 0.1);
-    -webkit-backdrop-filter: blur(6px) saturate(115%);
-    backdrop-filter: blur(6px) saturate(115%);
-    transition: width 220ms ease, border-color 220ms ease;
+    background: rgba(18, 21, 16, 0.2);
+    box-shadow: 5px 0 18px rgba(0, 0, 0, 0.28);
+    transition: width 220ms ease;
   }
 
   .home-navigation-ribbon:hover,
   .home-navigation-ribbon:focus-within {
     width: 206px;
-    border-color: rgba(255, 105, 105, 0.82);
   }
 
   .home-navigation-link {
@@ -200,13 +192,21 @@
   }
 }
 
+@media (min-width: 601px) and (max-width: 1079px) {
+  .app-shell-public .app-header {
+    padding-block: 0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell-public {
+    background-position: 76% 30%;
+  }
+}
+
 @media (max-width: 640px) {
   .home-hero {
     padding: 6.5rem 1rem 2rem;
-  }
-
-  .home-hero-image {
-    object-position: 76% 30%;
   }
 
   .home-hero::after {

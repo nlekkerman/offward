@@ -17,7 +17,7 @@ function HomeNavigationRibbon({ activeSection }) {
   const params = new URLSearchParams(search)
 
   return (
-    <nav className="home-navigation-ribbon" aria-label="Homepage navigation">
+    <nav className="home-navigation-ribbon" aria-label="Primary navigation">
       {HOME_NAV_LINKS.map(({ section, label, to, icon }) => {
         const isActive = section === 'explore'
           ? pathname === '/explore' && !params.has('view')
