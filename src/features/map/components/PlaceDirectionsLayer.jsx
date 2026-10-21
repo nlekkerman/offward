@@ -3,7 +3,6 @@ import L from 'leaflet'
 import { Marker, Polyline, Popup, useMap } from 'react-leaflet'
 import { getPlaceDirections, getStraightLineDistanceKm } from '../../../services/routeDirectionsApi.js'
 
-const WALKING_RANGE_KM = 1
 const ARRIVAL_RADIUS_METERS = 35
 const NAVIGATION_PATH_PANE = 'route-directions-pane'
 const DRIVING_PATH_STYLE = {
@@ -13,7 +12,14 @@ const DRIVING_PATH_STYLE = {
   lineCap: 'round',
   lineJoin: 'round',
 }
-const WALKING_PATH_STYLE = {
+const ROUTE_WALKING_PATH_STYLE = {
+  color: '#65c8ad',
+  weight: 6,
+  opacity: 0.95,
+  lineCap: 'round',
+  lineJoin: 'round',
+}
+const SAVED_WALKING_PATH_STYLE = {
   color: '#e28a3b',
   weight: 5,
   opacity: 0.95,
@@ -48,22 +54,31 @@ function DirectionsPaneController() {
   return null
 }
 
-function DirectionsViewportController({ active, routeReady, position, drivingPositions, walkingPositions, markerPosition, placePosition }) {
+function DirectionsViewportController({
+  active,
+  routeReady,
+  origin,
+  routePositions,
+  walkingPositions,
+  markerPosition,
+  placePosition,
+}) {
   const map = useMap()
-  const hasFittedRef = useRef(false)
+  const lastFittedPositionsRef = useRef(null)
 
   useEffect(() => {
     if (!active) {
-      hasFittedRef.current = false
+      lastFittedPositionsRef.current = null
       return
     }
-    if (!position || !walkingPositions || !routeReady || hasFittedRef.current) return
+    if (!origin || !walkingPositions || !routeReady) return
+    if (lastFittedPositionsRef.current === routePositions) return
 
-    hasFittedRef.current = true
+    lastFittedPositionsRef.current = routePositions
     map.fitBounds([
-      [position.latitude, position.longitude],
+      [origin.latitude, origin.longitude],
+      ...(routePositions || []),
       ...walkingPositions,
-      ...(drivingPositions || []),
       markerPosition,
       placePosition,
     ], {
@@ -71,7 +86,7 @@ function DirectionsViewportController({ active, routeReady, position, drivingPos
       maxZoom: 14,
       animate: false,
     })
-  }, [active, drivingPositions, map, markerPosition, placePosition, position, routeReady, walkingPositions])
+  }, [active, map, markerPosition, origin, placePosition, routePositions, routeReady, walkingPositions])
 
   return null
 }
@@ -80,7 +95,9 @@ function PlaceDirectionsLayer({
   active,
   phase,
   onPhaseChange,
+  mode,
   position,
+  origin,
   placeSlug,
   placeCoordinates,
   accessGeometry,
@@ -89,12 +106,14 @@ function PlaceDirectionsLayer({
   markerDescription,
   onStatusChange,
 }) {
-  const [drivingResult, setDrivingResult] = useState(null)
-  const [drivingAttemptComplete, setDrivingAttemptComplete] = useState(false)
-  const drivingRequestStartedRef = useRef(false)
-  const drivingControllerRef = useRef(null)
+  const [activeRoute, setActiveRoute] = useState(null)
+  const [routeAttemptComplete, setRouteAttemptComplete] = useState(false)
+  const routeCacheRef = useRef(new Map())
+  const requestControllersRef = useRef(new Map())
+  const requestKeysRef = useRef(new Set())
   const statusCallbackRef = useRef(onStatusChange)
   const phaseCallbackRef = useRef(onPhaseChange)
+  const currentProfileRequestKeyRef = useRef(null)
   const wasActiveRef = useRef(false)
 
   useEffect(() => {
@@ -106,15 +125,22 @@ function PlaceDirectionsLayer({
   const markerPosition = [markerCoordinates.latitude, markerCoordinates.longitude]
   const placePosition = [placeCoordinates.lat, placeCoordinates.lng]
   const directionsMarkerIcon = useMemo(createDirectionsMarkerIcon, [])
+  const originKey = origin ? `${origin.latitude},${origin.longitude}` : ''
+  const requestKey = `${placeSlug}|${originKey}`
+  const routeProfile = phase === 'driving' || phase === 'walking-to-marker' ? mode : null
+  const profileRequestKey = routeProfile ? `${requestKey}|${routeProfile}` : null
+  const activeRouteMatchesRequest = activeRoute?.key === requestKey && activeRoute?.profile === routeProfile
+  currentProfileRequestKeyRef.current = active && routeProfile ? profileRequestKey : null
 
   useEffect(() => {
     if (!active) {
       if (wasActiveRef.current) {
-        drivingControllerRef.current?.abort()
-        drivingControllerRef.current = null
-        drivingRequestStartedRef.current = false
-        setDrivingAttemptComplete(false)
-        setDrivingResult(null)
+        requestControllersRef.current.forEach((controller) => controller.abort())
+        requestControllersRef.current.clear()
+        requestKeysRef.current.clear()
+        routeCacheRef.current.clear()
+        setActiveRoute(null)
+        setRouteAttemptComplete(false)
       }
       wasActiveRef.current = false
       return
@@ -123,61 +149,75 @@ function PlaceDirectionsLayer({
   }, [active])
 
   useEffect(() => {
-    if (!active || !position || phase) return
-    const distanceKm = getStraightLineDistanceKm(position, {
-      lat: markerCoordinates.latitude,
-      lng: markerCoordinates.longitude,
-    })
+    if (!active || !origin || !routeProfile) return
 
-    if (distanceKm <= WALKING_RANGE_KM) {
-      statusCallbackRef.current({ status: 'ready' })
-      phaseCallbackRef.current('walking')
+    const cachedRoute = routeCacheRef.current.get(routeProfile)
+    if (cachedRoute?.key === requestKey) {
+      setActiveRoute(cachedRoute)
+      setRouteAttemptComplete(true)
+      statusCallbackRef.current({
+        status: 'ready',
+        distanceKm: cachedRoute.distanceKm,
+        profile: cachedRoute.profile,
+      })
       return
     }
 
-    phaseCallbackRef.current('driving')
-  }, [active, markerCoordinates.latitude, markerCoordinates.longitude, phase, position])
+    if (requestKeysRef.current.has(profileRequestKey)) return
 
-  useEffect(() => {
-    if (!active || phase !== 'driving' || !position || drivingRequestStartedRef.current) return
+    requestKeysRef.current.add(profileRequestKey)
+    setRouteAttemptComplete(false)
+    statusCallbackRef.current({ status: 'routing', profile: routeProfile })
 
-    drivingRequestStartedRef.current = true
     const controller = new AbortController()
-    drivingControllerRef.current = controller
-    statusCallbackRef.current({ status: 'routing' })
+    requestControllersRef.current.set(profileRequestKey, controller)
     getPlaceDirections(
       placeSlug,
-      { lat: position.latitude, lng: position.longitude },
-      'driving',
+      { lat: origin.latitude, lng: origin.longitude },
+      routeProfile,
       controller.signal,
     ).then((result) => {
       if (controller.signal.aborted) return
-      const navigationPositions = toLeafletPositions(result.geometry)
-      setDrivingResult({ navigationPositions, distanceKm: result.distance_km })
-      setDrivingAttemptComplete(true)
-      statusCallbackRef.current({ status: 'ready', distanceKm: result.distance_km })
-      drivingControllerRef.current = null
+      const route = {
+        key: requestKey,
+        profile: routeProfile,
+        navigationPositions: toLeafletPositions(result.geometry),
+        distanceKm: result.distance_km,
+      }
+      routeCacheRef.current.set(routeProfile, route)
+      requestControllersRef.current.delete(profileRequestKey)
+      if (currentProfileRequestKeyRef.current === profileRequestKey) {
+        setActiveRoute(route)
+        setRouteAttemptComplete(true)
+        statusCallbackRef.current({
+          status: 'ready',
+          distanceKm: result.distance_km,
+          profile: routeProfile,
+        })
+      }
     }).catch((error) => {
       if (controller.signal.aborted || error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') return
-      drivingControllerRef.current = null
-      setDrivingAttemptComplete(true)
-      statusCallbackRef.current({
-        status: 'error',
-        message: error instanceof Error
-          ? error.message
-          : 'Offward could not calculate directions. Please try again.',
-      })
+      requestControllersRef.current.delete(profileRequestKey)
+      requestKeysRef.current.delete(profileRequestKey)
+      if (currentProfileRequestKeyRef.current === profileRequestKey) {
+        setRouteAttemptComplete(true)
+        statusCallbackRef.current({
+          status: 'error',
+          message: error instanceof Error
+            ? error.message
+            : 'Offward could not calculate directions. Please try again.',
+        })
+      }
     })
-  }, [active, phase, placeSlug, position])
+  }, [active, origin, phase, placeSlug, profileRequestKey, requestKey, routeProfile])
+
+  useEffect(() => () => {
+    requestControllersRef.current.forEach((controller) => controller.abort())
+    requestControllersRef.current.clear()
+  }, [])
 
   useEffect(() => {
-    if (active && phase === 'driving') return
-    drivingControllerRef.current?.abort()
-    drivingControllerRef.current = null
-  }, [active, phase])
-
-  useEffect(() => {
-    if (!active || phase !== 'driving' || !position) return
+    if (!active || (phase !== 'driving' && phase !== 'walking-to-marker') || !position) return
     const accuracy = position.accuracy
     if (typeof accuracy !== 'number' || !Number.isFinite(accuracy) || accuracy <= 0 || accuracy > ARRIVAL_RADIUS_METERS) return
     const distanceMeters = getStraightLineDistanceKm(position, {
@@ -189,37 +229,35 @@ function PlaceDirectionsLayer({
     }
   }, [active, markerCoordinates.latitude, markerCoordinates.longitude, phase, position])
 
-  useEffect(() => () => {
-    drivingControllerRef.current?.abort()
-    drivingRequestStartedRef.current = false
-  }, [])
-
   if (!active) return <DirectionsPaneController />
 
-  const visibleDrivingPositions = phase === 'driving' ? drivingResult?.navigationPositions : null
+  const showRoute = routeProfile !== null
+  const route = activeRoute?.key === requestKey ? activeRoute : null
+  const routePositions = showRoute ? route?.navigationPositions || null : null
+  const routeReady = !showRoute || activeRouteMatchesRequest || routeAttemptComplete
 
   return (
     <>
       <DirectionsPaneController />
       <DirectionsViewportController
         active={active}
-        routeReady={phase !== 'driving' || drivingAttemptComplete}
-        position={position}
-        drivingPositions={visibleDrivingPositions}
+        routeReady={routeReady}
+        origin={origin}
+        routePositions={routePositions}
         walkingPositions={walkingPositions}
         markerPosition={markerPosition}
         placePosition={placePosition}
       />
       <Polyline
         positions={walkingPositions}
-        pathOptions={WALKING_PATH_STYLE}
+        pathOptions={SAVED_WALKING_PATH_STYLE}
         pane={NAVIGATION_PATH_PANE}
         interactive={false}
       />
-      {visibleDrivingPositions && (
+      {routePositions && (
         <Polyline
-          positions={visibleDrivingPositions}
-          pathOptions={DRIVING_PATH_STYLE}
+          positions={routePositions}
+          pathOptions={route.profile === 'driving' ? DRIVING_PATH_STYLE : ROUTE_WALKING_PATH_STYLE}
           pane={NAVIGATION_PATH_PANE}
           interactive={false}
         />

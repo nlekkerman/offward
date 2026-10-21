@@ -47,9 +47,7 @@ function getGeometryLengthMeters(geometry) {
 }
 
 function formatWalkingDistance(distanceMeters) {
-  return distanceMeters >= 1000
-    ? `${(distanceMeters / 1000).toFixed(1)} km`
-    : `${distanceMeters} m`
+  return `${distanceMeters} m`
 }
 
 function PlacePage() {
@@ -64,7 +62,10 @@ function PlacePage() {
   const [directionsActive, setDirectionsActive] = useState(false)
   const [directionsMode, setDirectionsMode] = useState('walking')
   const [directionsStatus, setDirectionsStatus] = useState(null)
+  const [directionsRoute, setDirectionsRoute] = useState(null)
   const [placeJourneyPhase, setPlaceJourneyPhase] = useState(null)
+  const [directionsOrigin, setDirectionsOrigin] = useState(null)
+  const [initialMarkerDistanceKm, setInitialMarkerDistanceKm] = useState(null)
   const galleryCacheRef = useRef(new Map())
   const {
     position: userPosition,
@@ -75,6 +76,9 @@ function PlacePage() {
   } = useUserLocation()
   const handleDirectionsStatusChange = useCallback((status) => {
     setDirectionsStatus(status)
+    if (status.status === 'ready' && status.profile) {
+      setDirectionsRoute({ profile: status.profile, distanceKm: status.distanceKm })
+    }
   }, [])
   const requestPlaceDirections = useCallback((slug, origin, profile, signal) => (
     getPlaceDirections(slug, origin, profile, signal)
@@ -87,7 +91,10 @@ function PlacePage() {
     setDirectionsActive(false)
     setDirectionsMode('walking')
     setDirectionsStatus(null)
+    setDirectionsRoute(null)
     setPlaceJourneyPhase(null)
+    setDirectionsOrigin(null)
+    setInitialMarkerDistanceKm(null)
     stopLocation()
   }, [placeSlug, stopLocation])
 
@@ -158,6 +165,35 @@ function PlacePage() {
     })
     return () => { isCurrent = false }
   }, [place])
+
+  useEffect(() => {
+    if (!directionsActive || !place || !userPosition || directionsOrigin) return
+    const accessGeometry = isRenderableRoute({ geometry: place.access_geometry })
+      ? place.access_geometry
+      : null
+    const hasMarker = isValidLatitude(place.access_start_latitude) &&
+      isValidLongitude(place.access_start_longitude)
+    if (!accessGeometry || !hasMarker) return
+
+    const origin = {
+      latitude: userPosition.latitude,
+      longitude: userPosition.longitude,
+      accuracy: userPosition.accuracy,
+    }
+    const distanceKm = getStraightLineDistanceKm(origin, {
+      lat: Number(place.access_start_latitude),
+      lng: Number(place.access_start_longitude),
+    })
+    setDirectionsOrigin(origin)
+    setInitialMarkerDistanceKm(distanceKm)
+    if (distanceKm <= 1) {
+      setDirectionsMode('walking')
+      setPlaceJourneyPhase('walking')
+    } else {
+      setDirectionsMode('driving')
+      setPlaceJourneyPhase('driving')
+    }
+  }, [directionsActive, directionsOrigin, place, userPosition])
 
   const videoById = useMemo(() => new Map(videoCatalog.videos.map((video) => [String(video.id), video])), [videoCatalog.videos])
   const videos = useMemo(() => resolveAttachedVideos(place, videoById), [place, videoById])
@@ -240,7 +276,10 @@ function PlacePage() {
   const startDirections = () => {
     if (!directionsAvailable) return
     setDirectionsStatus({ status: 'locating' })
+    setDirectionsRoute(null)
     setPlaceJourneyPhase(null)
+    setDirectionsOrigin(null)
+    setInitialMarkerDistanceKm(null)
     setDirectionsActive(true)
     if (!locationActive) startLocation()
   }
@@ -248,12 +287,17 @@ function PlacePage() {
     setDirectionsActive(false)
     setDirectionsMode('walking')
     setDirectionsStatus(null)
+    setDirectionsRoute(null)
     setPlaceJourneyPhase(null)
+    setDirectionsOrigin(null)
+    setInitialMarkerDistanceKm(null)
     stopLocation()
   }
   const handleTravelModeChange = (mode) => {
+    if (mode === directionsMode) return
     setDirectionsMode(mode)
     setDirectionsStatus(null)
+    setPlaceJourneyPhase(mode === 'walking' ? 'walking-to-marker' : 'driving')
   }
   const country = findCountry(countries, place.country)
   const countryLabel = countryName(country, formatCountrySlug(place.country))
@@ -319,7 +363,9 @@ function PlacePage() {
                   Directions are unavailable because this Place does not have valid coordinates.
                 </p>
               )}
-              {directionsActive && !hasManualAccessPath && (
+              {directionsActive && (!hasManualAccessPath ||
+                (initialMarkerDistanceKm > 1 && initialMarkerDistanceKm <= 5 &&
+                  placeJourneyPhase !== 'walking-after-driving')) && (
                 <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
                   <button
                     type="button"
@@ -344,7 +390,7 @@ function PlacePage() {
               )}
               {directionsActive && directionsStatus?.status === 'routing' && (
                 <p className="route-directions-feedback" id="place-directions-feedback" role="status">
-                  Calculating {hasManualAccessPath ? 'driving' : directionsMode} directions...
+                  Calculating {directionsMode} directions...
                 </p>
               )}
               {directionsActive && !hasManualAccessPath && directionsStatus?.status === 'too-far' && (
@@ -374,20 +420,34 @@ function PlacePage() {
           </div>
           {directionsActive && hasManualAccessPath && placeJourneyPhase && (
             <section className="place-directions-summary" aria-label="Journey instructions">
-              {placeJourneyPhase === 'driving' && (
+              {(placeJourneyPhase === 'driving' || placeJourneyPhase === 'walking-to-marker') && (
                 <>
                   <p className="place-directions-leg">
-                    <span className="place-directions-icon" aria-hidden="true">🚗</span>
-                    {directionsStatus?.status === 'ready'
-                      ? `Drive ${directionsStatus.distanceKm.toFixed(1)} km to ${accessMarkerName}.`
-                      : `Drive to ${accessMarkerName}.`}
+                    <span className="place-directions-icon" aria-hidden="true">
+                      {(directionsRoute?.profile || directionsMode) === 'walking' ? '🚶' : '🚗'}
+                    </span>
+                    {directionsRoute
+                      ? `${directionsRoute.profile === 'walking' ? 'Walk' : 'Drive'} ${directionsRoute.distanceKm.toFixed(1)} km to the directions marker.`
+                      : directionsStatus?.status === 'error'
+                        ? `${directionsMode === 'walking' ? 'Walking' : 'Driving'} route to the directions marker could not be calculated.`
+                        : `Calculating ${directionsMode === 'walking' ? 'walking' : 'driving'} route to the directions marker...`}
                   </p>
                   <p className="place-directions-leg">
                     <span className="place-directions-icon" aria-hidden="true">🚶</span>
                     Then walk {formatWalkingDistance(walkingDistanceMeters)} to {placeTitle}.
                   </p>
-                  <p className="place-directions-note">The saved walking path begins at the directions marker.</p>
-                  <button type="button" className="route-directions-mode" onClick={startWalking}>Start Walking</button>
+                  <p className="place-directions-note">The solid line reaches the marker; the orange dashed line is the saved walking path from the marker.</p>
+                  {directionsRoute && directionsRoute.profile !== directionsMode &&
+                    (directionsStatus?.status === 'error' || directionsStatus?.status === 'routing') && (
+                    <p className="place-directions-note">
+                      {directionsStatus.status === 'error'
+                        ? `Showing the previous ${directionsRoute.profile} route because the requested route failed.`
+                        : `Showing the previous ${directionsRoute.profile} route while the ${directionsMode} route is calculated.`}
+                    </p>
+                  )}
+                  {placeJourneyPhase === 'driving' && (
+                    <button type="button" className="route-directions-mode" onClick={startWalking}>Start Walking</button>
+                  )}
                 </>
               )}
               {(placeJourneyPhase === 'walking' || placeJourneyPhase === 'walking-after-driving') && (
@@ -399,10 +459,10 @@ function PlacePage() {
                       : `Walk ${formatWalkingDistance(walkingDistanceMeters)} from ${accessMarkerName} to ${placeTitle}.`}
                   </p>
                   {placeJourneyPhase === 'walking' && !isAtAccessMarker && (
-                    <p className="place-directions-note">The saved walking path starts at {accessMarkerName}; get to the directions marker to begin.</p>
+                    <p className="place-directions-note">The orange dashed line is the saved path from the directions marker; the visitor-to-marker route is not shown.</p>
                   )}
                   {(placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker) && (
-                    <p className="place-directions-note">Walking path starts at {accessMarkerName}.</p>
+                    <p className="place-directions-note">The orange dashed saved walking path starts at {accessMarkerName}.</p>
                   )}
                 </>
               )}
@@ -424,7 +484,9 @@ function PlacePage() {
                       active={directionsActive && directionsAvailable}
                       phase={placeJourneyPhase}
                       onPhaseChange={setPlaceJourneyPhase}
+                      mode={directionsMode}
                       position={userPosition}
+                      origin={directionsOrigin}
                       placeSlug={placeSlug}
                       placeCoordinates={placeCoordinates}
                       accessGeometry={accessGeometry}

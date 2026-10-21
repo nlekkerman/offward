@@ -3520,11 +3520,22 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .place-directions-summary {
   display: grid;
   gap: 0.25rem;
+  width: fit-content;
+  max-width: 100%;
   min-width: min(100%, 21rem);
   padding: 0.55rem 0.7rem;
   border: 1px solid #394239;
   border-radius: 0.5rem;
   background: #1c221e;
+}
+
+.place-detail-map-section .route-directions-modes {
+  gap: 0.25rem;
+}
+
+.place-detail-map-section .route-directions-mode {
+  min-height: 38px;
+  padding: 0.4rem 0.65rem;
 }
 
 .place-directions-leg {
