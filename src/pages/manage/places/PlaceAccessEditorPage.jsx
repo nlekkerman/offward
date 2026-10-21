@@ -45,6 +45,20 @@ function getAccessErrorMessage(error, operation = 'change') {
   return data?.detail || data?.message || error?.message || `Unable to ${operation} Place access.`
 }
 
+function getPlaceAccessLoadErrorMessage(error, requestStage) {
+  const status = error?.response?.status
+
+  if (requestStage === 'access' && (status === 404 || status === 405)) {
+    return `The Place access endpoint returned HTTP ${status}. The deployed backend appears not to provide the required Place access GET endpoint yet.`
+  }
+
+  if (requestStage === 'access' && !error?.response && error?.message) {
+    return `Unable to load Place access state: ${error.message}`
+  }
+
+  return getAccessErrorMessage(error, 'load')
+}
+
 function getPlaceAccessState(place, accessState = place) {
   if (accessState?.access_revision === null || accessState?.access_revision === undefined || accessState?.access_revision === '') {
     throw new Error('The Place access response does not include a valid access_revision.')
@@ -95,12 +109,17 @@ function PlaceAccessEditorPage() {
   const loadPlace = useCallback(async () => {
     setLoading(true)
     setLoadError('')
+    let requestStage = 'place'
     try {
       const placeResponse = await managementApis.places.getById(placeId)
+      if (!placeResponse?.id || String(placeResponse.id) !== String(placeId)) {
+        throw new Error('The Place details response did not match the requested Place.')
+      }
+      requestStage = 'access'
       const accessResponse = await placeAccessApi.get(placeResponse.id)
       applyPlaceResponse(placeResponse, accessResponse)
     } catch (loadErr) {
-      setLoadError(getAccessErrorMessage(loadErr, 'load'))
+      setLoadError(getPlaceAccessLoadErrorMessage(loadErr, requestStage))
     } finally {
       setLoading(false)
     }
