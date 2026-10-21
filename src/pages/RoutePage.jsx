@@ -26,7 +26,6 @@ import ShareControl from '../shared/components/ShareControl.jsx'
 import useUserLocation from '../shared/hooks/useUserLocation.js'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
-import { getDetailHeroSource, getDetailHeroSourceIndex } from '../shared/utils/detailHeroImage.js'
 import VideoPlayerDialog from '../features/video/VideoPlayerDialog.jsx'
 import NotFoundPage from './NotFoundPage.jsx'
 
@@ -258,19 +257,13 @@ function RoutePage() {
     setSelectedWaypointId(null)
     setSelectedSegmentId((currentId) => currentId === segmentId ? null : segmentId)
   }
-  const openGallery = async (gallery, startIndex = 0, heroSource = null) => {
+  const openGallery = async (gallery, startIndex = 0) => {
     const collectionId = gallery?.id ? String(gallery.id) : ''
     if (!collectionId || galleryLoadingId === collectionId) return
 
     const embeddedImages = orderedCollectionImages(gallery)
     if (embeddedImages.length > 0) {
-      const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(gallery, heroSource, 'route') : -1
-      const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
-      if (imageIndex < 0) {
-        setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Hero image is not available in this gallery.' }))
-        return
-      }
-      setLightbox({ gallery: { ...gallery, images: embeddedImages }, index: Math.min(imageIndex, embeddedImages.length - 1) })
+      setLightbox({ gallery: { ...gallery, images: embeddedImages }, index: Math.min(startIndex, embeddedImages.length - 1) })
       return
     }
 
@@ -279,13 +272,7 @@ function RoutePage() {
     if (cached) {
       const images = orderedCollectionImages(cached)
       if (images.length > 0) {
-        const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(cached, heroSource, 'route') : -1
-        const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
-        if (imageIndex < 0) {
-          setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Hero image is not available in this gallery.' }))
-          return
-        }
-        setLightbox({ gallery: { ...cached, images }, index: Math.min(imageIndex, images.length - 1) })
+        setLightbox({ gallery: { ...cached, images }, index: Math.min(startIndex, images.length - 1) })
         return
       }
     }
@@ -297,13 +284,8 @@ function RoutePage() {
       if (!images.length) {
         throw new Error('No public images are available in this gallery.')
       }
-      const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(collection, heroSource, 'route') : -1
-      const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
-      if (imageIndex < 0) {
-        throw new Error('The hero image is not available in this gallery.')
-      }
       galleryCacheRef.current.set(collectionId, collection)
-      setLightbox({ gallery: { ...collection, images }, index: Math.min(imageIndex, images.length - 1) })
+      setLightbox({ gallery: { ...collection, images }, index: Math.min(startIndex, images.length - 1) })
     } catch {
       setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Unable to load gallery images. Try again.' }))
     } finally {
@@ -458,9 +440,6 @@ function RoutePage() {
   const routeDescription = getContentDescription(route?.summary, routeTitle, route?.country ? countryLabel : '')
   const routePath = `/routes/${encodeURIComponent(routeSlug)}`
   const routeUrl = getPublicUrl(routePath)
-  const routeHeroSource = getDetailHeroSource(route, 'route')
-  const routeHeroImage = routeHeroSource?.imageUrl
-
   if (routeStatus === 'loading') {
     return <section className="route-detail-page"><p className="route-detail-status" role="status">Loading route...</p></section>
   }
@@ -488,7 +467,7 @@ function RoutePage() {
         title={routeTitle}
         description={routeDescription}
         path={routePath}
-        image={routeHeroImage || getContentSocialImage(route)}
+        image={getContentSocialImage(route)}
       />
       <DetailHero>
         <header className="route-detail-header">

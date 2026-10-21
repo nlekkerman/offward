@@ -15,7 +15,6 @@ import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
-import { getDetailHeroSource, getDetailHeroSourceIndex } from '../shared/utils/detailHeroImage.js'
 import '../features/food/food.css'
 
 function orderedRows(rows) {
@@ -47,19 +46,13 @@ function FoodPage() {
 
   const status = result.slug === slug ? result.status : 'loading'
   const food = result.slug === slug ? result.food : null
-  const openGallery = async (preview, startIndex = 0, heroSource = null) => {
+  const openGallery = async (preview, startIndex = 0) => {
     const id = String(preview.id || '')
     if (!id || galleryPending.current.has(id)) return
     const requestSlug = slug
     const embeddedImages = orderedCollectionImages(preview)
     if (embeddedImages.length) {
-      const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(preview, heroSource, 'food') : -1
-      const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
-      if (imageIndex < 0) {
-        setGalleryStatus((value) => ({ ...value, errors: { ...value.errors, [id]: 'Hero image is not available in this gallery.' } }))
-        return
-      }
-      setLightbox({ slug: requestSlug, gallery: { ...preview, images: embeddedImages }, index: Math.min(imageIndex, embeddedImages.length - 1) })
+      setLightbox({ slug: requestSlug, gallery: { ...preview, images: embeddedImages }, index: Math.min(startIndex, embeddedImages.length - 1) })
       return
     }
     galleryPending.current.add(id)
@@ -73,13 +66,8 @@ function FoodPage() {
       if (!fetchedImages.length) {
         throw new Error('No public images are available in this gallery.')
       }
-      const matchedHeroIndex = heroSource ? getDetailHeroSourceIndex(collection, heroSource, 'food') : -1
-      const imageIndex = matchedHeroIndex >= 0 ? matchedHeroIndex : startIndex
-      if (imageIndex < 0) {
-        throw new Error('The hero image is not available in this gallery.')
-      }
       galleryCache.current.set(id, collection)
-      if (currentSlug.current === requestSlug) setLightbox({ slug: requestSlug, gallery: { ...collection, images: fetchedImages }, index: Math.min(imageIndex, fetchedImages.length - 1) })
+      if (currentSlug.current === requestSlug) setLightbox({ slug: requestSlug, gallery: { ...collection, images: fetchedImages }, index: Math.min(startIndex, fetchedImages.length - 1) })
     } catch {
       if (currentSlug.current === requestSlug) setGalleryStatus((value) => ({ ...value, errors: { ...value.errors, [id]: 'Unable to load gallery images. Try again.' } }))
     } finally {
@@ -98,8 +86,6 @@ function FoodPage() {
   const foodDescription = getContentDescription(food.summary, foodTitle, food.country ? countryLabel : '')
   const foodPath = `/food/${encodeURIComponent(slug)}`
   const foodUrl = getPublicUrl(foodPath)
-  const foodHeroSource = getDetailHeroSource(food, 'food')
-  const foodHeroImage = foodHeroSource?.imageUrl
   const published = formatPublishedDate(food.published_at)
   const ingredients = orderedRows(food.ingredients)
   const steps = orderedRows(food.steps)
@@ -114,7 +100,7 @@ function FoodPage() {
         title={foodTitle}
         description={foodDescription}
         path={foodPath}
-        image={foodHeroImage || getContentSocialImage(food)}
+        image={getContentSocialImage(food)}
       />
       <DetailHero>
         <header className="food-detail-header">

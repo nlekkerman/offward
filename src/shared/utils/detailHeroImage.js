@@ -1,4 +1,3 @@
-import { orderedCollectionImages } from '../../features/routes/components/routeMediaUtils.js'
 import { getPublicImageUrl } from './publicUrls.js'
 
 const FULL_IMAGE_FIELDS = ['url', 'image_url', 'public_url', 'preview_image_url', 'src']
@@ -24,80 +23,12 @@ function imageUrlFrom(image, fields) {
   return candidates.map(getPublicImageUrl).find(Boolean) || null
 }
 
-function imageIdentity(image) {
-  if (!image || typeof image !== 'object') return null
-  return String(
-    image.image_asset_id
-      || image.image_id
-      || image.asset_id
-      || image.image?.id
-      || image.image_asset?.id
-      || image.asset?.id
-      || image.id
-      || '',
-  ) || null
-}
-
-function normalizedImageUrl(image, fields) {
-  const url = imageUrlFrom(image, fields)
-  if (!url) return null
-
-  try {
-    const parsed = new URL(url)
-    return `${parsed.host.toLowerCase()}${decodeURIComponent(parsed.pathname).replace(/\/+$/, '').toLowerCase()}`
-  } catch {
-    return url.trim().toLowerCase().replace(/[?#].*$/, '').replace(/\/+$/, '')
-  }
-}
-
-function normalizedImageUrls(image, imageUrl) {
-  return new Set([
-    normalizedImageUrl(image, FULL_IMAGE_FIELDS),
-    normalizedImageUrl(image, THUMBNAIL_FIELDS),
-    normalizedImageUrl(imageUrl, FULL_IMAGE_FIELDS),
-  ].filter(Boolean))
-}
-
-function imageMatches(candidate, image, imageUrl) {
-  if (candidate === image) return true
-  const identity = imageIdentity(image)
-  if (identity && imageIdentity(candidate) === identity) return true
-  const sourceUrls = normalizedImageUrls(image, imageUrl)
-  const candidateUrls = normalizedImageUrls(candidate)
-  if ([...sourceUrls].some((url) => candidateUrls.has(url))) return true
-  return imageUrlFrom(candidate, FULL_IMAGE_FIELDS) === imageUrl
-    || imageUrlFrom(candidate, THUMBNAIL_FIELDS) === imageUrl
-}
-
-function galleryImages(collection, entityType) {
-  return entityType === 'route' || entityType === 'food'
-    ? orderedCollectionImages(collection)
-    : (Array.isArray(collection?.images) ? collection.images : [])
-}
-
-export function getDetailHeroSourceIndex(collection, source, entityType) {
-  const images = galleryImages(collection, entityType)
-  return images.findIndex((candidate) => imageMatches(candidate, source?.image, source?.imageUrl))
-}
-
-function galleryIndex(collection, image, imageUrl, entityType) {
-  return getDetailHeroSourceIndex(collection, { image, imageUrl }, entityType)
-}
-
-function collectionSource(collections, fields, entityType) {
+function collectionImageUrl(collections, fields) {
   for (const collection of collections) {
     const images = Array.isArray(collection?.images) ? collection.images : []
     for (const image of images) {
       const url = imageUrlFrom(image, fields)
-      if (url) {
-        return {
-          imageUrl: url,
-          sourceType: 'collection',
-          collection,
-          image,
-          index: galleryIndex(collection, image, url, entityType),
-        }
-      }
+      if (url) return url
     }
   }
 
@@ -106,60 +37,22 @@ function collectionSource(collections, fields, entityType) {
     const url = imageUrlFrom(previewImage, fields)
       || imageUrlFrom(collection?.preview_image_url, fields)
       || imageUrlFrom(collection, fields)
-    if (url) {
-      const image = previewImage || null
-      return {
-        imageUrl: url,
-        sourceType: 'collection',
-        collection,
-        image,
-        index: image ? galleryIndex(collection, image, url, entityType) : -1,
-      }
-    }
+    if (url) return url
   }
 
   return null
 }
 
-function findCollectionImage(collections, image, imageUrl) {
-  for (const collection of collections) {
-    const images = Array.isArray(collection?.images) ? collection.images : []
-    const matchingImage = images.find((candidate) => imageMatches(candidate, image, imageUrl))
-    if (matchingImage) {
-      return {
-        imageUrl,
-        sourceType: 'collection',
-        collection,
-        image: matchingImage,
-        index: galleryIndex(collection, matchingImage, imageUrl, 'story'),
-      }
-    }
-  }
-  return null
-}
-
-export function getDetailHeroSource(content, entityType) {
+export function getDetailHeroImage(content, entityType) {
   if (!content || typeof content !== 'object') return null
-
-  const collections = Array.isArray(content.image_collections) ? content.image_collections : []
 
   if (entityType === 'story') {
     const storyHero = imageUrlFrom(content.hero_image, FULL_IMAGE_FIELDS)
       || imageUrlFrom(content.hero_image, THUMBNAIL_FIELDS)
-    if (storyHero) {
-      return findCollectionImage(collections, content.hero_image, storyHero) || {
-        imageUrl: storyHero,
-        sourceType: 'standalone',
-        image: content.hero_image,
-        index: 0,
-      }
-    }
+    if (storyHero) return storyHero
   }
 
-  return collectionSource(collections, FULL_IMAGE_FIELDS, entityType)
-    || collectionSource(collections, THUMBNAIL_FIELDS, entityType)
-}
-
-export function getDetailHeroImage(content, entityType) {
-  return getDetailHeroSource(content, entityType)?.imageUrl || null
+  const collections = Array.isArray(content.image_collections) ? content.image_collections : []
+  return collectionImageUrl(collections, FULL_IMAGE_FIELDS)
+    || collectionImageUrl(collections, THUMBNAIL_FIELDS)
 }

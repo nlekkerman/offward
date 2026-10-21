@@ -9,7 +9,6 @@ import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
-import { getDetailHeroSource } from '../shared/utils/detailHeroImage.js'
 import CompactRelatedEntityCard from '../shared/components/CompactRelatedEntityCard.jsx'
 import { collectionCount } from '../features/management/imageCollectionUtils.js'
 import { formatActivityLabel } from '../features/home/latestContentFormatting.js'
@@ -248,16 +247,13 @@ function StoryPage() {
   const storyDescription = getContentDescription(story.excerpt, storyTitle, countryLabel || '')
   const storyPath = `/stories/${encodeURIComponent(storySlug)}`
   const storyUrl = getPublicUrl(storyPath)
-  const storyHeroSource = getDetailHeroSource(story, 'story')
-  const storyHeroImage = storyHeroSource?.imageUrl
-
   return (
     <section className="story-detail-page story-detail-content-page">
       <PageMetadata
         title={storyTitle}
         description={storyDescription}
         path={storyPath}
-        image={storyHeroImage || getContentSocialImage(story, { preferHero: true })}
+        image={getContentSocialImage(story, { preferHero: true })}
         type="article"
       />
       <DetailHero>

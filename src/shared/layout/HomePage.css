@@ -40,22 +40,15 @@
 
   .app-shell-public {
     --public-nav-width: 54px;
-    --public-nav-half-width: 27px;
   }
 
   .app-shell-public:has(.home-navigation-ribbon:hover, .home-navigation-ribbon:focus-within) {
     --public-nav-width: 206px;
-    --public-nav-half-width: 103px;
   }
 
   .app-shell-public main {
     padding-left: var(--public-nav-width);
     transition: padding-left 220ms ease;
-  }
-
-  .app-shell-public:not(.app-shell-home) .detail-hero {
-    margin-right: calc(50% - 50vw + var(--public-nav-half-width));
-    margin-left: calc(50% - 50vw - var(--public-nav-half-width));
   }
 
   .home-hero {
