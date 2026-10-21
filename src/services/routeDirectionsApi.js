@@ -44,7 +44,7 @@ function getDirectionsError(error) {
   const responseText = getResponseErrorText(response.data).replaceAll('_', ' ').toLowerCase()
 
   if (response.status === 429) {
-    return new Error('The limit of 5 directions requests per hour per IP has been reached. Please try again later.')
+    return new Error('Directions are temporarily rate-limited. Please try again later.')
   }
   if (response.status >= 500) {
     return new Error('The routing service is unavailable or its quota has been exhausted. Please try again later.')
@@ -95,10 +95,10 @@ function getPlaceDirectionsError(error) {
     return new Error('Your location or travel mode is invalid. Check them and try again.')
   }
   if (response.status === 429) {
-    return new Error('The limit of 5 directions requests per hour per IP has been reached. Please try again later.')
+    return new Error('Directions are temporarily rate-limited. Please try again later.')
   }
   if (response.status === 503) {
-    return new Error('The routing provider quota has been reached. Please try again later.')
+    return new Error('Directions are temporarily unavailable. Please try again later.')
   }
   if (response.status === 504) {
     return new Error('The routing request timed out. Please try again.')
@@ -117,8 +117,8 @@ function isValidCoordinate(value, minimum, maximum) {
   return typeof value === 'number' && Number.isFinite(value) && value >= minimum && value <= maximum
 }
 
-function validateDirectionsResponse(data, profile) {
-  const coordinates = data?.geometry?.coordinates
+function isValidLineString(geometry) {
+  const coordinates = geometry?.coordinates
   const validCoordinates = Array.isArray(coordinates) &&
     coordinates.length >= 2 &&
     coordinates.every((coordinate) =>
@@ -127,16 +127,42 @@ function validateDirectionsResponse(data, profile) {
       isValidCoordinate(coordinate[1], -90, 90)
     )
 
+  return geometry?.type === 'LineString' && validCoordinates
+}
+
+function isValidDirectionsDistance(distance) {
+  return typeof distance === 'number' && Number.isFinite(distance) && distance >= 0
+}
+
+function validateDirectionsResponse(data, profile) {
   if (
     !data ||
     typeof data !== 'object' ||
     Array.isArray(data) ||
     data.profile !== profile ||
-    data.geometry?.type !== 'LineString' ||
-    !validCoordinates ||
-    typeof data.distance_km !== 'number' ||
-    !Number.isFinite(data.distance_km) ||
-    data.distance_km < 0
+    !isValidLineString(data.geometry) ||
+    !isValidDirectionsDistance(data.distance_km)
+  ) {
+    throw new Error('Offward returned an invalid directions response.')
+  }
+}
+
+function validatePlaceDirectionsResponse(data, requestedProfile) {
+  const isObject = data && typeof data === 'object' && !Array.isArray(data)
+  const matchesRequestedProfile = data?.profile === requestedProfile
+  const isCompositeAccessResponse = data?.profile === 'driving' &&
+    data?.access?.profile === 'walking' &&
+    isValidLineString(data?.access?.geometry)
+  const hasValidOptionalAccess = data?.access === null ||
+    data?.access === undefined ||
+    (data.access?.profile === 'walking' && isValidLineString(data.access?.geometry))
+
+  if (
+    !isObject ||
+    (!matchesRequestedProfile && !isCompositeAccessResponse) ||
+    !isValidLineString(data.geometry) ||
+    !isValidDirectionsDistance(data.distance_km) ||
+    !hasValidOptionalAccess
   ) {
     throw new Error('Offward returned an invalid directions response.')
   }
@@ -212,6 +238,6 @@ export async function getPlaceDirections(placeSlug, origin, profile, signal) {
     throw getPlaceDirectionsError(error)
   }
 
-  validateDirectionsResponse(data, profile)
+  validatePlaceDirectionsResponse(data, profile)
   return data
 }

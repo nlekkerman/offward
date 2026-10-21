@@ -230,12 +230,12 @@ function PlacePage() {
     place?.access_start_name,
     place?.directions_marker_name,
     place?.access_marker_name,
-  ].find((value) => typeof value === 'string' && value.trim())?.trim() || 'Walking path starts here'
+  ].find((value) => typeof value === 'string' && value.trim())?.trim() || 'directions marker'
   const accessMarkerDescription = [
     place?.access_start_description,
     place?.directions_marker_description,
     place?.access_marker_description,
-  ].find((value) => typeof value === 'string' && value.trim())?.trim() || ''
+  ].find((value) => typeof value === 'string' && value.trim())?.trim() || 'Walking path starts here'
   const walkingDistanceMeters = accessGeometry ? getGeometryLengthMeters(accessGeometry) : 0
   const startDirections = () => {
     if (!directionsAvailable) return
@@ -339,44 +339,6 @@ function PlacePage() {
                   </button>
                 </div>
               )}
-              {directionsActive && hasManualAccessPath && (
-                <section className="place-directions-summary" aria-label="Journey instructions">
-                  {placeJourneyPhase === 'driving' && (
-                    <>
-                      <p className="place-directions-leg">
-                        <span className="place-directions-icon" aria-hidden="true">🚗</span>
-                        {directionsStatus?.status === 'ready'
-                          ? `Drive ${directionsStatus.distanceKm.toFixed(1)} km to ${accessMarkerName}.`
-                          : `Drive to ${accessMarkerName}.`}
-                      </p>
-                      <p className="place-directions-leg">
-                        <span className="place-directions-icon" aria-hidden="true">🚶</span>
-                        Then walk {formatWalkingDistance(walkingDistanceMeters)} to {placeTitle}.
-                      </p>
-                      <p className="place-directions-note">The saved walking path begins at the directions marker.</p>
-                      <button type="button" className="route-directions-mode" onClick={startWalking}>Start Walking</button>
-                    </>
-                  )}
-                  {(placeJourneyPhase === 'walking' || placeJourneyPhase === 'walking-after-driving') && (
-                    <>
-                      <p className="place-directions-leg">
-                        <span className="place-directions-icon" aria-hidden="true">🚶</span>
-                        {placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker
-                          ? `Walk ${formatWalkingDistance(walkingDistanceMeters)} to ${placeTitle}.`
-                          : `Walk to ${placeTitle} via the saved walking path.`}
-                      </p>
-                      {placeJourneyPhase === 'walking' && !isAtAccessMarker && (
-                        <p className="place-directions-note">
-                          The path starts at {accessMarkerName}; get to the directions marker to begin.
-                        </p>
-                      )}
-                      {(placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker) && (
-                        <p className="place-directions-note">Walking path starts at {accessMarkerName}.</p>
-                      )}
-                    </>
-                  )}
-                </section>
-              )}
               {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
                 <p className="route-directions-feedback" id="place-directions-feedback" role="status">Waiting for your location...</p>
               )}
@@ -410,6 +372,42 @@ function PlacePage() {
               )}
             </div>
           </div>
+          {directionsActive && hasManualAccessPath && placeJourneyPhase && (
+            <section className="place-directions-summary" aria-label="Journey instructions">
+              {placeJourneyPhase === 'driving' && (
+                <>
+                  <p className="place-directions-leg">
+                    <span className="place-directions-icon" aria-hidden="true">🚗</span>
+                    {directionsStatus?.status === 'ready'
+                      ? `Drive ${directionsStatus.distanceKm.toFixed(1)} km to ${accessMarkerName}.`
+                      : `Drive to ${accessMarkerName}.`}
+                  </p>
+                  <p className="place-directions-leg">
+                    <span className="place-directions-icon" aria-hidden="true">🚶</span>
+                    Then walk {formatWalkingDistance(walkingDistanceMeters)} to {placeTitle}.
+                  </p>
+                  <p className="place-directions-note">The saved walking path begins at the directions marker.</p>
+                  <button type="button" className="route-directions-mode" onClick={startWalking}>Start Walking</button>
+                </>
+              )}
+              {(placeJourneyPhase === 'walking' || placeJourneyPhase === 'walking-after-driving') && (
+                <>
+                  <p className="place-directions-leg">
+                    <span className="place-directions-icon" aria-hidden="true">🚶</span>
+                    {placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker
+                      ? `Walk ${formatWalkingDistance(walkingDistanceMeters)} to ${placeTitle}.`
+                      : `Walk ${formatWalkingDistance(walkingDistanceMeters)} from ${accessMarkerName} to ${placeTitle}.`}
+                  </p>
+                  {placeJourneyPhase === 'walking' && !isAtAccessMarker && (
+                    <p className="place-directions-note">The saved walking path starts at {accessMarkerName}; get to the directions marker to begin.</p>
+                  )}
+                  {(placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker) && (
+                    <p className="place-directions-note">Walking path starts at {accessMarkerName}.</p>
+                  )}
+                </>
+              )}
+            </section>
+          )}
           {hasCoordinates ? (
             <MapView
               className="place-detail-map"
