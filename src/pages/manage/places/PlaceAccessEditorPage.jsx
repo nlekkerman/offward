@@ -10,14 +10,15 @@ function validCoordinates(latitude, longitude) {
   return isValidLatitude(latitude) && isValidLongitude(longitude)
 }
 
-function getAccessErrorMessage(error) {
+function getAccessErrorMessage(error, operation = 'change') {
   const status = error?.response?.status
   const data = error?.response?.data
+  const action = operation === 'load' ? 'loading' : 'changing'
   const responseCode = data?.code || data?.error || data?.detail_code || (typeof data?.detail === 'string' ? data.detail : '')
   const code = typeof responseCode === 'string' ? responseCode : ''
 
-  if (status === 401) return 'Your management session has expired. Sign in again to edit Place access.'
-  if (status === 403) return 'You do not have permission to edit Place access.'
+  if (status === 401) return 'Your management session has expired. Sign in again to access Place directions.'
+  if (status === 403) return 'You do not have permission to access Place directions.'
   if (status === 409 && code === 'access_revision_mismatch') return 'Place access changed elsewhere. Reload the current access state before making another change.'
   if (status === 409 && code === 'place_access_start_missing') return 'Set a directions marker before saving a walking path.'
   if (status === 409) return 'Place access changed elsewhere. Reload the current access state before making another change.'
@@ -37,29 +38,32 @@ function getAccessErrorMessage(error) {
     if (details.length) return details.join(' ')
   }
 
-  if (!error?.response) return 'A network error prevented the Place access change. Check your connection and try again.'
-  return data?.detail || data?.message || error?.message || 'Unable to update Place access.'
+  if (!error?.response && (error?.request || ['ERR_NETWORK', 'ECONNABORTED', 'ETIMEDOUT'].includes(error?.code))) {
+    return `A network error prevented ${action} Place access. Check your connection and try again.`
+  }
+  if (!error?.response && error?.message) return error.message
+  return data?.detail || data?.message || error?.message || `Unable to ${operation} Place access.`
 }
 
-function getPlaceAccessState(place) {
-  if (place?.access_revision === null || place?.access_revision === undefined || place?.access_revision === '') {
-    throw new Error('The Place management response does not include a valid access_revision.')
+function getPlaceAccessState(place, accessState = place) {
+  if (accessState?.access_revision === null || accessState?.access_revision === undefined || accessState?.access_revision === '') {
+    throw new Error('The Place access response does not include a valid access_revision.')
   }
-  const revision = Number(place?.access_revision)
+  const revision = Number(accessState?.access_revision)
   if (!Number.isSafeInteger(revision) || revision < 0) {
-    throw new Error('The Place management response does not include a valid access_revision.')
+    throw new Error('The Place access response does not include a valid access_revision.')
   }
-  const accessGeometry = normalizeGeometry(place.access_geometry)
-  if (place.access_geometry != null && !accessGeometry) {
-    throw new Error('The Place management response contains invalid access_geometry.')
+  const accessGeometry = normalizeGeometry(accessState.access_geometry)
+  if (accessState.access_geometry != null && !accessGeometry) {
+    throw new Error('The Place access response contains invalid access_geometry.')
   }
   return {
     id: place.id,
     name: place.name || place.title || 'Place',
     latitude: place.latitude,
     longitude: place.longitude,
-    access_start_latitude: place.access_start_latitude ?? null,
-    access_start_longitude: place.access_start_longitude ?? null,
+    access_start_latitude: accessState.access_start_latitude ?? null,
+    access_start_longitude: accessState.access_start_longitude ?? null,
     access_geometry: accessGeometry,
     access_revision: revision,
   }
@@ -78,8 +82,8 @@ function PlaceAccessEditorPage() {
   const [candidateGeometry, setCandidateGeometry] = useState(null)
   const [revisionConflict, setRevisionConflict] = useState(false)
 
-  const applyPlaceResponse = useCallback((response) => {
-    setPlace(getPlaceAccessState(response))
+  const applyPlaceResponse = useCallback((placeResponse, accessResponse = placeResponse) => {
+    setPlace(getPlaceAccessState(placeResponse, accessResponse))
     setError('')
     setNotice('')
     setRevisionConflict(false)
@@ -92,10 +96,11 @@ function PlaceAccessEditorPage() {
     setLoading(true)
     setLoadError('')
     try {
-      const response = await managementApis.places.getById(placeId)
-      applyPlaceResponse(response)
+      const placeResponse = await managementApis.places.getById(placeId)
+      const accessResponse = await placeAccessApi.get(placeResponse.id)
+      applyPlaceResponse(placeResponse, accessResponse)
     } catch (loadErr) {
-      setLoadError(getAccessErrorMessage(loadErr))
+      setLoadError(getAccessErrorMessage(loadErr, 'load'))
     } finally {
       setLoading(false)
     }
@@ -140,7 +145,7 @@ function PlaceAccessEditorPage() {
         ...payload,
         expected_access_revision: currentRevision,
       })
-      applyPlaceResponse(result)
+      applyPlaceResponse(place, result)
       setNotice(successMessage)
     } catch (mutationError) {
       setRevisionConflict(mutationError?.response?.status === 409)
