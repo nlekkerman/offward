@@ -250,22 +250,6 @@ function StoryPage() {
   const storyUrl = getPublicUrl(storyPath)
   const storyHeroSource = getDetailHeroSource(story, 'story')
   const storyHeroImage = storyHeroSource?.imageUrl
-  const storyHeroViewerImage = storyHeroSource?.sourceType === 'standalone'
-    ? {
-      ...(storyHeroSource.image && typeof storyHeroSource.image === 'object' ? storyHeroSource.image : {}),
-      url: storyHeroImage,
-    }
-    : null
-  const openStoryHeroGallery = storyHeroSource?.sourceType === 'collection' && storyHeroSource.index >= 0
-    ? () => {
-      const collectionKey = storyHeroSource.collection.id
-        || storyHeroSource.collection.title
-        || story.image_collections.indexOf(storyHeroSource.collection)
-      setLightbox({ collectionKey, index: storyHeroSource.index, standaloneImage: null })
-    }
-    : storyHeroViewerImage
-      ? () => setLightbox({ collectionKey: null, index: 0, standaloneImage: storyHeroViewerImage })
-      : undefined
 
   return (
     <section className="story-detail-page story-detail-content-page">
@@ -276,7 +260,7 @@ function StoryPage() {
         image={storyHeroImage || getContentSocialImage(story, { preferHero: true })}
         type="article"
       />
-      <DetailHero imageUrl={storyHeroImage} onOpenGallery={openStoryHeroGallery}>
+      <DetailHero>
         <header className="story-detail-header">
           <p className="eyebrow">Story</p>
           <h1>{storyTitle}</h1>

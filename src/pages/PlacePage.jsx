@@ -230,9 +230,6 @@ function PlacePage() {
   const placeUrl = getPublicUrl(placePath)
   const placeHeroSource = getDetailHeroSource(place, 'place')
   const placeHeroImage = placeHeroSource?.imageUrl
-  const openPlaceHeroGallery = placeHeroSource?.sourceType === 'collection' && placeHeroSource.collection?.id
-    ? () => openGallery(placeHeroSource.collection, placeHeroSource.index, placeHeroSource)
-    : undefined
 
   return (
     <section className="place-detail-page place-detail-content-page">
@@ -242,7 +239,7 @@ function PlacePage() {
         path={placePath}
         image={placeHeroImage || getContentSocialImage(place)}
       />
-      <DetailHero imageUrl={placeHeroImage} onOpenGallery={openPlaceHeroGallery}>
+      <DetailHero>
         <header className="place-detail-header">
           <p className="eyebrow">PUBLIC PLACE</p>
           <h1>{placeTitle}</h1>

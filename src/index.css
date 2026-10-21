@@ -2702,82 +2702,20 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .detail-hero {
   position: relative;
-  isolation: isolate;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: center;
   width: 100vw;
-  min-height: clamp(440px, 62svh, 760px);
   margin: 0 calc(50% - 50vw) 1.5rem;
-  overflow: hidden;
-  background: #101713;
-}
-
-.detail-hero::before {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(12, 19, 15, 0.48), rgba(12, 19, 15, 0.18) 34%, rgba(12, 19, 15, 0.8)),
-    linear-gradient(90deg, rgba(12, 19, 15, 0.7), rgba(12, 19, 15, 0.34) 58%, rgba(12, 19, 15, 0.12));
-  content: '';
-  pointer-events: none;
-}
-
-.detail-hero-image {
-  position: absolute;
-  z-index: -2;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.detail-hero-gallery-trigger {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  border: 0;
-  padding: 0;
   background: transparent;
-  cursor: pointer;
-}
-
-.detail-hero-gallery-trigger:hover {
-  background: rgba(243, 239, 230, 0.035);
-}
-
-.detail-hero-gallery-trigger:focus-visible {
-  outline: 2px solid #f3efe6;
-  outline-offset: -6px;
-}
-
-.detail-hero-fallback {
-  background:
-    radial-gradient(ellipse at center, rgba(120, 35, 32, 0.24), transparent 65%),
-    #101713;
-}
-
-.detail-hero-fallback > .detail-hero-logo {
-  position: absolute;
-  z-index: 0;
-  inset: 50% auto auto 50%;
-  width: min(38vw, 280px);
-  height: min(34svh, 220px);
-  object-fit: contain;
-  opacity: 0.58;
-  transform: translate(-50%, -50%);
 }
 
 .detail-hero-content {
   position: relative;
-  z-index: 1;
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 4.25rem 2rem 3.5rem;
+  padding: 5.5rem 2rem 1.5rem;
   pointer-events: none;
 }
 
@@ -2805,7 +2743,6 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   font-weight: 400;
   line-height: 0.98;
   overflow-wrap: anywhere;
-  text-shadow: 0 2px 24px rgba(12, 19, 15, 0.35);
 }
 
 .detail-hero .eyebrow,
@@ -2830,7 +2767,6 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   color: #f3efe6;
   font-size: clamp(1rem, 1.5vw, 1.15rem);
   line-height: 1.5;
-  text-shadow: 0 1px 12px rgba(12, 19, 15, 0.5);
 }
 
 .detail-hero .route-detail-summary,
@@ -4272,10 +4208,9 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .route-detail-page { padding: 1.5rem 1.25rem 3rem; }
   .route-public-detail-page { padding-top: 0; }
   .detail-hero {
-    min-height: clamp(320px, 52svh, 520px);
     margin: 0 calc(50% - 50vw) 1.5rem;
   }
-  .detail-hero-content { padding: 3rem 1.25rem 2.5rem; }
+  .detail-hero-content { padding: 6rem 1.25rem 1.5rem; }
   .route-detail-context { margin-bottom: 1.35rem; }
   .route-detail-context-card { align-items: flex-start; min-height: 0; padding: 0.9rem 1rem; }
   .route-detail-context-route, .route-detail-context-subtitle { white-space: normal; }

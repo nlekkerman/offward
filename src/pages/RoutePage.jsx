@@ -460,9 +460,6 @@ function RoutePage() {
   const routeUrl = getPublicUrl(routePath)
   const routeHeroSource = getDetailHeroSource(route, 'route')
   const routeHeroImage = routeHeroSource?.imageUrl
-  const openRouteHeroGallery = routeHeroSource?.sourceType === 'collection' && routeHeroSource.collection?.id
-    ? () => openGallery(routeHeroSource.collection, routeHeroSource.index, routeHeroSource)
-    : undefined
 
   if (routeStatus === 'loading') {
     return <section className="route-detail-page"><p className="route-detail-status" role="status">Loading route...</p></section>
@@ -493,7 +490,7 @@ function RoutePage() {
         path={routePath}
         image={routeHeroImage || getContentSocialImage(route)}
       />
-      <DetailHero imageUrl={routeHeroImage} onOpenGallery={openRouteHeroGallery}>
+      <DetailHero>
         <header className="route-detail-header">
           <div>
             <p className="eyebrow">PUBLIC ROUTE</p>

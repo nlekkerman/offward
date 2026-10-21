@@ -107,9 +107,6 @@ function FoodPage() {
   const videos = resolveAttachedVideos(food)
   const galleries = orderedImageCollections(food)
   const invalidVideos = Array.isArray(food.videos) ? food.videos.length - videos.length : 0
-  const openFoodHeroGallery = foodHeroSource?.sourceType === 'collection' && foodHeroSource.collection?.id
-    ? () => openGallery(foodHeroSource.collection, foodHeroSource.index, foodHeroSource)
-    : undefined
 
   return (
     <section className="food-page food-detail-page">
@@ -119,7 +116,7 @@ function FoodPage() {
         path={foodPath}
         image={foodHeroImage || getContentSocialImage(food)}
       />
-      <DetailHero imageUrl={foodHeroImage} onOpenGallery={openFoodHeroGallery}>
+      <DetailHero>
         <header className="food-detail-header">
           <p className="eyebrow">{formatActivityLabel(food.food_type) || 'Food'}</p>
           <h1>{foodTitle}</h1>
