@@ -107,7 +107,7 @@ function AppShell() {
 
     getOffwardAccess().then((result) => {
       if (isMounted) {
-        setCanManageOffward(result.canManageOffward === true)
+        setCanManageOffward(result.isAuthenticated === true && result.canManageOffward === true)
       }
     })
 
@@ -119,7 +119,7 @@ function AppShell() {
   return (
     <div className={`app-shell${isManagementPage ? '' : ' app-shell-public'}${pathname === '/' ? ' app-shell-home' : ''}${isDetailHeroPage ? ' app-shell-detail-hero' : ''}`}>
       <div className={`mobile-nav-backdrop${isMenuOpen ? ' is-open' : ''}`} aria-hidden="true" />
-      {!isManagementPage && <HomeNavigationRibbon activeSection={activeSection} />}
+      {!isManagementPage && <HomeNavigationRibbon activeSection={activeSection} canManageOffward={canManageOffward === true} />}
       <header ref={headerRef} className={`app-header${isMenuOpen ? ' mobile-menu-open' : ''}`}>
         <Link to="/" className="brand" aria-label="Offward home">
           <picture>
@@ -144,6 +144,19 @@ function AppShell() {
           aria-label="Primary navigation"
           inert={isMobile && !isMenuOpen}
         >
+          {canManageOffward === true && (
+            <Link
+              to="/manage"
+              className={`management-nav-link${activeSection === 'manage' ? ' is-active' : ''}`}
+              aria-current={activeSection === 'manage' ? 'page' : undefined}
+              onClick={() => setMenuLocation(null)}
+            >
+              <svg className="management-nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 3 19 6v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Zm-3 9 2 2 4-4" />
+              </svg>
+              Management
+            </Link>
+          )}
           {NAV_LINKS.map((link) => (
             <Link
               key={link.section}
@@ -155,16 +168,6 @@ function AppShell() {
               {link.label}
             </Link>
           ))}
-          {canManageOffward === true && (
-            <Link
-              to="/manage"
-              className={activeSection === 'manage' ? 'is-active' : undefined}
-              aria-current={activeSection === 'manage' ? 'page' : undefined}
-              onClick={() => setMenuLocation(null)}
-            >
-              Management
-            </Link>
-          )}
         </nav>
       </header>
       <main inert={isMenuOpen}><Outlet /></main>

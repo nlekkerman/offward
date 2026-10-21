@@ -114,6 +114,25 @@ body:has(.app-shell-home) { min-width: 0; }
 .app-header nav a:hover::after,
 .app-header nav a.is-active::after { transform: scaleX(1); }
 .app-header nav a:focus-visible { outline: 2px solid var(--public-accent); outline-offset: 4px; }
+.app-header nav .management-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-right: 0.25rem;
+  padding-right: 1rem;
+  border-right: 1px solid rgba(243, 239, 230, 0.3);
+}
+.management-nav-icon {
+  display: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
 
 .mobile-nav-toggle, .mobile-nav-backdrop { display: none; }
 
@@ -4247,6 +4266,14 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   }
   .app-header.mobile-menu-open nav { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
   .app-header nav a { width: 100%; max-width: 100%; padding: 0.8rem 0; overflow-wrap: anywhere; }
+  .app-header nav .management-nav-link {
+    justify-content: flex-start;
+    margin: 0 0 0.35rem;
+    padding: 0.8rem 0 1.05rem;
+    border-right: 0;
+    border-bottom: 1px solid rgba(243, 239, 230, 0.3);
+  }
+  .management-nav-icon { display: block; }
   .app-shell-detail-hero .app-header nav a { padding: 0.8rem 0; }
   .app-header nav a.is-active { color: var(--public-accent); }
   .app-header nav a::after { display: none; }

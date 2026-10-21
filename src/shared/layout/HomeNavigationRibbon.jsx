@@ -13,12 +13,27 @@ const HOME_NAV_LINKS = [
   { section: 'contact', label: 'Contact', to: '/contact', icon: 'M3 5h18v14H3zM3 6l9 7 9-7' },
 ]
 
-function HomeNavigationRibbon({ activeSection }) {
+function HomeNavigationRibbon({ activeSection, canManageOffward }) {
   const { pathname, search } = useLocation()
   const params = new URLSearchParams(search)
 
   return (
-    <nav className="home-navigation-ribbon" aria-label="Primary navigation">
+    <nav className={`home-navigation-ribbon${canManageOffward ? ' has-management' : ''}`} aria-label="Primary navigation">
+      {canManageOffward && (
+        <Link
+          className={`home-navigation-link home-navigation-management-link${activeSection === 'manage' ? ' is-active' : ''}`}
+          to="/manage"
+          aria-label="Management"
+          aria-current={activeSection === 'manage' ? 'page' : undefined}
+          title="Management"
+          data-tooltip="Management"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 3 19 6v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Zm-3 9 2 2 4-4" />
+          </svg>
+          <span className="home-navigation-label">Management</span>
+        </Link>
+      )}
       {HOME_NAV_LINKS.map(({ section, label, to, icon }) => {
         const isActive = section === 'explore'
           ? pathname === '/explore' && !params.has('view')
