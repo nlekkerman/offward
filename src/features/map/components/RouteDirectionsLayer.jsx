@@ -49,7 +49,15 @@ function DirectionsViewportController({ active, position, navigationPositions })
   return null
 }
 
-function RouteDirectionsLayer({ active, position, routeSlug, startCoordinates, mode, onStatusChange }) {
+function RouteDirectionsLayer({
+  active,
+  position,
+  routeSlug,
+  startCoordinates,
+  mode,
+  onStatusChange,
+  requestDirections,
+}) {
   const requestedModeRef = useRef(null)
   const currentModeRef = useRef(null)
   const tooFarModeRef = useRef(null)
@@ -102,7 +110,12 @@ function RouteDirectionsLayer({ active, position, routeSlug, startCoordinates, m
     requestControllerRef.current = controller
     onStatusChange({ status: 'routing' })
 
-    getRouteDirections(routeSlug, { lat: position.latitude, lng: position.longitude }, mode, controller.signal)
+    const origin = { lat: position.latitude, lng: position.longitude }
+    const request = requestDirections
+      ? requestDirections(routeSlug, origin, mode, controller.signal)
+      : getRouteDirections(routeSlug, origin, mode, controller.signal)
+
+    request
       .then((result) => {
         if (controller.signal.aborted) return
         const navigationPositions = result.geometry.coordinates.map(([longitude, latitude]) => [latitude, longitude])
@@ -118,7 +131,7 @@ function RouteDirectionsLayer({ active, position, routeSlug, startCoordinates, m
             : 'Offward could not calculate directions. Please try again.',
         })
       })
-  }, [active, mode, onStatusChange, position, routeSlug, startCoordinates])
+  }, [active, mode, onStatusChange, position, requestDirections, routeSlug, startCoordinates])
 
   useEffect(() => () => requestControllerRef.current?.abort(), [])
 

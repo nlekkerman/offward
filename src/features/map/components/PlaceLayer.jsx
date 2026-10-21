@@ -4,8 +4,12 @@ import { Marker, Tooltip, useMapEvents } from 'react-leaflet'
 
 const PLACE_LABEL_MIN_ZOOM = 10
 
-function createPlaceIcon(selected) {
-  const markerClass = ['public-place-marker', selected ? 'is-selected' : ''].filter(Boolean).join(' ')
+function createPlaceIcon(selected, directionsActive) {
+  const markerClass = [
+    'public-place-marker',
+    selected ? 'is-selected' : '',
+    directionsActive ? 'is-directions-active' : '',
+  ].filter(Boolean).join(' ')
 
   return L.divIcon({
     className: markerClass,
@@ -15,7 +19,7 @@ function createPlaceIcon(selected) {
   })
 }
 
-function PlaceLayer({ places, selectedPlaceId, onPlaceSelect, showPlaceLabel = false }) {
+function PlaceLayer({ places, selectedPlaceId, directionsPlaceId, onPlaceSelect, showPlaceLabel = false }) {
   const map = useMapEvents({
     zoomend: () => setZoom(map.getZoom()),
   })
@@ -24,11 +28,12 @@ function PlaceLayer({ places, selectedPlaceId, onPlaceSelect, showPlaceLabel = f
 
   return places.map((place) => {
     const selected = place.id === selectedPlaceId
+    const directionsActive = place.id === directionsPlaceId
     return (
       <Marker
         key={place.id ?? place.slug}
         position={[place.latitude, place.longitude]}
-        icon={createPlaceIcon(selected)}
+        icon={createPlaceIcon(selected, directionsActive)}
         title={place.name}
         alt={place.name}
         eventHandlers={onPlaceSelect ? { click: () => onPlaceSelect(place.id) } : undefined}

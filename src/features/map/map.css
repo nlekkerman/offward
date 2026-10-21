@@ -511,6 +511,11 @@
   background: #4F8A3C;
 }
 
+.public-place-marker.is-directions-active span {
+  border-color: #ff3838;
+  background: #ff3838;
+}
+
 .place-detail-map .leaflet-tooltip.place-detail-marker-label {
   width: max-content;
   max-width: min(240px, calc(100vw - 3rem));

@@ -1,21 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RelatedStories from '../features/routes/components/RelatedStories.jsx'
 import RelatedFood from '../features/food/RelatedFood.jsx'
 import { normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import MapView from '../features/map/components/MapView.jsx'
+import RouteDirectionsLayer from '../features/map/components/RouteDirectionsLayer.jsx'
+import RouteUserLocationLayer from '../features/map/components/RouteUserLocationLayer.jsx'
 import { isRenderablePlace } from '../features/map/mapGeometry.js'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
 import { getPublicPlaceBySlug } from '../services/placesApi.js'
 import { getPublicStories } from '../services/storiesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
+import { getPlaceDirections, MAX_LOCAL_DIRECTIONS_KM } from '../services/routeDirectionsApi.js'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
 import DetailHero from '../shared/components/DetailHero.jsx'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
+import useUserLocation from '../shared/hooks/useUserLocation.js'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import { getDetailHeroSource, getDetailHeroSourceIndex } from '../shared/utils/detailHeroImage.js'
@@ -37,7 +41,33 @@ function PlacePage() {
   const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
   const [galleryLoadingId, setGalleryLoadingId] = useState(null)
   const [galleryErrorByCollectionId, setGalleryErrorByCollectionId] = useState({})
+  const [directionsActive, setDirectionsActive] = useState(false)
+  const [directionsMode, setDirectionsMode] = useState('walking')
+  const [directionsStatus, setDirectionsStatus] = useState(null)
   const galleryCacheRef = useRef(new Map())
+  const {
+    position: userPosition,
+    active: locationActive,
+    error: locationError,
+    start: startLocation,
+    stop: stopLocation,
+  } = useUserLocation()
+  const handleDirectionsStatusChange = useCallback((status) => {
+    setDirectionsStatus(status)
+  }, [])
+  const requestPlaceDirections = useCallback((slug, origin, profile, signal) => (
+    getPlaceDirections(slug, origin, profile, signal)
+  ), [])
+  const handleManualMapMovement = useCallback(() => {}, [])
+
+  useEffect(() => () => stopLocation(), [stopLocation])
+
+  useEffect(() => {
+    setDirectionsActive(false)
+    setDirectionsMode('walking')
+    setDirectionsStatus(null)
+    stopLocation()
+  }, [placeSlug, stopLocation])
 
   useEffect(() => {
     let isCurrent = true
@@ -70,6 +100,10 @@ function PlacePage() {
   }, [])
 
   const place = placeResult.slug === placeSlug ? placeResult.place : null
+  const placeCoordinates = useMemo(() => ({
+    lat: place?.latitude,
+    lng: place?.longitude,
+  }), [place?.latitude, place?.longitude])
   const mediaIds = useMemo(() => normalizeMediaIds(place?.media_ids), [place])
 
   useEffect(() => {
@@ -168,6 +202,25 @@ function PlacePage() {
   }
 
   const hasCoordinates = isRenderablePlace(place)
+  const directionsAvailable = hasCoordinates &&
+    typeof placeSlug === 'string' &&
+    placeSlug.trim().length > 0
+  const startDirections = () => {
+    if (!directionsAvailable) return
+    setDirectionsStatus({ status: 'locating' })
+    setDirectionsActive(true)
+    if (!locationActive) startLocation()
+  }
+  const stopDirections = () => {
+    setDirectionsActive(false)
+    setDirectionsMode('walking')
+    setDirectionsStatus(null)
+    stopLocation()
+  }
+  const handleTravelModeChange = (mode) => {
+    setDirectionsMode(mode)
+    setDirectionsStatus(null)
+  }
   const country = findCountry(countries, place.country)
   const countryLabel = countryName(country, formatCountrySlug(place.country))
   const lightboxImages = lightbox.gallery?.images || []
@@ -209,9 +262,105 @@ function PlacePage() {
           </article>
         )}
         <section className="place-detail-map-section" aria-labelledby="place-map-title">
-          <div className="route-map-heading"><p className="eyebrow">MAP</p><h2 id="place-map-title">Place location</h2></div>
+          <div className="route-map-heading">
+            <div><p className="eyebrow">MAP</p><h2 id="place-map-title">Place location</h2></div>
+            <div className="route-directions-controls">
+              <button
+                type="button"
+                className={`route-directions-button ${directionsActive ? 'danger-button' : 'primary-button'}`}
+                onClick={directionsActive ? stopDirections : startDirections}
+                disabled={!directionsActive && !directionsAvailable}
+                aria-describedby={directionsStatus || !directionsAvailable || locationError ? 'place-directions-feedback' : undefined}
+              >
+                {directionsActive ? 'Stop directions' : 'Directions to place'}
+              </button>
+              {!directionsAvailable && (
+                <p className="route-directions-feedback" id="place-directions-feedback">
+                  Directions are unavailable because this Place does not have valid coordinates.
+                </p>
+              )}
+              {directionsActive && (
+                <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
+                  <button
+                    type="button"
+                    className="route-directions-mode"
+                    aria-pressed={directionsMode === 'walking'}
+                    onClick={() => handleTravelModeChange('walking')}
+                  >
+                    Walking
+                  </button>
+                  <button
+                    type="button"
+                    className="route-directions-mode"
+                    aria-pressed={directionsMode === 'driving'}
+                    onClick={() => handleTravelModeChange('driving')}
+                  >
+                    Driving
+                  </button>
+                </div>
+              )}
+              {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
+                <p className="route-directions-feedback" id="place-directions-feedback" role="status">Waiting for your location...</p>
+              )}
+              {directionsActive && directionsStatus?.status === 'routing' && (
+                <p className="route-directions-feedback" id="place-directions-feedback" role="status">
+                  Calculating {directionsMode} directions...
+                </p>
+              )}
+              {directionsActive && directionsStatus?.status === 'too-far' && (
+                <p className="route-directions-feedback" id="place-directions-feedback" role="status">
+                  You're more than {MAX_LOCAL_DIRECTIONS_KM} km from this Place. Directions are available when you're closer.
+                </p>
+              )}
+              {directionsActive && directionsStatus?.status === 'ready' && (
+                <p className="route-directions-feedback" id="place-directions-feedback" role="status">
+                  {directionsMode === 'walking' ? 'Walking' : 'Driving'} route: {directionsStatus.distanceKm.toFixed(1)} km
+                </p>
+              )}
+              {directionsStatus?.status === 'error' && (
+                <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
+                  {directionsStatus.message}
+                </p>
+              )}
+              {locationError && directionsActive && (
+                <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
+                  {locationError}{' '}
+                  <button type="button" className="route-directions-mode" onClick={startDirections}>
+                    Retry location
+                  </button>
+                </p>
+              )}
+            </div>
+          </div>
           {hasCoordinates ? (
-            <MapView className="place-detail-map" places={[place]} selectedPlaceId={place.id} showPlaceLabel initialCenter={[place.latitude, place.longitude]} initialZoom={10} />
+            <MapView
+              className="place-detail-map"
+              places={[place]}
+              selectedPlaceId={place.id}
+              directionsPlaceId={directionsActive ? place.id : null}
+              showPlaceLabel
+              initialCenter={[place.latitude, place.longitude]}
+              initialZoom={10}
+              mapChildren={(
+                <>
+                  <RouteDirectionsLayer
+                    active={directionsActive && directionsAvailable}
+                    position={userPosition}
+                    routeSlug={placeSlug}
+                    startCoordinates={placeCoordinates}
+                    mode={directionsMode}
+                    onStatusChange={handleDirectionsStatusChange}
+                    requestDirections={requestPlaceDirections}
+                  />
+                  <RouteUserLocationLayer
+                    position={userPosition}
+                    followEnabled={false}
+                    recenterRequest={0}
+                    onManualMovement={handleManualMapMovement}
+                  />
+                </>
+              )}
+            />
           ) : (
             <p className="route-map-message" role="status">Map location is unavailable for this Place.</p>
           )}

@@ -69,6 +69,50 @@ function getDirectionsError(error) {
   return new Error('Offward could not calculate directions. Please try again.')
 }
 
+function hasResponseErrorCode(data, code) {
+  if (data?.code === code) {
+    return true
+  }
+  return Array.isArray(data?.errors) && data.errors.some((item) => item?.code === code)
+}
+
+function getPlaceDirectionsError(error) {
+  const response = error?.response
+  if (!response) {
+    return new Error('Unable to connect to Offward directions. Check your connection and try again.')
+  }
+
+  if (response.status === 404) {
+    return new Error('This Place could not be found. It may have been removed or is no longer published.')
+  }
+  if (response.status === 409) {
+    return new Error('Directions are unavailable because this Place does not have valid coordinates.')
+  }
+  if (response.status === 400) {
+    if (hasResponseErrorCode(response.data, 'origin_too_far')) {
+      return new Error(`You must be within ${MAX_LOCAL_DIRECTIONS_KM} km of this Place for directions.`)
+    }
+    return new Error('Your location or travel mode is invalid. Check them and try again.')
+  }
+  if (response.status === 429) {
+    return new Error('The limit of 5 directions requests per hour per IP has been reached. Please try again later.')
+  }
+  if (response.status === 503) {
+    return new Error('The routing provider quota has been reached. Please try again later.')
+  }
+  if (response.status === 504) {
+    return new Error('The routing request timed out. Please try again.')
+  }
+  if (response.status === 422) {
+    return new Error('Your location or travel mode is invalid. Check them and try again.')
+  }
+  if (response.status >= 500) {
+    return new Error('The routing service is unavailable. Please try again later.')
+  }
+
+  return new Error('Offward could not calculate directions. Please try again.')
+}
+
 function isValidCoordinate(value, minimum, maximum) {
   return typeof value === 'number' && Number.isFinite(value) && value >= minimum && value <= maximum
 }
@@ -129,6 +173,43 @@ export async function getRouteDirections(routeSlug, origin, profile, signal) {
       throw error
     }
     throw getDirectionsError(error)
+  }
+
+  validateDirectionsResponse(data, profile)
+  return data
+}
+
+export async function getPlaceDirections(placeSlug, origin, profile, signal) {
+  if (typeof placeSlug !== 'string' || placeSlug.trim().length === 0) {
+    throw new Error('A Place is required to request directions.')
+  }
+  if (
+    !origin ||
+    !isValidCoordinate(origin.lat, -90, 90) ||
+    !isValidCoordinate(origin.lng, -180, 180)
+  ) {
+    throw new Error('Your location is invalid. Check your location and try again.')
+  }
+  if (!VALID_PROFILES.has(profile)) {
+    throw new Error('The selected travel mode is invalid. Choose walking or driving.')
+  }
+
+  let data
+  try {
+    const response = await apiClient.post(
+      `/api/offward/places/${encodeURIComponent(placeSlug)}/directions/`,
+      {
+        origin: { lat: origin.lat, lng: origin.lng },
+        profile,
+      },
+      { signal },
+    )
+    data = response.data
+  } catch (error) {
+    if (signal?.aborted || error?.code === 'ERR_CANCELED') {
+      throw error
+    }
+    throw getPlaceDirectionsError(error)
   }
 
   validateDirectionsResponse(data, profile)
