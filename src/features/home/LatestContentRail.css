@@ -1,7 +1,7 @@
 .latest-content-rail {
   width: 100%;
   margin: 0 auto;
-  background: rgba(18, 21, 16, 0.2);
+  background: rgba(18, 21, 16, 0.55);
 }
 
 .latest-content-rail-header {
@@ -36,7 +36,7 @@
   min-width: 0;
   padding: 0 14px;
   border-left: 1px solid rgba(229, 238, 239, 0.2);
-  background: rgba(18, 21, 16, 0.4);
+  background: rgba(18, 21, 16, 0.75);
   transition: background-color 180ms ease, box-shadow 180ms ease;
 }
 
@@ -46,7 +46,7 @@
 
 .latest-rail-item:hover,
 .latest-rail-item:focus-within {
-  background: rgba(18, 21, 16, 0.52);
+  background: rgba(18, 21, 16, 0.75);
   box-shadow: inset 1px 0 rgba(229, 238, 239, 0.16);
 }
 
@@ -199,7 +199,7 @@ a.latest-rail-card {
 .latest-rail-skeleton {
   min-height: 120px;
   border-left: 1px solid rgba(229, 238, 239, 0.2);
-  background: rgba(18, 21, 16, 0.4);
+  background: rgba(18, 21, 16, 0.75);
 }
 
 .latest-rail-skeleton:first-child {

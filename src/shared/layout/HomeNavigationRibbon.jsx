@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import './HomePage.css'
 
 const HOME_NAV_LINKS = [
+  { section: 'home', label: 'Home', to: '/', icon: 'M3 10.5 12 3l9 7.5M5 9v12h14V9M9 21v-7h6v7' },
   { section: 'explore', label: 'Explore', to: '/explore', icon: 'M12 3v2m0 14v2M3 12h2m14 0h2m-2.64-6.36-1.42 1.42M7.06 16.94l-1.42 1.42m12.72 0-1.42-1.42M7.06 7.06 5.64 5.64M15.5 8.5l-5 2-2 5 5-2 2-5Z' },
   { section: 'routes', label: 'Routes', to: '/explore?view=routes', icon: 'M4 19c4 0 4-6 8-6s4 6 8 6M4 5c4 0 4 6 8 6s4-6 8-6M4 5v14m16-14v14' },
   { section: 'places', label: 'Places', to: '/explore?view=places', icon: 'M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Zm-5 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z' },

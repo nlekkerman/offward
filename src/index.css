@@ -25,8 +25,8 @@ button, input, select, textarea { font: inherit; }
 }
 
 .app-shell-public {
-  --public-section-surface: rgba(18, 21, 16, 0.2);
-  --public-card-surface: rgba(18, 21, 16, 0.4);
+  --public-section-surface: rgba(18, 21, 16, 0.55);
+  --public-card-surface: rgba(18, 21, 16, 0.75);
   background-color: #101713;
   background-image: url('./assets/images/home/topographic-mountain.webp');
   background-position: center 48%;
@@ -2431,7 +2431,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .story-list-card:hover {
   transform: translateY(-2px);
   border-color: #a9473d;
-  background: rgba(18, 21, 16, 0.52);
+  background: rgba(18, 21, 16, 0.75);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
 }
 

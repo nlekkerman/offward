@@ -60,7 +60,7 @@
     box-sizing: border-box;
     width: 54px;
     height: 100dvh;
-    grid-template-rows: repeat(8, minmax(0, 1fr));
+    grid-template-rows: repeat(9, minmax(0, 1fr));
     align-items: stretch;
     padding: 0;
     overflow: hidden;
