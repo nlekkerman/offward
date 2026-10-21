@@ -596,6 +596,11 @@ function EntityFormPage({ resourceKey, title }) {
         if (resourceKey === 'foods') invalidatePublicFoods()
       } else {
         const created = await api.create(payload)
+        if (resourceKey === 'places') {
+          if (!created?.id) throw new Error('Place was created without an ID. Return to the list before retrying to avoid duplicates.')
+          navigate(`/manage/places/${created.id}/edit`)
+          return
+        }
         if (resourceKey === 'foods') {
           if (!created?.id) throw new Error('Food was created without an ID. Return to the list before retrying to avoid duplicates.')
           invalidatePublicFoods()
@@ -1280,6 +1285,22 @@ function EntityFormPage({ resourceKey, title }) {
           <Link to={`/manage/routes/${id}/map`} className="secondary-button">
             Edit route map
           </Link>
+        </div>
+      )}
+      {resourceKey === 'places' && isEdit && (
+        <div className="management-related-actions">
+          <div>
+            <p className="eyebrow">Access directions</p>
+            <strong>Set a driving destination and author a manual walking path</strong>
+          </div>
+          <Link to={`/manage/places/${id}/access`} className="secondary-button">
+            Set directions marker
+          </Link>
+        </div>
+      )}
+      {resourceKey === 'places' && !isEdit && (
+        <div className="management-empty place-access-save-prompt" role="status">
+          Save this Place first to enable access directions authoring.
         </div>
       )}
 

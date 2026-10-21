@@ -1451,6 +1451,87 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   height: clamp(560px, 72vh, 860px);
 }
 
+.place-access-authoring-map {
+  min-height: 420px;
+}
+
+.place-access-authoring-map.is-add-mode .leaflet-container {
+  cursor: crosshair;
+}
+
+.place-access-controls {
+  margin-bottom: 1rem;
+}
+
+.place-access-controls .route-map-panel-header {
+  align-items: flex-start;
+}
+
+.place-access-controls .route-map-panel-header p:not(.eyebrow) {
+  margin: 0.35rem 0;
+  color: #c9c5b9;
+  font: 0.85rem/1.45 sans-serif;
+}
+
+.place-access-instruction,
+.place-access-drawing-actions p {
+  margin: 0;
+  color: #e9d7b3;
+  font: 0.88rem/1.45 sans-serif;
+}
+
+.place-access-drawing-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.place-access-drawing-actions p {
+  flex: 1 1 100%;
+}
+
+.place-access-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 1.25rem;
+  padding: 0.75rem 0.2rem;
+  color: #c9c5b9;
+  font: 0.78rem/1.2 sans-serif;
+}
+
+.place-access-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.place-access-legend i {
+  display: inline-block;
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.place-access-legend .place-access-legend-place,
+.place-access-legend .place-access-legend-start {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.place-access-legend .place-access-legend-place { background: #4f8a3c; }
+.place-access-legend .place-access-legend-start { background: #d28a22; }
+.place-access-legend .place-access-legend-accepted { background: #4f8a3c; }
+.place-access-legend .place-access-legend-candidate {
+  background: repeating-linear-gradient(90deg, #d28a22 0 5px, transparent 5px 8px);
+}
+
+.place-access-save-prompt {
+  margin-bottom: 1rem;
+  color: #e9d7b3;
+}
+
 .route-map-main-column .route-geometry-legend {
   flex: 0 0 auto;
 }

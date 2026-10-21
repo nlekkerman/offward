@@ -551,6 +551,22 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
+.place-access-start-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+}
+
+.place-access-start-marker span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #d28a22;
+}
+
 .place-coordinate-picker-container {
   height: 340px;
 }

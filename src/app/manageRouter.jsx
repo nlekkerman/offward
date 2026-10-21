@@ -5,6 +5,7 @@ import ManageLayout from '../pages/manage/ManageLayout.jsx'
 import ManageLoginPage from '../pages/manage/ManageLoginPage.jsx'
 import AccessDeniedPage from '../pages/manage/AccessDeniedPage.jsx'
 import RouteMapEditorPage from '../pages/manage/routes/RouteMapEditorPage.jsx'
+import PlaceAccessEditorPage from '../pages/manage/places/PlaceAccessEditorPage.jsx'
 import GalleryCreatePage from '../pages/manage/galleries/GalleryCreatePage.jsx'
 import GalleryEditPage from '../pages/manage/galleries/GalleryEditPage.jsx'
 import GalleryListPage from '../pages/manage/galleries/GalleryListPage.jsx'
@@ -33,6 +34,7 @@ function ManageRouter() {
           <Route path="places" element={<EntityListPage resourceKey="places" title="Places" />} />
           <Route path="places/new" element={<EntityFormPage resourceKey="places" title="Create Place" />} />
           <Route path="places/:id/edit" element={<EntityFormPage resourceKey="places" title="Edit Place" />} />
+          <Route path="places/:placeId/access" element={<PlaceAccessEditorPage />} />
 
           <Route path="routes" element={<EntityListPage resourceKey="routes" title="Routes" />} />
           <Route path="routes/new" element={<EntityFormPage resourceKey="routes" title="Create Route" />} />
