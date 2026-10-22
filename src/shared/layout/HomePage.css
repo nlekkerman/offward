@@ -74,6 +74,7 @@
     align-items: stretch;
     padding: 0;
     overflow: hidden;
+    border-right: 2px solid rgba(255, 255, 255, 0.7);
     border: 0;
     border-radius: 0;
     background: rgba(0, 0, 0, 0.5);
