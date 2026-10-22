@@ -1,3 +1,8 @@
+import {
+  getOffwardAuthState,
+  subscribeToOffwardAuthState,
+} from './offwardAuthState.js'
+
 const EVENT_ENDPOINT = '/api/offward/analytics/events/'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CONTENT_TYPES = new Set(['route', 'place', 'story', 'food'])
@@ -18,6 +23,12 @@ let initialLocationKey = null
 let currentPath = null
 let currentPage = null
 let lastEmittedPageView = null
+let pendingPageView = null
+
+function canSendAnalytics() {
+  const authState = getOffwardAuthState()
+  return authState === 'anonymous' || authState === 'authenticated'
+}
 
 function normalizePagePath(pathname) {
   if (typeof pathname !== 'string' || !pathname.startsWith('/')) return null
@@ -46,7 +57,7 @@ function getAnalyticsEndpoint() {
 }
 
 function sendEvent(payload) {
-  if (typeof window === 'undefined' || typeof fetch !== 'function') return
+  if (!canSendAnalytics() || typeof window === 'undefined' || typeof fetch !== 'function') return
 
   try {
     const body = JSON.stringify(payload)
@@ -89,7 +100,15 @@ function sendPageView(pathname, locationKey, content) {
 
   const eventKey = `${locationKey}:${pagePath}`
   if (lastEmittedPageView === eventKey) return
+  if (!canSendAnalytics()) {
+    if (getOffwardAuthState() === 'pending') {
+      pendingPageView = { pathname, locationKey, content }
+    }
+    return
+  }
+
   lastEmittedPageView = eventKey
+  pendingPageView = null
 
   currentPage = { pagePath, content: safeContent }
   sendEvent({
@@ -113,6 +132,19 @@ export function initializeAnalyticsLifecycle() {
     : performance.getEntriesByType?.('navigation')?.[0]
   initialNavigationType = navigationEntry?.type || null
 
+  subscribeToOffwardAuthState((authState) => {
+    if (authState !== 'anonymous' && authState !== 'authenticated') {
+      pendingPageView = null
+      return
+    }
+
+    if (pendingPageView) {
+      const pending = pendingPageView
+      pendingPageView = null
+      sendPageView(pending.pathname, pending.locationKey, pending.content)
+    }
+  })
+
   window.addEventListener('pageshow', (event) => {
     if (!event.persisted || !currentPage) return
     sendVisit()
@@ -130,6 +162,7 @@ export function observePublicLocation(pathname, locationKey) {
 
   currentPath = pathKey
   currentPage = null
+  pendingPageView = null
   if (initialLocationKey === null) initialLocationKey = locationKey
 
   if (STATIC_PAGE_PATHS.has(pathKey)) {

@@ -1,4 +1,5 @@
 import { apiClient, ensureCsrfToken } from './apiClient.js'
+import { setOffwardAuthState } from './offwardAuthState.js'
 
 const UNAUTHENTICATED_SESSION = Object.freeze({
   isAuthenticated: false,
@@ -10,6 +11,7 @@ const UNAUTHORIZED_OFFWARD_ACCESS = Object.freeze({
   isAuthenticated: false,
   isSuperuser: false,
   canManageOffward: false,
+  authState: 'failed',
 })
 
 // HTTP 200 alone never implies a session: only the parsed JSON body decides.
@@ -34,14 +36,23 @@ function normalizeOffwardAccess(payload) {
     return { ...UNAUTHORIZED_OFFWARD_ACCESS }
   }
 
-  const isAuthenticated = payload.is_authenticated === true
-  const isSuperuser = isAuthenticated && payload.is_superuser === true
+  if (typeof payload.is_authenticated !== 'boolean') {
+    return { ...UNAUTHORIZED_OFFWARD_ACCESS }
+  }
+
+  const isAuthenticated = payload.is_authenticated
+  if (isAuthenticated && typeof payload.is_superuser !== 'boolean') {
+    return { ...UNAUTHORIZED_OFFWARD_ACCESS }
+  }
+
+  const isSuperuser = isAuthenticated && payload.is_superuser
   const canManageOffward = payload.can_manage_offward === true
 
   return {
     isAuthenticated,
     isSuperuser,
     canManageOffward,
+    authState: isSuperuser ? 'superuser' : isAuthenticated ? 'authenticated' : 'anonymous',
   }
 }
 
@@ -77,8 +88,11 @@ export async function getSession() {
 export async function getOffwardAccess() {
   try {
     const { data } = await apiClient.get('/api/offward/manage/access/')
-    return normalizeOffwardAccess(data)
+    const result = normalizeOffwardAccess(data)
+    setOffwardAuthState(result.authState)
+    return result
   } catch {
+    setOffwardAuthState('failed')
     return { ...UNAUTHORIZED_OFFWARD_ACCESS }
   }
 }
@@ -98,5 +112,6 @@ export async function loginWithSession({ username, password }) {
 export async function logoutSession() {
   await ensureCsrfToken()
   await apiClient.post('/api/auth/logout/', {})
+  setOffwardAuthState('anonymous')
   return true
 }
