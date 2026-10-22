@@ -129,7 +129,6 @@ function AppShell() {
         </div>
       )}
       <div className={`mobile-nav-backdrop${isMenuOpen ? ' is-open' : ''}`} aria-hidden="true" />
-      {!isManagementPage && <HomeNavigationRibbon activeSection={activeSection} canManageOffward={canManageOffward === true} />}
       <header ref={headerRef} className={`app-header${isMenuOpen ? ' mobile-menu-open' : ''}`}>
         <Link to="/" className="brand" aria-label="Offward home">
           <picture>
@@ -180,7 +179,10 @@ function AppShell() {
           ))}
         </nav>
       </header>
-      <main inert={isMenuOpen}><Outlet /></main>
+      <main inert={isMenuOpen}>
+        {!isManagementPage && <HomeNavigationRibbon activeSection={activeSection} canManageOffward={canManageOffward === true} />}
+        {isManagementPage ? <Outlet /> : <div className="app-shell-content"><Outlet /></div>}
+      </main>
       {!isManagementPage && <Footer />}
     </div>
   )
