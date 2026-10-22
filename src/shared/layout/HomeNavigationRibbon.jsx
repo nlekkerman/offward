@@ -14,7 +14,7 @@ const HOME_NAV_LINKS = [
   { section: 'contact', label: 'Contact', to: '/contact', icon: 'M3 5h18v14H3zM3 6l9 7 9-7' },
 ]
 
-function HomeNavigationRibbon({ activeSection, canManageOffward }) {
+function HomeNavigationRibbon({ activeSection, canManageOffward, onExpandedChange }) {
   const { pathname, search } = useLocation()
   const params = new URLSearchParams(search)
   const [isCollapsedAfterClick, setIsCollapsedAfterClick] = useState(false)
@@ -23,11 +23,26 @@ function HomeNavigationRibbon({ activeSection, canManageOffward }) {
     <nav
       className={`home-navigation-ribbon${canManageOffward ? ' has-management' : ''}${isCollapsedAfterClick ? ' is-collapsed' : ''}`}
       aria-label="Primary navigation"
-      onPointerLeave={() => setIsCollapsedAfterClick(false)}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setIsCollapsedAfterClick(false)
+      onPointerEnter={() => {
+        if (!isCollapsedAfterClick) onExpandedChange(true)
       }}
-      onClick={() => setIsCollapsedAfterClick(true)}
+      onPointerLeave={() => {
+        setIsCollapsedAfterClick(false)
+        onExpandedChange(false)
+      }}
+      onFocusCapture={() => {
+        if (!isCollapsedAfterClick) onExpandedChange(true)
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setIsCollapsedAfterClick(false)
+          onExpandedChange(false)
+        }
+      }}
+      onClick={() => {
+        setIsCollapsedAfterClick(true)
+        onExpandedChange(false)
+      }}
     >
       {canManageOffward && (
         <Link

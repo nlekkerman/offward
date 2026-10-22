@@ -44,6 +44,7 @@ function AppShell() {
   const isDetailHeroPage = /^\/(?:routes|places|stories|food)\/[^/]+\/?$/.test(pathname)
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(`(max-width: ${mobileBreakpoint}px)`).matches)
   const [menuLocation, setMenuLocation] = useState(null)
+  const [isPublicNavigationExpanded, setIsPublicNavigationExpanded] = useState(false)
   const isMenuOpen = isMobile && menuLocation === locationKey
   const headerRef = useRef(null)
   const menuButtonRef = useRef(null)
@@ -179,8 +180,17 @@ function AppShell() {
           ))}
         </nav>
       </header>
-      <main inert={isMenuOpen}>
-        {!isManagementPage && <HomeNavigationRibbon activeSection={activeSection} canManageOffward={canManageOffward === true} />}
+      <main
+        className={isPublicNavigationExpanded ? 'is-navigation-expanded' : undefined}
+        inert={isMenuOpen}
+      >
+        {!isManagementPage && (
+          <HomeNavigationRibbon
+            activeSection={activeSection}
+            canManageOffward={canManageOffward === true}
+            onExpandedChange={setIsPublicNavigationExpanded}
+          />
+        )}
         {isManagementPage ? <Outlet /> : <div className="app-shell-content"><Outlet /></div>}
       </main>
       {!isManagementPage && <Footer />}

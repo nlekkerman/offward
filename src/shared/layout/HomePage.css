@@ -39,20 +39,25 @@
   }
 
   .app-shell-public {
-    --public-nav-width: 54px;
+    --public-nav-collapsed-width: 54px;
+    --public-nav-expanded-width: 206px;
+    --public-nav-width: var(--public-nav-collapsed-width);
   }
 
-  .app-shell-public:has(.home-navigation-ribbon:not(.is-collapsed):hover, .home-navigation-ribbon:not(.is-collapsed):has(:focus-visible)) {
-    --public-nav-width: 206px;
+  .app-shell-public main.is-navigation-expanded {
+    --public-nav-width: var(--public-nav-expanded-width);
   }
 
   .app-shell-public main {
     display: grid;
+    width: 100%;
+    min-width: 0;
     grid-template-columns: var(--public-nav-width) minmax(0, 1fr);
     transition: grid-template-columns 220ms ease;
   }
 
   .app-shell-content {
+    width: 100%;
     min-width: 0;
   }
 
