@@ -38,8 +38,9 @@ function AppShell() {
   const { pathname, search, key: locationKey } = useLocation()
   const activeSection = getActiveSection(pathname, search)
   const isManagementPage = pathname === '/manage' || pathname.startsWith('/manage/')
+  const mobileBreakpoint = isManagementPage ? 600 : 1079
   const isDetailHeroPage = /^\/(?:routes|places|stories|food)\/[^/]+\/?$/.test(pathname)
-  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 600px)').matches)
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(`(max-width: ${mobileBreakpoint}px)`).matches)
   const [menuLocation, setMenuLocation] = useState(null)
   const isMenuOpen = isMobile && menuLocation === locationKey
   const headerRef = useRef(null)
@@ -49,14 +50,15 @@ function AppShell() {
   const [canManageOffward, setCanManageOffward] = useState(null)
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 600px)')
+    const mediaQuery = window.matchMedia(`(max-width: ${mobileBreakpoint}px)`)
     function handleBreakpointChange(event) {
       setIsMobile(event.matches)
       setMenuLocation(null)
     }
+    setIsMobile(mediaQuery.matches)
     mediaQuery.addEventListener('change', handleBreakpointChange)
     return () => mediaQuery.removeEventListener('change', handleBreakpointChange)
-  }, [])
+  }, [mobileBreakpoint])
 
   useEffect(() => {
     if (!isMenuOpen) return
@@ -96,11 +98,11 @@ function AppShell() {
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKeyDown)
       document.removeEventListener('pointerdown', handlePointerDown)
-      if (menuButton?.isConnected && window.matchMedia('(max-width: 600px)').matches) {
+      if (menuButton?.isConnected && window.matchMedia(`(max-width: ${mobileBreakpoint}px)`).matches) {
         menuButton.focus()
       }
     }
-  }, [isMenuOpen])
+  }, [isMenuOpen, mobileBreakpoint])
 
   useEffect(() => {
     let isMounted = true
