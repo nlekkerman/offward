@@ -8,6 +8,7 @@ import CountryEntityPreview from './CountryEntityPreview.jsx'
 import '../features/explore/explore.css'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import { getContentDescription } from '../shared/utils/publicUrls.js'
+import usePublicDetailPageView from '../shared/hooks/usePublicDetailPageView.js'
 
 function getCountryTitle(country, slug) {
   return country.name || slug.replace(/[-_]+/g, ' ')
@@ -17,6 +18,7 @@ function CountryPage() {
   const { countrySlug } = useParams()
   const [country, setCountry] = useState(undefined)
   const [error, setError] = useState(false)
+  const [loadedCountrySlug, setLoadedCountrySlug] = useState(null)
 
   useEffect(() => {
     let isCurrent = true
@@ -29,10 +31,12 @@ function CountryPage() {
         const data = await getCountryBySlug(countrySlug)
         if (isCurrent) {
           setCountry(data)
+          setLoadedCountrySlug(countrySlug)
         }
       } catch {
         if (isCurrent) {
           setError(true)
+          setLoadedCountrySlug(countrySlug)
         }
       }
     }
@@ -43,6 +47,15 @@ function CountryPage() {
       isCurrent = false
     }
   }, [countrySlug])
+
+  const countryStatus = loadedCountrySlug !== countrySlug
+    ? 'loading'
+    : error
+      ? 'error'
+      : country
+        ? 'success'
+        : 'not-found'
+  usePublicDetailPageView(countryStatus, null)
 
   if (error) {
     return <section className="explore-page">Unable to load this country.</section>

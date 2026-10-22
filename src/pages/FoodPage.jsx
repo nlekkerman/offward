@@ -16,6 +16,7 @@ import ShareControl from '../shared/components/ShareControl.jsx'
 import { findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import NotFoundPage from './NotFoundPage.jsx'
+import usePublicDetailPageView from '../shared/hooks/usePublicDetailPageView.js'
 import '../features/food/food.css'
 
 function orderedRows(rows) {
@@ -47,6 +48,7 @@ function FoodPage() {
 
   const status = result.slug === slug ? result.status : 'loading'
   const food = result.slug === slug ? result.food : null
+  usePublicDetailPageView(status, 'food', food)
   const openGallery = async (preview, startIndex = 0) => {
     const id = String(preview.id || '')
     if (!id || galleryPending.current.has(id)) return

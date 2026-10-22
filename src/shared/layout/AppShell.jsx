@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { getOffwardAccess } from '../../services/authApi.js'
+import PublicPageAnalyticsObserver from '../components/PublicPageAnalyticsObserver.jsx'
 import desktopLogo from '../../assets/images/home/logo_offward.webp'
 import mobileLogo from '../../assets/images/home/logo_arrow_only.webp'
 import HomeNavigationRibbon from './HomeNavigationRibbon.jsx'
@@ -120,6 +121,7 @@ function AppShell() {
 
   return (
     <div className={`app-shell${isManagementPage ? '' : ' app-shell-public'}${pathname === '/' ? ' app-shell-home' : ''}${isDetailHeroPage ? ' app-shell-detail-hero' : ''}`}>
+      <PublicPageAnalyticsObserver />
       {!isManagementPage && (
         <div className="visitor-notice">
           <p>Offward is currently in testing. Content and features may change.</p>

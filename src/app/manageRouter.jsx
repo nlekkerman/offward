@@ -11,6 +11,7 @@ import GalleryEditPage from '../pages/manage/galleries/GalleryEditPage.jsx'
 import GalleryListPage from '../pages/manage/galleries/GalleryListPage.jsx'
 import ContactMessageDetailPage from '../pages/manage/contactMessages/ContactMessageDetailPage.jsx'
 import ContactMessagesListPage from '../pages/manage/contactMessages/ContactMessagesListPage.jsx'
+import ManageStatisticsPage from '../pages/manage/ManageStatisticsPage.jsx'
 
 import EntityListPage from '../features/management/EntityListPage.jsx'
 import EntityFormPage from '../features/management/EntityFormPage.jsx'
@@ -24,6 +25,7 @@ function ManageRouter() {
       <Route element={<ManagementGuard />}>
         <Route element={<ManageLayout />}>
           <Route index element={<ManageDashboardPage />} />
+          <Route path="statistics" element={<ManageStatisticsPage />} />
           <Route path="foods" element={<EntityListPage resourceKey="foods" title="Food" />} />
           <Route path="foods/new" element={<EntityFormPage resourceKey="foods" title="Create Food" />} />
           <Route path="foods/:id/edit" element={<EntityFormPage resourceKey="foods" title="Edit Food" />} />

@@ -18,6 +18,7 @@ import { getPublicRoutes } from '../services/routesApi.js'
 import { getPublicStoryBySlug } from '../services/storiesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import NotFoundPage from './NotFoundPage.jsx'
+import usePublicDetailPageView from '../shared/hooks/usePublicDetailPageView.js'
 
 function formatPublishedDate(value) {
   if (!value) {
@@ -96,6 +97,7 @@ function StoryPage() {
 
   const storyStatus = storyResult.slug === storySlug ? storyResult.status : 'loading'
   const story = storyResult.slug === storySlug ? storyResult.story : null
+  usePublicDetailPageView(storyStatus, 'story', story)
   const mediaIds = useMemo(() => (Array.isArray(story?.media_ids) ? story.media_ids : []), [story])
   const placeIds = useMemo(() => (Array.isArray(story?.place_ids) ? story.place_ids : []), [story])
   const routeIds = useMemo(() => (Array.isArray(story?.route_ids) ? story.route_ids : []), [story])

@@ -6,6 +6,7 @@ import usePublicCountries from './usePublicCountries.js'
 import CompactRelatedEntityCard from '../../shared/components/CompactRelatedEntityCard.jsx'
 import { findCountry } from '../../shared/utils/country.js'
 import { formatCountryLabel } from '../home/latestContentFormatting.js'
+import { trackInteraction } from '../../services/analytics.js'
 
 function useCatalog(catalog, enabled) {
   const state = useSyncExternalStore(catalog.subscribe, catalog.getSnapshot, catalog.getSnapshot)
@@ -27,7 +28,7 @@ function RelationshipGroup({ ids, catalog, title, path }) {
     <section className="food-related-content" aria-label={`Related ${title}`}>
       <h2>Related {title}</h2>
       {found.length > 0 && (path === 'stories'
-        ? <ul className="food-link-list">{found.map((record) => <li key={record.id}><Link to={`/${path}/${encodeURIComponent(record.slug)}`}>{record.title || record.name || title}</Link></li>)}</ul>
+        ? <ul className="food-link-list">{found.map((record) => <li key={record.id}><Link to={`/${path}/${encodeURIComponent(record.slug)}`} onClick={() => trackInteraction('related_content', 'story', record.id)}>{record.title || record.name || title}</Link></li>)}</ul>
         : <div className="compact-related-grid">{found.map((record) => {
           const country = findCountry(countries, record.country)
           const countryLabel = country?.name || formatCountryLabel(record.country)

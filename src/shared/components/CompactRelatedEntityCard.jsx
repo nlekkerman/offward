@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { collectionPreview, firstCollectionPreview, imagePreviewUrl, imageUrl } from '../../features/management/imageCollectionUtils.js'
 import CountryFlag from './CountryFlag.jsx'
 import LocationPinFallback from './LocationPinFallback.jsx'
+import { trackInteraction } from '../../services/analytics.js'
 
 function getPreview(entity, entityType) {
   if (entityType === 'Place') return firstCollectionPreview(entity?.image_collections)
@@ -30,7 +31,16 @@ function CompactRelatedEntityCard({
   const metaLabel = [countryLabel, activityLabel].filter(Boolean).join(' · ')
 
   return (
-    <Link to={href} className="compact-related-card">
+    <Link
+      to={href}
+      className="compact-related-card"
+      onClick={() => {
+        const contentType = entityType?.toLowerCase()
+        if (contentType === 'place' || contentType === 'route') {
+          trackInteraction('related_content', contentType, entity?.id)
+        }
+      }}
+    >
       <span className="compact-related-card-media">
         {hasPreview
           ? <img src={preview} alt="" loading="lazy" onError={() => setFailedPreview(preview)} />

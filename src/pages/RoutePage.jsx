@@ -24,6 +24,8 @@ import ImageLightbox from '../shared/components/ImageLightbox.jsx'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import useUserLocation from '../shared/hooks/useUserLocation.js'
+import usePublicDetailPageView from '../shared/hooks/usePublicDetailPageView.js'
+import { trackInteraction } from '../services/analytics.js'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import VideoPlayerDialog from '../features/video/VideoPlayerDialog.jsx'
@@ -93,6 +95,7 @@ function RoutePage() {
   const [routeResult, setRouteResult] = useState({ slug: null, status: 'loading', route: null })
   const routeStatus = routeResult.slug === routeSlug ? routeResult.status : 'loading'
   const route = routeResult.slug === routeSlug ? routeResult.route : null
+  usePublicDetailPageView(routeStatus, 'route', route)
   const [countries, setCountries] = useState([])
   const [countriesStatus, setCountriesStatus] = useState('loading')
   const [selectedWaypointId, setSelectedWaypointId] = useState(null)
@@ -402,7 +405,8 @@ function RoutePage() {
   const locateCurrentPosition = () => {
     locateLocation(() => setLocationCenterRequest((current) => current + 1))
   }
-  const startFollowing = () => {
+  const startFollowing = (countActivation = true) => {
+    if (countActivation) trackInteraction('track', 'route', route?.id)
     setIndependentTracking(true)
     setLocationFollowing(true)
     if (!locationActive) startLocation()
@@ -411,8 +415,9 @@ function RoutePage() {
     setIndependentTracking(false)
     setLocationFollowing(false)
   }
-  const startDirections = () => {
+  const startDirections = (countActivation = true) => {
     if (!canonicalStartWaypoint) return
+    if (countActivation) trackInteraction('directions', 'route', route?.id)
     arrivalDetectorRef.current.reset()
     if (!locationActive) startLocation()
     setDirectionsStatus({ status: 'locating' })
@@ -431,9 +436,9 @@ function RoutePage() {
   }
   const retryLocation = () => {
     if (directionsSessionActive) {
-      startDirections()
+      startDirections(false)
     } else if (independentTracking) {
-      startFollowing()
+      startFollowing(false)
     } else {
       locateCurrentPosition()
     }

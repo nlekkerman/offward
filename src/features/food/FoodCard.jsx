@@ -3,6 +3,7 @@ import { collectionPreview, imagePreviewUrl, imageUrl } from '../management/imag
 import { formatActivityLabel, formatCountryLabel, formatPublishedDate } from '../home/latestContentFormatting.js'
 import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
+import { trackInteraction } from '../../services/analytics.js'
 import './food.css'
 
 function FoodCard({ food, countries = [], compact = false, showCountry = true }) {
@@ -14,7 +15,11 @@ function FoodCard({ food, countries = [], compact = false, showCountry = true })
   const date = formatPublishedDate(food.published_at)
   if (!food.slug) return null
   return (
-    <Link className={`food-card${compact ? ' food-card-compact' : ''}`} to={`/food/${encodeURIComponent(food.slug)}`}>
+    <Link
+      className={`food-card${compact ? ' food-card-compact' : ''}`}
+      to={`/food/${encodeURIComponent(food.slug)}`}
+      onClick={compact ? () => trackInteraction('related_content', 'food', food.id) : undefined}
+    >
       {preview && <div className="food-card-media"><img src={preview} alt="" loading="lazy" /></div>}
       <div className="food-card-copy">
         <p className="eyebrow">{formatActivityLabel(food.food_type) || 'Food'}</p>

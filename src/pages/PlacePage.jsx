@@ -21,6 +21,8 @@ import DetailHero from '../shared/components/DetailHero.jsx'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import useUserLocation from '../shared/hooks/useUserLocation.js'
+import usePublicDetailPageView from '../shared/hooks/usePublicDetailPageView.js'
+import { trackInteraction } from '../services/analytics.js'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import NotFoundPage from './NotFoundPage.jsx'
@@ -246,6 +248,7 @@ function PlacePage() {
   }
 
   const placeStatus = placeResult.slug === placeSlug ? placeResult.status : 'loading'
+  usePublicDetailPageView(placeStatus, 'place', place)
 
   if (placeStatus === 'loading') {
     return <section className="place-detail-page"><p className="place-detail-status" role="status">Loading place...</p></section>
@@ -281,7 +284,8 @@ function PlacePage() {
   const locateCurrentPosition = () => {
     locateLocation(() => setLocationCenterRequest((current) => current + 1))
   }
-  const startFollowing = () => {
+  const startFollowing = (countActivation = true) => {
+    if (countActivation) trackInteraction('track', 'place', place?.id)
     setIndependentTracking(true)
     if (hasManualAccessPath) setAccessPathVisible(true)
     setLocationFollowing(true)
@@ -298,15 +302,16 @@ function PlacePage() {
   }
   const retryLocation = () => {
     if (directionsActive) {
-      startDirections()
+      startDirections(false)
     } else if (independentTracking) {
-      startFollowing()
+      startFollowing(false)
     } else {
       locateCurrentPosition()
     }
   }
-  const startDirections = () => {
+  const startDirections = (countActivation = true) => {
     if (!directionsAvailable) return
+    if (countActivation) trackInteraction('directions', 'place', place?.id)
     setDirectionsStatus({ status: 'locating' })
     setDirectionsRoute(null)
     setPlaceJourneyPhase(null)

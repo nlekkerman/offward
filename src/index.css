@@ -1091,6 +1091,151 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   color: #d8b47c;
 }
 
+.management-statistics-periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.management-statistics-periods .is-selected {
+  border-color: #d8b47c;
+  color: #d8b47c;
+}
+
+.management-statistics-range,
+.management-statistics-definition {
+  color: #c3c7be;
+  font: 0.9rem/1.5 sans-serif;
+}
+
+.management-statistics-definition {
+  margin-top: -0.35rem;
+}
+
+.management-statistics-summary,
+.management-statistics-content-grid,
+.management-statistics-interactions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1rem;
+}
+
+.management-statistics-summary {
+  margin: 1.25rem 0 2rem;
+}
+
+.management-statistics-summary-card,
+.management-statistics-card,
+.management-statistics-interactions > div {
+  min-width: 0;
+  padding: 1.25rem;
+  background: linear-gradient(180deg, #1d201b, #151813);
+  border: 1px solid #353b35;
+  border-radius: 1rem;
+}
+
+.management-statistics-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.management-statistics-summary-card span,
+.management-statistics-interactions dt {
+  color: #c3c7be;
+  font: 0.9rem/1.4 sans-serif;
+}
+
+.management-statistics-summary-card strong {
+  color: #d8b47c;
+  font: 600 clamp(1.8rem, 5vw, 2.5rem)/1.1 sans-serif;
+}
+
+.management-statistics-section {
+  margin-top: 2rem;
+}
+
+.management-statistics-section > h2 {
+  margin: 0 0 1rem;
+}
+
+.management-statistics-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #353b35;
+  border-radius: 0.75rem;
+}
+
+.management-statistics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 0.9rem/1.45 sans-serif;
+  text-align: left;
+}
+
+.management-statistics-table caption {
+  padding: 0.85rem 1rem;
+  color: #c3c7be;
+  text-align: left;
+}
+
+.management-statistics-table :is(th, td) {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #353b35;
+  white-space: nowrap;
+}
+
+.management-statistics-table thead th,
+.management-statistics-table tbody th {
+  color: #e8e4db;
+  font-weight: 600;
+}
+
+.management-statistics-card h3 {
+  margin: 0 0 0.75rem;
+  color: #d8b47c;
+}
+
+.management-statistics-card ol {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding-left: 1.35rem;
+  font: 0.9rem/1.4 sans-serif;
+}
+
+.management-statistics-card li {
+  padding-left: 0.2rem;
+}
+
+.management-statistics-card li span {
+  overflow-wrap: anywhere;
+}
+
+.management-statistics-card li strong {
+  margin-left: 0.5rem;
+  color: #d8b47c;
+  white-space: nowrap;
+}
+
+.management-statistics-empty {
+  margin: 0;
+  color: #c3c7be;
+  font: 0.9rem/1.4 sans-serif;
+}
+
+.management-statistics-interactions > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.management-statistics-interactions dd {
+  margin: 0;
+  color: #d8b47c;
+  font: 600 1.5rem/1 sans-serif;
+}
+
 .management-empty,
 .management-error,
 .management-loading {
