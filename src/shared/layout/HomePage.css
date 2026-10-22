@@ -42,7 +42,7 @@
     --public-nav-width: 54px;
   }
 
-  .app-shell-public:has(.home-navigation-ribbon:hover, .home-navigation-ribbon:focus-within) {
+  .app-shell-public:has(.home-navigation-ribbon:not(.is-collapsed):hover, .home-navigation-ribbon:not(.is-collapsed):has(:focus-visible)) {
     --public-nav-width: 206px;
   }
 
@@ -79,8 +79,8 @@
     grid-template-rows: repeat(9, minmax(0, 1fr));
   }
 
-  .home-navigation-ribbon:hover,
-  .home-navigation-ribbon:focus-within {
+  .home-navigation-ribbon:not(.is-collapsed):hover,
+  .home-navigation-ribbon:not(.is-collapsed):has(:focus-visible) {
     width: 206px;
     background: rgba(0, 0, 0, 0.7);
   }
@@ -111,8 +111,8 @@
     border-bottom-color: rgba(229, 238, 239, 0.3);
   }
 
-  .home-navigation-ribbon:hover .home-navigation-link,
-  .home-navigation-ribbon:focus-within .home-navigation-link {
+  .home-navigation-ribbon:not(.is-collapsed):hover .home-navigation-link,
+  .home-navigation-ribbon:not(.is-collapsed):has(:focus-visible) .home-navigation-link {
     justify-content: flex-start;
     gap: 11px;
     padding-inline: 16px;
@@ -158,8 +158,8 @@
     transition: max-width 200ms ease, opacity 160ms ease;
   }
 
-  .home-navigation-ribbon:hover .home-navigation-label,
-  .home-navigation-ribbon:focus-within .home-navigation-label {
+  .home-navigation-ribbon:not(.is-collapsed):hover .home-navigation-label,
+  .home-navigation-ribbon:not(.is-collapsed):has(:focus-visible) .home-navigation-label {
     max-width: 150px;
     opacity: 1;
   }
@@ -191,8 +191,8 @@
     visibility: visible;
   }
 
-  .home-navigation-ribbon:hover .home-navigation-link::after,
-  .home-navigation-ribbon:focus-within .home-navigation-link::after {
+  .home-navigation-ribbon:not(.is-collapsed):hover .home-navigation-link::after,
+  .home-navigation-ribbon:not(.is-collapsed):has(:focus-visible) .home-navigation-link::after {
     display: none;
   }
 }
@@ -204,8 +204,8 @@
     flex-basis: 18px;
   }
 
-  .home-navigation-ribbon:hover .home-navigation-link,
-  .home-navigation-ribbon:focus-within .home-navigation-link {
+  .home-navigation-ribbon:not(.is-collapsed):hover .home-navigation-link,
+  .home-navigation-ribbon:not(.is-collapsed):has(:focus-visible) .home-navigation-link {
     gap: 9px;
     padding-inline: 12px;
   }
@@ -222,8 +222,8 @@
     flex-basis: 15px;
   }
 
-  .home-navigation-ribbon:hover .home-navigation-link,
-  .home-navigation-ribbon:focus-within .home-navigation-link {
+  .home-navigation-ribbon:not(.is-collapsed):hover .home-navigation-link,
+  .home-navigation-ribbon:not(.is-collapsed):has(:focus-visible) .home-navigation-link {
     gap: 7px;
     padding-inline: 9px;
   }

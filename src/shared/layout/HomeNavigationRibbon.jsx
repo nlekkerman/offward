@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import './HomePage.css'
 
@@ -16,9 +17,18 @@ const HOME_NAV_LINKS = [
 function HomeNavigationRibbon({ activeSection, canManageOffward }) {
   const { pathname, search } = useLocation()
   const params = new URLSearchParams(search)
+  const [isCollapsedAfterClick, setIsCollapsedAfterClick] = useState(false)
 
   return (
-    <nav className={`home-navigation-ribbon${canManageOffward ? ' has-management' : ''}`} aria-label="Primary navigation">
+    <nav
+      className={`home-navigation-ribbon${canManageOffward ? ' has-management' : ''}${isCollapsedAfterClick ? ' is-collapsed' : ''}`}
+      aria-label="Primary navigation"
+      onPointerLeave={() => setIsCollapsedAfterClick(false)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setIsCollapsedAfterClick(false)
+      }}
+      onClick={() => setIsCollapsedAfterClick(true)}
+    >
       {canManageOffward && (
         <Link
           className={`home-navigation-link home-navigation-management-link${activeSection === 'manage' ? ' is-active' : ''}`}
