@@ -424,15 +424,6 @@ function RoutePage() {
     setDirectionsMode('walking')
     setDirectionsStatus(null)
   }
-  const stopTracking = () => {
-    arrivalDetectorRef.current.reset()
-    setIndependentTracking(false)
-    stopLocation()
-    setNavigationState('idle')
-    setLocationFollowing(false)
-    setDirectionsMode('walking')
-    setDirectionsStatus(null)
-  }
   const recenterOnLocation = () => {
     if (!userPosition) return
     setLocationFollowing(true)
@@ -524,115 +515,106 @@ function RoutePage() {
         <section className="route-map-section" aria-labelledby="route-map-title">
           <div className="route-map-heading">
             <h2 id="route-map-title">Route Map</h2>
-            <details className="public-map-actions-menu">
-              <summary className="public-map-actions-trigger">Actions</summary>
-              <div className="public-map-actions-content">
-                <div className="route-directions-controls">
-              <button
-                type="button"
-                className={`route-directions-button ${directionsActive ? 'danger-button' : 'primary-button'}`}
-                onClick={directionsActive ? stopDirections : startDirections}
-                disabled={!directionsActive && !canonicalStartWaypoint}
-                aria-describedby={(directionsStatus || !canonicalStartWaypoint) ? 'route-directions-feedback' : undefined}
-              >
-                {directionsActive ? 'Stop directions' : 'Directions to start'}
-              </button>
-              {!canonicalStartWaypoint && (
-                <p className="route-directions-feedback" id="route-directions-feedback">
-                  Directions are unavailable because this Route does not have exactly one valid, Route-owned starting waypoint.
-                </p>
+            <div className="public-map-controls">
+              <div className="public-map-action-bar" role="group" aria-label="Map actions">
+                <button
+                  type="button"
+                  className={`public-map-action public-map-action-directions${directionsActive ? ' is-active' : ''}`}
+                  onClick={directionsActive ? stopDirections : startDirections}
+                  disabled={!directionsActive && !canonicalStartWaypoint}
+                  aria-describedby={(directionsStatus || !canonicalStartWaypoint) ? 'route-directions-feedback' : undefined}
+                  aria-label={directionsActive ? 'Directions are active. Stop directions to the Route start' : 'Start directions to the Route'}
+                  aria-pressed={directionsActive}
+                >
+                  Directions
+                  {directionsActive && <span className="public-map-action-state" aria-hidden="true">On</span>}
+                </button>
+                <button
+                  type="button"
+                  className={`public-map-action public-map-action-you${locationLoading ? ' is-loading' : ''}`}
+                  onClick={locateCurrentPosition}
+                  disabled={locationLoading || locationActive}
+                  aria-label={locationLoading ? 'Locating your position' : 'Show your location'}
+                  aria-busy={locationLoading}
+                >
+                  {locationLoading && <span className="public-map-location-spinner" aria-hidden="true" />}
+                  You
+                </button>
+                <button
+                  type="button"
+                  className={`public-map-action public-map-action-track${independentTracking ? ' is-active' : ''}`}
+                  onClick={independentTracking ? stopFollowing : startFollowing}
+                  aria-label={independentTracking ? 'Stop continuous location tracking' : 'Start continuous location tracking'}
+                  aria-pressed={independentTracking}
+                >
+                  {independentTracking && <span className="public-map-track-dot" aria-hidden="true" />}
+                  {independentTracking ? 'Stop Track' : 'Track'}
+                </button>
+              </div>
+              {userPosition && (
+                <button type="button" className="public-map-recenter" onClick={recenterOnLocation}>
+                  Recenter
+                </button>
               )}
-              {directionsActive && (
-                <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
-                  <button
-                    type="button"
-                    className="route-directions-mode"
-                    aria-pressed={directionsMode === 'walking'}
-                    onClick={() => handleTravelModeChange('walking')}
-                  >
-                    Walking
-                  </button>
-                  <button
-                    type="button"
-                    className="route-directions-mode"
-                    aria-pressed={directionsMode === 'driving'}
-                    onClick={() => handleTravelModeChange('driving')}
-                  >
-                    Driving
-                  </button>
-                </div>
-              )}
-              {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
-                <p className="route-directions-feedback" id="route-directions-feedback" role="status">Waiting for your location...</p>
-              )}
-              {directionsActive && directionsStatus?.status === 'routing' && (
-                <p className="route-directions-feedback" id="route-directions-feedback" role="status">
-                  Calculating {directionsMode === 'walking' ? 'walking' : 'driving'} directions...
-                </p>
-              )}
-              {directionsActive && directionsStatus?.status === 'too-far' && (
-                <p className="route-directions-feedback" id="route-directions-feedback" role="status">
-                  You're more than {MAX_LOCAL_DIRECTIONS_KM} km from this Route's starting point. Directions are available when you're closer.
-                </p>
-              )}
-              {directionsActive && directionsStatus?.status === 'ready' && (
-                <p className="route-directions-feedback" id="route-directions-feedback" role="status">
-                  {directionsMode === 'walking' ? 'Walking' : 'Driving'} route: {directionsStatus.distanceKm.toFixed(1)} km
-                </p>
-              )}
-              {directionsStatus?.status === 'error' && (
-                <p className="route-directions-feedback is-error" id="route-directions-feedback" role="alert">
-                  {directionsStatus.message}
-                </p>
-              )}
-              {locationError && (
-                <p className="route-directions-feedback is-error" role="alert">
-                  {locationError}{' '}
-                  <button type="button" className="route-directions-mode" onClick={retryLocation}>
-                    Retry location
-                  </button>
-                </p>
-              )}
-                </div>
-                <div className="route-header-location-controls" role="group" aria-label="Location tracking controls">
-                  {!directionsSessionActive && (
-                    <>
-                      <button
-                        type="button"
-                        className="route-location-control"
-                        onClick={locateCurrentPosition}
-                        disabled={locationLoading || locationActive}
-                      >
-                        {locationLoading ? 'Locating...' : 'Where Am I?'}
-                      </button>
-                      {independentTracking ? (
-                        <button type="button" className="route-location-control" onClick={stopFollowing}>
-                          Stop Following
-                        </button>
-                      ) : (
-                        <button type="button" className="route-location-control" onClick={startFollowing}>
-                          Follow Me
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {userPosition && (
+              <div className="public-map-secondary-controls">
+                {directionsActive && (
+                  <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
                     <button
                       type="button"
-                      className="route-location-control"
-                      onClick={recenterOnLocation}
+                      className="route-directions-mode"
+                      aria-pressed={directionsMode === 'walking'}
+                      onClick={() => handleTravelModeChange('walking')}
                     >
-                      Recenter
+                      Walking
                     </button>
-                  )}
-                  {directionsSessionActive && (
-                    <button type="button" className="route-location-control" onClick={stopTracking}>
-                      Stop tracking
+                    <button
+                      type="button"
+                      className="route-directions-mode"
+                      aria-pressed={directionsMode === 'driving'}
+                      onClick={() => handleTravelModeChange('driving')}
+                    >
+                      Driving
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
+                {!canonicalStartWaypoint && (
+                  <p className="route-directions-feedback" id="route-directions-feedback">
+                    Directions are unavailable because this Route does not have exactly one valid, Route-owned starting waypoint.
+                  </p>
+                )}
+                {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
+                  <p className="route-directions-feedback" id="route-directions-feedback" role="status">Waiting for your location...</p>
+                )}
+                {directionsActive && directionsStatus?.status === 'routing' && (
+                  <p className="route-directions-feedback" id="route-directions-feedback" role="status">
+                    Calculating {directionsMode === 'walking' ? 'walking' : 'driving'} directions...
+                  </p>
+                )}
+                {directionsActive && directionsStatus?.status === 'too-far' && (
+                  <p className="route-directions-feedback" id="route-directions-feedback" role="status">
+                    You're more than {MAX_LOCAL_DIRECTIONS_KM} km from this Route's starting point. Directions are available when you're closer.
+                  </p>
+                )}
+                {directionsActive && directionsStatus?.status === 'ready' && (
+                  <p className="route-directions-feedback" id="route-directions-feedback" role="status">
+                    {directionsMode === 'walking' ? 'Walking' : 'Driving'} route: {directionsStatus.distanceKm.toFixed(1)} km
+                  </p>
+                )}
+                {directionsStatus?.status === 'error' && (
+                  <p className="route-directions-feedback is-error" id="route-directions-feedback" role="alert">
+                    {directionsStatus.message}
+                  </p>
+                )}
+                {locationError && (
+                  <p className="route-directions-feedback is-error" role="alert">
+                    {locationError}{' '}
+                    <button type="button" className="route-directions-mode" onClick={retryLocation}>
+                      Retry location
+                    </button>
+                  </p>
+                )}
               </div>
-            </details>
+            </div>
           </div>
           {(!route.geometry || route.is_map_renderable === false) && <p className="route-map-message">This Route does not yet have a published map path.</p>}
           {hasMalformedGeometry && <p className="route-map-message" role="status">The published map path could not be displayed.</p>}

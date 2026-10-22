@@ -389,106 +389,108 @@ function PlacePage() {
         <section className="place-detail-map-section" aria-labelledby="place-map-title">
           <div className="route-map-heading">
             <div><p className="eyebrow">MAP</p><h2 id="place-map-title">Place location</h2></div>
-            <details className="public-map-actions-menu">
-              <summary className="public-map-actions-trigger">Actions</summary>
-              <div className="public-map-actions-content">
-                <div className="route-directions-controls">
-              <button
-                type="button"
-                className={`route-directions-button ${directionsActive ? 'danger-button' : 'primary-button'}`}
-                onClick={directionsActive ? stopDirections : startDirections}
-                disabled={!directionsActive && !directionsAvailable}
-                aria-describedby={directionsStatus || !directionsAvailable || locationError ? 'place-directions-feedback' : undefined}
-              >
-                {directionsActive ? 'Stop directions' : 'Directions to place'}
-              </button>
-              {!directionsAvailable && (
-                <p className="route-directions-feedback" id="place-directions-feedback">
-                  Directions are unavailable because this Place does not have valid coordinates.
-                </p>
+            <div className="public-map-controls">
+              <div className="public-map-action-bar" role="group" aria-label="Map actions">
+                <button
+                  type="button"
+                  className={`public-map-action public-map-action-directions${directionsActive ? ' is-active' : ''}`}
+                  onClick={directionsActive ? stopDirections : startDirections}
+                  disabled={!directionsActive && !directionsAvailable}
+                  aria-describedby={directionsStatus || !directionsAvailable || locationError ? 'place-directions-feedback' : undefined}
+                  aria-label={directionsActive ? 'Directions are active. Stop directions to the Place' : 'Start directions to the Place'}
+                  aria-pressed={directionsActive}
+                >
+                  Directions
+                  {directionsActive && <span className="public-map-action-state" aria-hidden="true">On</span>}
+                </button>
+                <button
+                  type="button"
+                  className={`public-map-action public-map-action-you${locationLoading ? ' is-loading' : ''}`}
+                  onClick={locateCurrentPosition}
+                  disabled={locationLoading || locationActive}
+                  aria-label={locationLoading ? 'Locating your position' : 'Show your location'}
+                  aria-busy={locationLoading}
+                >
+                  {locationLoading && <span className="public-map-location-spinner" aria-hidden="true" />}
+                  You
+                </button>
+                <button
+                  type="button"
+                  className={`public-map-action public-map-action-track${independentTracking ? ' is-active' : ''}`}
+                  onClick={independentTracking ? stopFollowing : startFollowing}
+                  aria-label={independentTracking ? 'Stop continuous location tracking' : 'Start continuous location tracking'}
+                  aria-pressed={independentTracking}
+                >
+                  {independentTracking && <span className="public-map-track-dot" aria-hidden="true" />}
+                  {independentTracking ? 'Stop Track' : 'Track'}
+                </button>
+              </div>
+              {userPosition && (
+                <button type="button" className="public-map-recenter" onClick={recenterOnLocation}>
+                  Recenter
+                </button>
               )}
-              {directionsActive && (!hasManualAccessPath ||
-                (initialMarkerDistanceKm > 1 && initialMarkerDistanceKm <= 5 &&
-                  placeJourneyPhase !== 'walking-after-driving')) && (
-                <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
-                  <button
-                    type="button"
-                    className="route-directions-mode"
-                    aria-pressed={directionsMode === 'walking'}
-                    onClick={() => handleTravelModeChange('walking')}
-                  >
-                    Walking
-                  </button>
-                  <button
-                    type="button"
-                    className="route-directions-mode"
-                    aria-pressed={directionsMode === 'driving'}
-                    onClick={() => handleTravelModeChange('driving')}
-                  >
-                    Driving
-                  </button>
-                </div>
-              )}
-              {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
-                <p className="route-directions-feedback" id="place-directions-feedback" role="status">Waiting for your location...</p>
-              )}
-              {directionsActive && directionsStatus?.status === 'routing' && (
-                <p className="route-directions-feedback" id="place-directions-feedback" role="status">
-                  Calculating {directionsMode} directions...
-                </p>
-              )}
-              {directionsActive && !hasManualAccessPath && directionsStatus?.status === 'too-far' && (
-                <p className="route-directions-feedback" id="place-directions-feedback" role="status">
-                  You're more than {MAX_LOCAL_DIRECTIONS_KM} km from this Place. Directions are available when you're closer.
-                </p>
-              )}
-              {directionsActive && !hasManualAccessPath && directionsStatus?.status === 'ready' && (
-                <p className="route-directions-feedback" id="place-directions-feedback" role="status">
-                  {directionsMode === 'walking' ? 'Walking' : 'Driving'} route: {directionsStatus.distanceKm.toFixed(1)} km
-                </p>
-              )}
-              {directionsStatus?.status === 'error' && (
-                <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
-                  {directionsStatus.message}
-                </p>
-              )}
-              {locationError && (
-                <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
-                  {locationError}{' '}
-                  <button type="button" className="route-directions-mode" onClick={retryLocation}>
-                    Retry location
-                  </button>
-                </p>
-              )}
-                </div>
-                {!directionsActive && (
-                  <div className="route-header-location-controls" role="group" aria-label="Location tracking controls">
+              <div className="public-map-secondary-controls">
+                {directionsActive && (!hasManualAccessPath ||
+                  (initialMarkerDistanceKm > 1 && initialMarkerDistanceKm <= 5 &&
+                    placeJourneyPhase !== 'walking-after-driving')) && (
+                  <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
                     <button
                       type="button"
-                      className="route-location-control"
-                      onClick={locateCurrentPosition}
-                      disabled={locationLoading || locationActive}
+                      className="route-directions-mode"
+                      aria-pressed={directionsMode === 'walking'}
+                      onClick={() => handleTravelModeChange('walking')}
                     >
-                      {locationLoading ? 'Locating...' : 'Where Am I?'}
+                      Walking
                     </button>
-                    {independentTracking ? (
-                      <button type="button" className="route-location-control" onClick={stopFollowing}>
-                        Stop Following
-                      </button>
-                    ) : (
-                      <button type="button" className="route-location-control" onClick={startFollowing}>
-                        Follow Me
-                      </button>
-                    )}
-                    {userPosition && (
-                      <button type="button" className="route-location-control" onClick={recenterOnLocation}>
-                        Recenter
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="route-directions-mode"
+                      aria-pressed={directionsMode === 'driving'}
+                      onClick={() => handleTravelModeChange('driving')}
+                    >
+                      Driving
+                    </button>
                   </div>
                 )}
+                {!directionsAvailable && (
+                  <p className="route-directions-feedback" id="place-directions-feedback">
+                    Directions are unavailable because this Place does not have valid coordinates.
+                  </p>
+                )}
+                {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
+                  <p className="route-directions-feedback" id="place-directions-feedback" role="status">Waiting for your location...</p>
+                )}
+                {directionsActive && directionsStatus?.status === 'routing' && (
+                  <p className="route-directions-feedback" id="place-directions-feedback" role="status">
+                    Calculating {directionsMode} directions...
+                  </p>
+                )}
+                {directionsActive && !hasManualAccessPath && directionsStatus?.status === 'too-far' && (
+                  <p className="route-directions-feedback" id="place-directions-feedback" role="status">
+                    You're more than {MAX_LOCAL_DIRECTIONS_KM} km from this Place. Directions are available when you're closer.
+                  </p>
+                )}
+                {directionsActive && !hasManualAccessPath && directionsStatus?.status === 'ready' && (
+                  <p className="route-directions-feedback" id="place-directions-feedback" role="status">
+                    {directionsMode === 'walking' ? 'Walking' : 'Driving'} route: {directionsStatus.distanceKm.toFixed(1)} km
+                  </p>
+                )}
+                {directionsStatus?.status === 'error' && (
+                  <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
+                    {directionsStatus.message}
+                  </p>
+                )}
+                {locationError && (
+                  <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
+                    {locationError}{' '}
+                    <button type="button" className="route-directions-mode" onClick={retryLocation}>
+                      Retry location
+                    </button>
+                  </p>
+                )}
               </div>
-            </details>
+            </div>
           </div>
           {directionsActive && hasManualAccessPath && placeJourneyPhase && (
             <section className="place-directions-summary" aria-label="Journey instructions">

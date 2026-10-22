@@ -278,34 +278,6 @@
   pointer-events: none;
 }
 
-.route-header-location-controls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 0.35rem;
-}
-
-.route-location-control {
-  min-height: 38px;
-  padding: 0.45rem 0.65rem;
-  border: 1px solid rgba(216, 180, 124, 0.75);
-  border-radius: 0.45rem;
-  background: rgba(18, 21, 16, 0.96);
-  color: #f2ece4;
-  cursor: pointer;
-  font: 700 0.74rem/1.2 sans-serif;
-}
-
-.route-location-control:focus-visible {
-  outline: 2px solid #d8b47c;
-  outline-offset: 2px;
-}
-
-.route-location-control:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
 .route-map-detail-overlay:hover,
 .route-map-detail-overlay:focus-visible {
   border-color: #d8b47c;
