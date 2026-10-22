@@ -24,13 +24,18 @@
 
 .map-basemap-control {
   position: absolute;
-  top: 5rem;
+  bottom: 0.75rem;
   left: 0.75rem;
-  z-index: 850;
+  z-index: 1000;
   display: grid;
-  justify-items: start;
+  grid-template-columns: max-content;
   gap: 0.35rem;
   max-width: calc(100% - 1.5rem);
+}
+
+.map-basemap-control .map-basemap-options {
+  grid-row: 2;
+  width: 8rem;
 }
 
 .map-basemap-trigger,
@@ -51,12 +56,15 @@
 }
 
 .map-basemap-trigger {
-  gap: 0.45rem;
+  grid-row: 3;
+  width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem;
 }
 
 .map-basemap-trigger svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.25rem;
+  height: 1.25rem;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -103,6 +111,7 @@
 }
 
 .map-basemap-error {
+  grid-row: 1;
   max-width: min(280px, calc(100vw - 3rem));
   margin: 0;
   padding: 0.45rem 0.6rem;
@@ -153,14 +162,14 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  min-height: 2.35rem;
-  padding: 0.45rem 0.65rem;
+  min-height: 2.1rem;
+  padding: 0.35rem 0.55rem;
   border: 1px solid rgba(216, 180, 124, 0.36);
   border-radius: 0.45rem;
   background: rgba(18, 21, 16, 0.94);
   color: #e7e0d5;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-  font: 700 0.76rem/1.2 sans-serif;
+  font: 700 0.72rem/1.2 sans-serif;
   cursor: pointer;
   backdrop-filter: blur(8px);
 }
@@ -269,26 +278,27 @@
   pointer-events: none;
 }
 
-.route-location-controls {
-  position: absolute;
-  left: 0.75rem;
-  bottom: 0.75rem;
-  z-index: 1000;
+.route-header-location-controls {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  max-width: calc(100% - 1.5rem);
+  justify-content: flex-start;
+  gap: 0.35rem;
 }
 
 .route-location-control {
-  min-height: 42px;
-  padding: 0.55rem 0.8rem;
+  min-height: 38px;
+  padding: 0.45rem 0.65rem;
   border: 1px solid rgba(216, 180, 124, 0.75);
   border-radius: 0.45rem;
   background: rgba(18, 21, 16, 0.96);
   color: #f2ece4;
   cursor: pointer;
+  font: 700 0.74rem/1.2 sans-serif;
+}
+
+.route-location-control:focus-visible {
+  outline: 2px solid #d8b47c;
+  outline-offset: 2px;
 }
 
 .route-location-control:disabled {
@@ -477,16 +487,8 @@
 
 @media (max-width: 699px) {
   .map-basemap-control {
-    top: 5rem;
-    left: 0.6rem;
-  }
-
-  .route-location-controls {
     left: 0.6rem;
     bottom: 0.6rem;
-    justify-content: flex-start;
-    gap: 0.35rem;
-    max-width: calc(100% - 1.2rem);
   }
 
   .route-map-sections-control {

@@ -133,6 +133,8 @@ function MapViewContent({
       <MapContainer
         center={center}
         zoom={zoom}
+        zoomControl={false}
+        keyboard={true}
         scrollWheelZoom={true}
         className="offward-map-inner"
       >
@@ -198,7 +200,6 @@ function MapViewContent({
               <path d="m12 3 9 5-9 5-9-5 9-5Z" />
               <path d="m3 12 9 5 9-5M3 16l9 5 9-5" />
             </svg>
-            <span>{activeBasemap.name}</span>
           </button>
           <div
             className="map-basemap-options"

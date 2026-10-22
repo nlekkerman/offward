@@ -3483,6 +3483,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .route-map-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -3493,6 +3494,81 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   margin: 0.35rem 0 0;
   color: #f2ece4;
   font: 600 1.25rem/1.2 sans-serif;
+}
+
+.public-map-actions-menu {
+  min-width: 0;
+  margin-left: auto;
+}
+
+.public-map-actions-menu[open] {
+  display: flex;
+  flex: 1 0 100%;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.public-map-actions-trigger {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #706b61;
+  border-radius: 4px;
+  background: #262923;
+  color: #f2ece4;
+  cursor: pointer;
+  font: 700 0.78rem/1.2 sans-serif;
+  list-style: none;
+}
+
+.public-map-actions-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.public-map-actions-trigger::after {
+  margin-left: 0.45rem;
+  content: '▾';
+}
+
+.public-map-actions-menu[open] > .public-map-actions-trigger::after {
+  content: '▴';
+}
+
+.public-map-actions-trigger:focus-visible {
+  outline: 2px solid #d8b47c;
+  outline-offset: 2px;
+}
+
+.public-map-actions-content {
+  display: grid;
+  width: min(22rem, 100%);
+  max-height: min(55svh, 28rem);
+  gap: 0.6rem;
+  margin-top: 0.45rem;
+  padding: 0.65rem;
+  overflow-y: auto;
+  border: 1px solid #394239;
+  border-radius: 0.5rem;
+  background: #171b18;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.public-map-actions-content .route-directions-controls {
+  display: grid;
+  justify-content: stretch;
+  gap: 0.5rem;
+}
+
+.public-map-actions-content .route-directions-feedback {
+  text-align: left;
+}
+
+.public-map-actions-content .route-directions-button,
+.public-map-actions-content .route-directions-mode,
+.route-header-location-controls .route-location-control {
+  min-height: 36px;
 }
 
 .route-directions-controls {
@@ -4470,9 +4546,20 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .route-detail-context-route, .route-detail-context-subtitle { white-space: normal; }
   .route-detail-header { margin-bottom: 1.5rem; }
   .route-detail-header h1, .route-detail-error h1 { font-size: clamp(2.15rem, 11vw, 2.9rem); }
-  .route-map-heading { align-items: flex-start; flex-direction: column; }
-  .route-directions-controls { justify-content: flex-start; width: 100%; }
-  .route-directions-feedback { text-align: left; }
+  .route-map-section .route-map-heading,
+  .place-detail-map-section .route-map-heading {
+    align-items: center;
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  .route-map-section .route-map-heading h2,
+  .place-detail-map-section .route-map-heading h2 { font-size: 1.05rem; }
+  .public-map-actions-menu[open] { align-items: stretch; }
+  .public-map-actions-content { width: min(22rem, 100%); }
+  .public-map-actions-content .route-directions-controls { width: 100%; }
+  .public-map-actions-content .route-directions-modes { flex-wrap: wrap; }
+  .public-map-actions-content .route-directions-button { width: 100%; }
+  .public-map-actions-content .route-directions-feedback { text-align: left; }
   .route-detail-summary { font-size: 1.05rem; }
   .entity-detail-media.route-map-detail-media { gap: 1.25rem; padding-top: 1.25rem; }
   .entity-detail-media .route-map-detail-rail,

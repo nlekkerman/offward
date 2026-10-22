@@ -389,7 +389,10 @@ function PlacePage() {
         <section className="place-detail-map-section" aria-labelledby="place-map-title">
           <div className="route-map-heading">
             <div><p className="eyebrow">MAP</p><h2 id="place-map-title">Place location</h2></div>
-            <div className="route-directions-controls">
+            <details className="public-map-actions-menu">
+              <summary className="public-map-actions-trigger">Actions</summary>
+              <div className="public-map-actions-content">
+                <div className="route-directions-controls">
               <button
                 type="button"
                 className={`route-directions-button ${directionsActive ? 'danger-button' : 'primary-button'}`}
@@ -457,7 +460,35 @@ function PlacePage() {
                   </button>
                 </p>
               )}
-            </div>
+                </div>
+                {!directionsActive && (
+                  <div className="route-header-location-controls" role="group" aria-label="Location tracking controls">
+                    <button
+                      type="button"
+                      className="route-location-control"
+                      onClick={locateCurrentPosition}
+                      disabled={locationLoading || locationActive}
+                    >
+                      {locationLoading ? 'Locating...' : 'Where Am I?'}
+                    </button>
+                    {independentTracking ? (
+                      <button type="button" className="route-location-control" onClick={stopFollowing}>
+                        Stop Following
+                      </button>
+                    ) : (
+                      <button type="button" className="route-location-control" onClick={startFollowing}>
+                        Follow Me
+                      </button>
+                    )}
+                    {userPosition && (
+                      <button type="button" className="route-location-control" onClick={recenterOnLocation}>
+                        Recenter
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </details>
           </div>
           {directionsActive && hasManualAccessPath && placeJourneyPhase && (
             <section className="place-directions-summary" aria-label="Journey instructions">
@@ -564,32 +595,6 @@ function PlacePage() {
                 </>
               )}
             >
-              {!directionsActive && (
-                <div className="route-location-controls" aria-label="Location tracking controls">
-                  <button
-                    type="button"
-                    className="route-location-control"
-                    onClick={locateCurrentPosition}
-                    disabled={locationLoading || locationActive}
-                  >
-                    {locationLoading ? 'Locating...' : 'Where Am I?'}
-                  </button>
-                  {independentTracking ? (
-                    <button type="button" className="route-location-control" onClick={stopFollowing}>
-                      Stop Following
-                    </button>
-                  ) : (
-                    <button type="button" className="route-location-control" onClick={startFollowing}>
-                      Follow Me
-                    </button>
-                  )}
-                  {userPosition && (
-                    <button type="button" className="route-location-control" onClick={recenterOnLocation}>
-                      Recenter
-                    </button>
-                  )}
-                </div>
-              )}
             </MapView>
           ) : (
             <p className="route-map-message" role="status">Map location is unavailable for this Place.</p>

@@ -524,7 +524,10 @@ function RoutePage() {
         <section className="route-map-section" aria-labelledby="route-map-title">
           <div className="route-map-heading">
             <h2 id="route-map-title">Route Map</h2>
-            <div className="route-directions-controls">
+            <details className="public-map-actions-menu">
+              <summary className="public-map-actions-trigger">Actions</summary>
+              <div className="public-map-actions-content">
+                <div className="route-directions-controls">
               <button
                 type="button"
                 className={`route-directions-button ${directionsActive ? 'danger-button' : 'primary-button'}`}
@@ -590,7 +593,46 @@ function RoutePage() {
                   </button>
                 </p>
               )}
-            </div>
+                </div>
+                <div className="route-header-location-controls" role="group" aria-label="Location tracking controls">
+                  {!directionsSessionActive && (
+                    <>
+                      <button
+                        type="button"
+                        className="route-location-control"
+                        onClick={locateCurrentPosition}
+                        disabled={locationLoading || locationActive}
+                      >
+                        {locationLoading ? 'Locating...' : 'Where Am I?'}
+                      </button>
+                      {independentTracking ? (
+                        <button type="button" className="route-location-control" onClick={stopFollowing}>
+                          Stop Following
+                        </button>
+                      ) : (
+                        <button type="button" className="route-location-control" onClick={startFollowing}>
+                          Follow Me
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {userPosition && (
+                    <button
+                      type="button"
+                      className="route-location-control"
+                      onClick={recenterOnLocation}
+                    >
+                      Recenter
+                    </button>
+                  )}
+                  {directionsSessionActive && (
+                    <button type="button" className="route-location-control" onClick={stopTracking}>
+                      Stop tracking
+                    </button>
+                  )}
+                </div>
+              </div>
+            </details>
           </div>
           {(!route.geometry || route.is_map_renderable === false) && <p className="route-map-message">This Route does not yet have a published map path.</p>}
           {hasMalformedGeometry && <p className="route-map-message" role="status">The published map path could not be displayed.</p>}
@@ -637,43 +679,6 @@ function RoutePage() {
             {navigationState === 'exploring' && (
               <p className="route-arrival-notice" role="status">You're on the route now. Let's wander Offward!</p>
             )}
-            <div className="route-location-controls" aria-label="Location tracking controls">
-              {!directionsSessionActive && (
-                <>
-                  <button
-                    type="button"
-                    className="route-location-control"
-                    onClick={locateCurrentPosition}
-                    disabled={locationLoading || locationActive}
-                  >
-                    {locationLoading ? 'Locating...' : 'Where Am I?'}
-                  </button>
-                  {independentTracking ? (
-                    <button type="button" className="route-location-control" onClick={stopFollowing}>
-                      Stop Following
-                    </button>
-                  ) : (
-                    <button type="button" className="route-location-control" onClick={startFollowing}>
-                      Follow Me
-                    </button>
-                  )}
-                </>
-              )}
-              {userPosition && (
-                <button
-                  type="button"
-                  className="route-location-control"
-                  onClick={recenterOnLocation}
-                >
-                  Recenter
-                </button>
-              )}
-              {directionsSessionActive && (
-                <button type="button" className="route-location-control" onClick={stopTracking}>
-                  Stop tracking
-                </button>
-              )}
-            </div>
             <RouteSections
               segments={segments}
               selectedSegmentId={selectedSegmentId}
