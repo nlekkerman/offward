@@ -140,7 +140,7 @@ function MapViewContent({
           key={activeBasemap.id}
           attribution={activeBasemap.attribution}
           url={activeBasemap.url}
-          subdomains={activeBasemap.subdomains}
+          {...(activeBasemap.subdomains ? { subdomains: activeBasemap.subdomains } : {})}
           minZoom={activeBasemap.minZoom}
           maxNativeZoom={activeBasemap.maxNativeZoom}
           maxZoom={activeBasemap.maxZoom}
