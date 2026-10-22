@@ -7,6 +7,7 @@ const CONTENT_TYPES = {
   places: { endpoint: 'places', titleField: 'name', descriptionField: 'summary', type: 'website' },
   stories: { endpoint: 'stories', titleField: 'title', descriptionField: 'excerpt', type: 'article' },
   food: { endpoint: 'food', titleField: 'title', descriptionField: 'summary', type: 'website' },
+  countries: { endpoint: 'countries', statusOnly: true },
 }
 
 function isObject(value) {
@@ -87,9 +88,7 @@ function getSocialImage(content, contentType, apiOrigin) {
   return hero || FALLBACK_IMAGE
 }
 
-function replaceMetadata(html, metadata) {
-  if (!/<\/head\s*>/i.test(html)) return html
-
+function clearMetadata(html) {
   const titleTag = /<title\b[^>]*>[\s\S]*?<\/title\s*>/i
   const canonicalTag = /<link\b(?=[^>]*\brel\s*=\s*["']canonical["'])[^>]*>/gi
   let result = html.replace(titleTag, '')
@@ -106,12 +105,20 @@ function replaceMetadata(html, metadata) {
     ['name', 'twitter:title'],
     ['name', 'twitter:description'],
     ['name', 'twitter:image'],
+    ['name', 'robots'],
   ]) {
     const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const tag = new RegExp(`<meta\\b(?=[^>]*\\b${attribute}\\s*=\\s*["']${escapedValue}["'])[^>]*>`, 'gi')
     result = result.replace(tag, '')
   }
 
+  return result
+}
+
+function replaceMetadata(html, metadata) {
+  if (!/<\/head\s*>/i.test(html)) return html
+
+  const result = clearMetadata(html)
   const title = htmlEscape(metadata.title)
   const description = htmlEscape(metadata.description)
   const canonical = htmlEscape(metadata.canonical)
@@ -135,8 +142,29 @@ function replaceMetadata(html, metadata) {
   return result.replace(/<\/head\s*>/i, `    ${injected}\n  </head>`)
 }
 
+function replaceNotFoundMetadata(html) {
+  if (!/<\/head\s*>/i.test(html)) return html
+
+  const result = clearMetadata(html)
+  const injected = [
+    '<title>404 — Not lost. Just Offward. | Offward</title>',
+    '<meta name="robots" content="noindex,follow">',
+  ].join('\n    ')
+
+  return result.replace(/<\/head\s*>/i, `    ${injected}\n  </head>`)
+}
+
+function createHtmlResponse(response, html, status = response.status, statusText = response.statusText) {
+  const headers = new Headers(response.headers)
+  headers.delete('content-length')
+  headers.delete('content-encoding')
+  headers.delete('content-md5')
+  headers.delete('etag')
+  return new Response(html, { status, statusText, headers })
+}
+
 function getRequestTarget(pathname) {
-  const match = pathname.match(/^\/(routes|places|stories|food)\/([^/]+)\/?$/)
+  const match = pathname.match(/^\/(routes|places|stories|food|countries)\/([^/]+)\/?$/)
   if (!match) return null
   try {
     const slug = decodeURIComponent(match[2])
@@ -183,7 +211,12 @@ export default async function handler(request, context) {
     } finally {
       clearTimeout(timeout)
     }
+    if (apiResponse.status === 404) {
+      originalHtml = await response.text()
+      return createHtmlResponse(response, replaceNotFoundMetadata(originalHtml), 404, 'Not Found')
+    }
     if (!apiResponse.ok) return response
+    if (CONTENT_TYPES[target.type].statusOnly) return response
 
     const content = await apiResponse.json()
     if (!isObject(content)) return response
@@ -196,22 +229,10 @@ export default async function handler(request, context) {
     const image = getSocialImage(content, target.type, apiOrigin)
     originalHtml = await response.text()
     const updatedHtml = replaceMetadata(originalHtml, { title, description, canonical, image, type: mapping.type })
-    const headers = new Headers(response.headers)
-    headers.delete('content-length')
-    headers.delete('content-encoding')
-    headers.delete('content-md5')
-    headers.delete('etag')
-    return new Response(updatedHtml, { status: response.status, statusText: response.statusText, headers })
+    return createHtmlResponse(response, updatedHtml)
   } catch (error) {
     console.error(`Edge metadata fetch failed for ${target.type}/${target.slug}.`, error)
-    if (originalHtml !== null) {
-      const headers = new Headers(response.headers)
-      headers.delete('content-length')
-      headers.delete('content-encoding')
-      headers.delete('content-md5')
-      headers.delete('etag')
-      return new Response(originalHtml, { status: response.status, statusText: response.statusText, headers })
-    }
+    if (originalHtml !== null) return createHtmlResponse(response, originalHtml)
     return response
   }
 }

@@ -15,6 +15,7 @@ import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
+import NotFoundPage from './NotFoundPage.jsx'
 import '../features/food/food.css'
 
 function orderedRows(rows) {
@@ -77,7 +78,7 @@ function FoodPage() {
   }
 
   if (status === 'loading') return <section className="food-page"><p role="status">Loading Food…</p></section>
-  if (status === 'not-found') return <section className="food-page"><Link className="route-detail-back" to="/food">Back to Food</Link><p className="eyebrow">FOOD NOT FOUND</p><h1>This Food could not be found</h1><p>It may have been removed or is no longer published.</p></section>
+  if (status === 'not-found') return <NotFoundPage />
   if (status === 'error') return <section className="food-page"><Link className="route-detail-back" to="/food">Back to Food</Link><h1>Unable to load this Food</h1><p role="alert">There was a network or server problem.</p><button className="food-button" onClick={() => { setResult({ slug: null, status: 'loading', food: null }); setAttempt((value) => value + 1) }}>Retry</button></section>
 
   const country = findCountry(countries, food.country)

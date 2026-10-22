@@ -13,3 +13,7 @@ path = "/stories/*"
 [[edge_functions]]
 function = "social-meta"
 path = "/food/*"
+
+[[edge_functions]]
+function = "social-meta"
+path = "/countries/*"

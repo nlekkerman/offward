@@ -8,6 +8,19 @@ const DEFAULT_METADATA = {
   image: FALLBACK_SOCIAL_IMAGE,
   type: 'website',
 }
+const NOT_FOUND_TITLE = '404 — Not lost. Just Offward. | Offward'
+const NOT_FOUND_METADATA_SELECTORS = [
+  'meta[name="description"]',
+  'link[rel="canonical"]',
+  'meta[property^="og:"]',
+  'meta[name^="twitter:"]',
+]
+
+function clearNotFoundMetadata() {
+  NOT_FOUND_METADATA_SELECTORS.forEach((selector) => {
+    document.head.querySelectorAll(selector).forEach((element) => element.remove())
+  })
+}
 
 function setMeta(selector, attribute, key, content) {
   const matches = document.head.querySelectorAll(selector)
@@ -52,11 +65,23 @@ function applyMetadata({ title, browserTitle = title, description, canonical, im
   setMeta('meta[name="twitter:image"]', 'name', 'twitter:image', image)
 }
 
-function PageMetadata({ title, description, path, image, type = 'website' }) {
-  const canonical = getPublicUrl(path)
-  const socialImage = getPublicImageUrl(image) || FALLBACK_SOCIAL_IMAGE
+function PageMetadata({ title, description, path, image, type = 'website', noindex = false }) {
+  const canonical = noindex ? null : getPublicUrl(path)
+  const socialImage = noindex ? null : getPublicImageUrl(image) || FALLBACK_SOCIAL_IMAGE
 
   useEffect(() => {
+    if (noindex) {
+      document.title = NOT_FOUND_TITLE
+      clearNotFoundMetadata()
+      setMeta('meta[name="robots"]', 'name', 'robots', 'noindex,follow')
+
+      return () => {
+        document.head.querySelectorAll('meta[name="robots"]').forEach((element) => element.remove())
+        applyMetadata(DEFAULT_METADATA)
+      }
+    }
+
+    document.head.querySelectorAll('meta[name="robots"]').forEach((element) => element.remove())
     applyMetadata({
       title,
       browserTitle: `${title} | Offward`,
@@ -67,7 +92,7 @@ function PageMetadata({ title, description, path, image, type = 'website' }) {
     })
 
     return () => applyMetadata(DEFAULT_METADATA)
-  }, [title, description, canonical, socialImage, type])
+  }, [title, description, canonical, socialImage, type, noindex])
 
   return null
 }

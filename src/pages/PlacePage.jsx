@@ -23,6 +23,7 @@ import ShareControl from '../shared/components/ShareControl.jsx'
 import useUserLocation from '../shared/hooks/useUserLocation.js'
 import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
+import NotFoundPage from './NotFoundPage.jsx'
 
 function formatCountrySlug(value) {
   if (!value || typeof value !== 'string') {
@@ -251,16 +252,7 @@ function PlacePage() {
   }
 
   if (placeStatus === 'not-found') {
-    return (
-      <section className="place-detail-page">
-        <Link className="route-detail-back" to="/explore?view=places">Back to Explore</Link>
-        <div className="place-detail-error" role="alert">
-          <p className="eyebrow">PLACE NOT FOUND</p>
-          <h1>This Place could not be found</h1>
-          <p>The Place you are looking for may have been removed or is no longer published.</p>
-        </div>
-      </section>
-    )
+    return <NotFoundPage />
   }
 
   if (placeStatus === 'error') {

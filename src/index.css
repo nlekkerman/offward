@@ -169,6 +169,109 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .page-placeholder p { color: #aaa99e; }
 
+.not-found-page {
+  display: grid;
+  min-height: calc(100svh - 118px);
+  place-items: center;
+  padding: 5rem 2rem;
+  text-align: center;
+}
+
+.not-found-content {
+  width: min(100%, 760px);
+}
+
+.not-found-code {
+  margin: 0;
+  color: var(--public-accent);
+  font-size: clamp(7rem, 21vw, 13rem);
+  font-weight: 400;
+  letter-spacing: -0.09em;
+  line-height: 0.82;
+}
+
+.not-found-content h1 {
+  margin: 1.4rem 0 0.8rem;
+  color: var(--public-text);
+  font-size: clamp(2.1rem, 5vw, 3.5rem);
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.not-found-description {
+  margin: 0;
+  color: var(--public-muted);
+  font: 1rem/1.6 'Trebuchet MS', sans-serif;
+}
+
+.not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.8rem;
+  margin-top: 2rem;
+  font-family: 'Trebuchet MS', sans-serif;
+}
+
+.not-found-actions a {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.15rem;
+  border: 1px solid var(--public-accent);
+  border-radius: 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.not-found-home {
+  background: var(--public-accent);
+  color: #fff;
+}
+
+.not-found-home:hover {
+  border-color: #e52e2e;
+  background: #e52e2e;
+}
+
+.not-found-explore {
+  color: var(--public-text);
+}
+
+.not-found-explore:hover {
+  background: rgba(255, 56, 56, 0.14);
+}
+
+.not-found-actions a:focus-visible {
+  outline: 2px solid var(--public-text);
+  outline-offset: 4px;
+}
+
+@media (max-width: 600px) {
+  .not-found-page {
+    min-height: calc(100svh - 81px);
+    padding: 4rem 1.25rem;
+  }
+
+  .not-found-code {
+    font-size: clamp(6rem, 32vw, 9rem);
+  }
+
+  .not-found-content h1 {
+    margin-top: 1.2rem;
+    font-size: clamp(2rem, 8vw, 2.8rem);
+  }
+
+  .not-found-actions {
+    gap: 0.65rem;
+    margin-top: 1.6rem;
+  }
+}
+
 .contact-page {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(320px, 1fr);
