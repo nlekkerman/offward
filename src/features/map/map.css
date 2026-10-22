@@ -22,6 +22,97 @@
   z-index: 1;
 }
 
+.map-basemap-control {
+  position: absolute;
+  top: 5rem;
+  left: 0.75rem;
+  z-index: 850;
+  display: grid;
+  justify-items: start;
+  gap: 0.35rem;
+  max-width: calc(100% - 1.5rem);
+}
+
+.map-basemap-trigger,
+.map-basemap-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(216, 180, 124, 0.45);
+  border-radius: 0.45rem;
+  background: rgba(18, 21, 16, 0.96);
+  color: #f2ece4;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  font: 700 0.76rem/1.2 sans-serif;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.map-basemap-trigger {
+  gap: 0.45rem;
+}
+
+.map-basemap-trigger svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.map-basemap-options {
+  display: grid;
+  width: 100%;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border: 1px solid #3b3f36;
+  border-radius: 0.55rem;
+  background: rgba(18, 21, 16, 0.97);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+}
+
+.map-basemap-options[hidden] {
+  display: none;
+}
+
+.map-basemap-option {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 44px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+}
+
+.map-basemap-option:hover,
+.map-basemap-option:focus-visible,
+.map-basemap-option.is-selected {
+  border-color: #70583a;
+  background: #211d14;
+  color: #f2ece4;
+}
+
+.map-basemap-trigger:focus-visible,
+.map-basemap-option:focus-visible {
+  outline: 2px solid #d8b47c;
+  outline-offset: 2px;
+}
+
+.map-basemap-error {
+  max-width: min(280px, calc(100vw - 3rem));
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(216, 180, 124, 0.45);
+  border-radius: 0.4rem;
+  background: rgba(18, 21, 16, 0.96);
+  color: #f2ece4;
+  font: 600 0.72rem/1.35 sans-serif;
+}
+
 .route-mini-map {
   position: relative;
   overflow: hidden;
@@ -385,6 +476,11 @@
 }
 
 @media (max-width: 699px) {
+  .map-basemap-control {
+    top: 5rem;
+    left: 0.6rem;
+  }
+
   .route-map-sections-control {
     top: 0.6rem;
     right: 0.6rem;

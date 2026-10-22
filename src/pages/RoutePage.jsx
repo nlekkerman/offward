@@ -561,6 +561,7 @@ function RoutePage() {
           {hasMalformedGeometry && <p className="route-map-message" role="status">The published map path could not be displayed.</p>}
           <MapView
             className="route-detail-map"
+            showBasemapSwitcher
             routes={mapRoute ? [mapRoute] : []}
             waypoints={waypoints}
             waypointMediaCountById={waypointMediaCountById}

@@ -467,6 +467,7 @@ function PlacePage() {
           {hasCoordinates ? (
             <MapView
               className="place-detail-map"
+              showBasemapSwitcher
               places={[place]}
               selectedPlaceId={place.id}
               directionsPlaceId={directionsActive ? place.id : null}
