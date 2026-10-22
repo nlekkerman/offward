@@ -40,7 +40,9 @@ function normalizePosition(position) {
   return {
     latitude,
     longitude,
-    accuracy: typeof accuracy === 'number' && Number.isFinite(accuracy) ? accuracy : null,
+    accuracy: typeof accuracy === 'number' && Number.isFinite(accuracy) && accuracy >= 0
+      ? accuracy
+      : null,
     speed: typeof speed === 'number' && Number.isFinite(speed) && speed >= 0 ? speed : null,
     timestamp: Number.isFinite(position.timestamp) ? position.timestamp : null,
   }
@@ -77,6 +79,47 @@ export default function useUserLocation(onPosition) {
     setError(null)
     setActive(false)
   }, [clearWatcher])
+
+  const locate = useCallback((onLocated) => {
+    if (activeRef.current) return
+
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setError('Location is not supported by this browser.')
+      setLoading(false)
+      return
+    }
+
+    const generation = ++generationRef.current
+    setPosition(null)
+    setError(null)
+    setLoading(true)
+
+    const handlePosition = (browserPosition) => {
+      if (activeRef.current || generation !== generationRef.current) return
+      const nextPosition = normalizePosition(browserPosition)
+      if (!nextPosition) {
+        handleError({ code: 2 })
+        return
+      }
+      setPosition(nextPosition)
+      setLoading(false)
+      onPositionRef.current?.(nextPosition)
+      onLocated?.(nextPosition)
+    }
+
+    const handleError = (browserError) => {
+      if (activeRef.current || generation !== generationRef.current) return
+      setPosition(null)
+      setLoading(false)
+      setError(getLocationErrorMessage(browserError))
+    }
+
+    try {
+      navigator.geolocation.getCurrentPosition(handlePosition, handleError, LOCATION_OPTIONS)
+    } catch {
+      handleError(null)
+    }
+  }, [])
 
   const start = useCallback(() => {
     if (activeRef.current) return
@@ -145,5 +188,5 @@ export default function useUserLocation(onPosition) {
     clearWatcher()
   }, [clearWatcher])
 
-  return { position, loading, error, active, start, stop }
+  return { position, loading, error, active, start, stop, locate }
 }

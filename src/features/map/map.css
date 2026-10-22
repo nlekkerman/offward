@@ -271,7 +271,7 @@
 
 .route-location-controls {
   position: absolute;
-  right: 0.75rem;
+  left: 0.75rem;
   bottom: 0.75rem;
   z-index: 1000;
   display: flex;
@@ -479,6 +479,14 @@
   .map-basemap-control {
     top: 5rem;
     left: 0.6rem;
+  }
+
+  .route-location-controls {
+    left: 0.6rem;
+    bottom: 0.6rem;
+    justify-content: flex-start;
+    gap: 0.35rem;
+    max-width: calc(100% - 1.2rem);
   }
 
   .route-map-sections-control {

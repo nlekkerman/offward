@@ -109,7 +109,9 @@ function RoutePage() {
   const [directionsMode, setDirectionsMode] = useState('walking')
   const [directionsStatus, setDirectionsStatus] = useState(null)
   const [locationFollowing, setLocationFollowing] = useState(false)
+  const [independentTracking, setIndependentTracking] = useState(false)
   const [recenterRequest, setRecenterRequest] = useState(0)
+  const [locationCenterRequest, setLocationCenterRequest] = useState(0)
   const arrivalDetectorRef = useRef(createRouteArrivalDetector())
   const hoverCloseTimerRef = useRef(null)
   const supportsHover = useHoverCapability()
@@ -130,9 +132,18 @@ function RoutePage() {
     position: userPosition,
     active: locationActive,
     error: locationError,
+    loading: locationLoading,
     start: startLocation,
     stop: stopLocation,
+    locate: locateLocation,
   } = useUserLocation(handleLocationUpdate)
+  const directionsSessionActive = navigationState !== 'idle'
+
+  useEffect(() => {
+    if (!independentTracking && !directionsSessionActive && locationActive) {
+      stopLocation()
+    }
+  }, [directionsSessionActive, independentTracking, locationActive, stopLocation])
 
   useEffect(() => () => window.clearTimeout(hoverCloseTimerRef.current), [])
 
@@ -146,6 +157,7 @@ function RoutePage() {
       setDirectionsMode('walking')
       setDirectionsStatus(null)
       setLocationFollowing(false)
+      setIndependentTracking(false)
       arrivalDetectorRef.current.reset()
       stopLocation()
       setActiveVideo(null)
@@ -387,6 +399,18 @@ function RoutePage() {
     setLocationFollowing(false)
     setRouteFocusRequest((current) => current + 1)
   }
+  const locateCurrentPosition = () => {
+    locateLocation(() => setLocationCenterRequest((current) => current + 1))
+  }
+  const startFollowing = () => {
+    setIndependentTracking(true)
+    setLocationFollowing(true)
+    if (!locationActive) startLocation()
+  }
+  const stopFollowing = () => {
+    setIndependentTracking(false)
+    setLocationFollowing(false)
+  }
   const startDirections = () => {
     if (!canonicalStartWaypoint) return
     arrivalDetectorRef.current.reset()
@@ -396,12 +420,13 @@ function RoutePage() {
   }
   const stopDirections = () => {
     setNavigationState('idle')
-    setLocationFollowing(false)
+    setLocationFollowing(independentTracking)
     setDirectionsMode('walking')
     setDirectionsStatus(null)
   }
   const stopTracking = () => {
     arrivalDetectorRef.current.reset()
+    setIndependentTracking(false)
     stopLocation()
     setNavigationState('idle')
     setLocationFollowing(false)
@@ -409,8 +434,18 @@ function RoutePage() {
     setDirectionsStatus(null)
   }
   const recenterOnLocation = () => {
+    if (!userPosition) return
     setLocationFollowing(true)
     setRecenterRequest((current) => current + 1)
+  }
+  const retryLocation = () => {
+    if (directionsSessionActive) {
+      startDirections()
+    } else if (independentTracking) {
+      startFollowing()
+    } else {
+      locateCurrentPosition()
+    }
   }
   const handleManualMapMovement = useCallback(() => {
     setLocationFollowing(false)
@@ -550,7 +585,7 @@ function RoutePage() {
               {locationError && (
                 <p className="route-directions-feedback is-error" role="alert">
                   {locationError}{' '}
-                  <button type="button" className="route-directions-mode" onClick={startDirections}>
+                  <button type="button" className="route-directions-mode" onClick={retryLocation}>
                     Retry location
                   </button>
                 </p>
@@ -593,6 +628,7 @@ function RoutePage() {
                   position={userPosition}
                   followEnabled={locationFollowing && Boolean(userPosition)}
                   recenterRequest={recenterRequest}
+                  centerRequest={locationCenterRequest}
                   onManualMovement={handleManualMapMovement}
                 />
               </>
@@ -601,25 +637,43 @@ function RoutePage() {
             {navigationState === 'exploring' && (
               <p className="route-arrival-notice" role="status">You're on the route now. Let's wander Offward!</p>
             )}
-            {(locationActive || userPosition || directionsActive) && (
-              <div className="route-location-controls" aria-label="Location tracking controls">
+            <div className="route-location-controls" aria-label="Location tracking controls">
+              {!directionsSessionActive && (
+                <>
+                  <button
+                    type="button"
+                    className="route-location-control"
+                    onClick={locateCurrentPosition}
+                    disabled={locationLoading || locationActive}
+                  >
+                    {locationLoading ? 'Locating...' : 'Where Am I?'}
+                  </button>
+                  {independentTracking ? (
+                    <button type="button" className="route-location-control" onClick={stopFollowing}>
+                      Stop Following
+                    </button>
+                  ) : (
+                    <button type="button" className="route-location-control" onClick={startFollowing}>
+                      Follow Me
+                    </button>
+                  )}
+                </>
+              )}
+              {userPosition && (
                 <button
                   type="button"
                   className="route-location-control"
                   onClick={recenterOnLocation}
-                  disabled={!userPosition}
                 >
                   Recenter
                 </button>
-                <button
-                  type="button"
-                  className="route-location-control"
-                  onClick={stopTracking}
-                >
+              )}
+              {directionsSessionActive && (
+                <button type="button" className="route-location-control" onClick={stopTracking}>
                   Stop tracking
                 </button>
-              </div>
-            )}
+              )}
+            </div>
             <RouteSections
               segments={segments}
               selectedSegmentId={selectedSegmentId}

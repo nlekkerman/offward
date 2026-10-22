@@ -66,13 +66,20 @@ function PlacePage() {
   const [placeJourneyPhase, setPlaceJourneyPhase] = useState(null)
   const [directionsOrigin, setDirectionsOrigin] = useState(null)
   const [initialMarkerDistanceKm, setInitialMarkerDistanceKm] = useState(null)
+  const [independentTracking, setIndependentTracking] = useState(false)
+  const [accessPathVisible, setAccessPathVisible] = useState(false)
+  const [locationFollowing, setLocationFollowing] = useState(false)
+  const [recenterRequest, setRecenterRequest] = useState(0)
+  const [locationCenterRequest, setLocationCenterRequest] = useState(0)
   const galleryCacheRef = useRef(new Map())
   const {
     position: userPosition,
     active: locationActive,
     error: locationError,
+    loading: locationLoading,
     start: startLocation,
     stop: stopLocation,
+    locate: locateLocation,
   } = useUserLocation()
   const handleDirectionsStatusChange = useCallback((status) => {
     setDirectionsStatus(status)
@@ -83,7 +90,15 @@ function PlacePage() {
   const requestPlaceDirections = useCallback((slug, origin, profile, signal) => (
     getPlaceDirections(slug, origin, profile, signal)
   ), [])
-  const handleManualMapMovement = useCallback(() => {}, [])
+  const handleManualMapMovement = useCallback(() => {
+    setLocationFollowing(false)
+  }, [])
+
+  useEffect(() => {
+    if (!independentTracking && !directionsActive && locationActive) {
+      stopLocation()
+    }
+  }, [directionsActive, independentTracking, locationActive, stopLocation])
 
   useEffect(() => () => stopLocation(), [stopLocation])
 
@@ -95,6 +110,11 @@ function PlacePage() {
     setPlaceJourneyPhase(null)
     setDirectionsOrigin(null)
     setInitialMarkerDistanceKm(null)
+    setIndependentTracking(false)
+    setAccessPathVisible(false)
+    setLocationFollowing(false)
+    setRecenterRequest(0)
+    setLocationCenterRequest(0)
     stopLocation()
   }, [placeSlug, stopLocation])
 
@@ -266,6 +286,33 @@ function PlacePage() {
   const accessMarkerDescription = typeof place?.access_start_description === 'string' ? place.access_start_description.trim() : ''
   const accessMarkerSummaryName = accessMarkerName || 'the directions marker'
   const walkingDistanceMeters = accessGeometry ? getGeometryLengthMeters(accessGeometry) : 0
+  const locateCurrentPosition = () => {
+    locateLocation(() => setLocationCenterRequest((current) => current + 1))
+  }
+  const startFollowing = () => {
+    setIndependentTracking(true)
+    if (hasManualAccessPath) setAccessPathVisible(true)
+    setLocationFollowing(true)
+    if (!locationActive) startLocation()
+  }
+  const stopFollowing = () => {
+    setIndependentTracking(false)
+    setLocationFollowing(false)
+  }
+  const recenterOnLocation = () => {
+    if (!userPosition) return
+    setLocationFollowing(true)
+    setRecenterRequest((current) => current + 1)
+  }
+  const retryLocation = () => {
+    if (directionsActive) {
+      startDirections()
+    } else if (independentTracking) {
+      startFollowing()
+    } else {
+      locateCurrentPosition()
+    }
+  }
   const startDirections = () => {
     if (!directionsAvailable) return
     setDirectionsStatus({ status: 'locating' })
@@ -273,6 +320,7 @@ function PlacePage() {
     setPlaceJourneyPhase(null)
     setDirectionsOrigin(null)
     setInitialMarkerDistanceKm(null)
+    setLocationFollowing(false)
     setDirectionsActive(true)
     if (!locationActive) startLocation()
   }
@@ -284,7 +332,7 @@ function PlacePage() {
     setPlaceJourneyPhase(null)
     setDirectionsOrigin(null)
     setInitialMarkerDistanceKm(null)
-    stopLocation()
+    setLocationFollowing(independentTracking)
   }
   const handleTravelModeChange = (mode) => {
     if (mode === directionsMode) return
@@ -401,10 +449,10 @@ function PlacePage() {
                   {directionsStatus.message}
                 </p>
               )}
-              {locationError && directionsActive && (
+              {locationError && (
                 <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
                   {locationError}{' '}
-                  <button type="button" className="route-directions-mode" onClick={startDirections}>
+                  <button type="button" className="route-directions-mode" onClick={retryLocation}>
                     Retry location
                   </button>
                 </p>
@@ -474,11 +522,13 @@ function PlacePage() {
               showPlaceLabel
               initialCenter={[place.latitude, place.longitude]}
               initialZoom={10}
+              followEnabled={locationFollowing && Boolean(userPosition)}
               mapChildren={(
                 <>
                   {accessMarkerCoordinates && (
                     <PlaceDirectionsLayer
                       active={directionsActive && directionsAvailable && hasManualAccessPath}
+                      showSavedPath={accessPathVisible && hasManualAccessPath}
                       phase={placeJourneyPhase}
                       onPhaseChange={setPlaceJourneyPhase}
                       mode={directionsMode}
@@ -506,13 +556,41 @@ function PlacePage() {
                   )}
                   <RouteUserLocationLayer
                     position={userPosition}
-                    followEnabled={false}
-                    recenterRequest={0}
+                    followEnabled={locationFollowing && Boolean(userPosition)}
+                    recenterRequest={recenterRequest}
+                    centerRequest={locationCenterRequest}
                     onManualMovement={handleManualMapMovement}
                   />
                 </>
               )}
-            />
+            >
+              {!directionsActive && (
+                <div className="route-location-controls" aria-label="Location tracking controls">
+                  <button
+                    type="button"
+                    className="route-location-control"
+                    onClick={locateCurrentPosition}
+                    disabled={locationLoading || locationActive}
+                  >
+                    {locationLoading ? 'Locating...' : 'Where Am I?'}
+                  </button>
+                  {independentTracking ? (
+                    <button type="button" className="route-location-control" onClick={stopFollowing}>
+                      Stop Following
+                    </button>
+                  ) : (
+                    <button type="button" className="route-location-control" onClick={startFollowing}>
+                      Follow Me
+                    </button>
+                  )}
+                  {userPosition && (
+                    <button type="button" className="route-location-control" onClick={recenterOnLocation}>
+                      Recenter
+                    </button>
+                  )}
+                </div>
+              )}
+            </MapView>
           ) : (
             <p className="route-map-message" role="status">Map location is unavailable for this Place.</p>
           )}

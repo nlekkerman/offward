@@ -10,9 +10,10 @@ const ACCURACY_CIRCLE_STYLE = {
   fillOpacity: 0.12,
 }
 
-function RouteUserLocationLayer({ position, followEnabled, recenterRequest, onManualMovement }) {
+function RouteUserLocationLayer({ position, followEnabled, recenterRequest, centerRequest = 0, onManualMovement }) {
   const map = useMap()
   const followRef = useRef(followEnabled)
+  const previousCenterRequestRef = useRef(centerRequest)
   useEffect(() => {
     followRef.current = followEnabled
   }, [followEnabled])
@@ -57,10 +58,12 @@ function RouteUserLocationLayer({ position, followEnabled, recenterRequest, onMa
   }, [map, onManualMovement])
 
   useEffect(() => {
-    if (followEnabled && position) {
+    const centerRequested = previousCenterRequestRef.current !== centerRequest
+    previousCenterRequestRef.current = centerRequest
+    if (position && (followEnabled || centerRequested)) {
       map.setView([position.latitude, position.longitude], map.getZoom(), { animate: false })
     }
-  }, [followEnabled, map, position, recenterRequest])
+  }, [centerRequest, followEnabled, map, position, recenterRequest])
 
   const userLocationIcon = useMemo(() => L.divIcon({
     className: 'offward-user-location-icon',

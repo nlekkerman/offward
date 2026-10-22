@@ -101,6 +101,7 @@ function PlaceDirectionsLayer({
   placeSlug,
   placeCoordinates,
   accessGeometry,
+  showSavedPath = false,
   markerCoordinates,
   markerName,
   markerDescription,
@@ -266,7 +267,7 @@ function PlaceDirectionsLayer({
   return (
     <>
       <DirectionsPaneController />
-      {active && (
+      {(active || showSavedPath) && (
         <>
           <DirectionsViewportController
             active={active}
