@@ -9,11 +9,17 @@ it to fetch public detail records. No additional API URL is required.
 
 ## Route directions
 
-Public Route directions are requested from Offward's
-`POST /api/offward/routes/{slug}/directions/` endpoint. The backend selects the
-canonical start waypoint and handles routing-provider credentials. The browser
-sends only the user's current coordinates and a `walking` or `driving` profile;
-it does not need a routing-provider API key.
+Public walking Route access directions use Offward's
+`POST /api/offward/routes/{slug}/access-directions/` endpoint. The backend
+selects a routable point on the saved Route geometry and returns approach
+geometry; when it cannot establish nearest walking access, it may return
+directions to the official start as an explicit fallback.
+
+Driving directions and the **Go to Start** action use
+`POST /api/offward/routes/{slug}/directions/`, which targets the official start
+waypoint. The browser sends only the visitor's current coordinates and the
+requested profile. Routing-provider credentials and provider responses remain
+server-side; the browser does not need a routing-provider API key.
 
 ## Management gallery images
 

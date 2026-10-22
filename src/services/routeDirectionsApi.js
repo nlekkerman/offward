@@ -69,6 +69,47 @@ function getDirectionsError(error) {
   return new Error('Offward could not calculate directions. Please try again.')
 }
 
+function getRouteAccessDirectionsError(error) {
+  const response = error?.response
+  if (!response) {
+    return new Error('Unable to connect to Offward directions. Check your connection and try again.')
+  }
+
+  const responseText = getResponseErrorText(response.data).replaceAll('_', ' ').toLowerCase()
+  if (response.status === 400) {
+    if (
+      /distance|radius|too far/i.test(responseText) ||
+      hasResponseErrorCode(response.data, 'origin_too_far')
+    ) {
+      return new Error("You're too far from this Route for directions.")
+    }
+    return new Error('Your location or travel mode is invalid. Check them and try again.')
+  }
+  if (response.status === 404) {
+    return new Error('This Route could not be found. It may have been removed or is no longer published.')
+  }
+  if (response.status === 409) {
+    return new Error('Walking access directions are unavailable for this Route.')
+  }
+  if (response.status === 429) {
+    return new Error('Directions are temporarily rate-limited. Please try again later.')
+  }
+  if (response.status === 502) {
+    return new Error('The routing service returned invalid directions. Please try again later.')
+  }
+  if (response.status === 503) {
+    return new Error('Directions are temporarily unavailable. Please try again later.')
+  }
+  if (response.status === 504) {
+    return new Error('The routing request timed out. Please try again.')
+  }
+  if (response.status >= 500) {
+    return new Error('The routing service is unavailable. Please try again later.')
+  }
+
+  return new Error('Offward could not calculate walking access directions. Please try again.')
+}
+
 function hasResponseErrorCode(data, code) {
   if (data?.code === code) {
     return true
@@ -147,6 +188,64 @@ function validateDirectionsResponse(data, profile) {
   }
 }
 
+function isValidLatLng(coordinates) {
+  return coordinates &&
+    typeof coordinates === 'object' &&
+    isValidCoordinate(coordinates.lat, -90, 90) &&
+    isValidCoordinate(coordinates.lng, -180, 180)
+}
+
+function validateRouteAccessDirectionsResponse(data, routeId) {
+  const validFallbackReasons = new Set([
+    'geometry_missing',
+    'geometry_invalid',
+    'geometry_stale',
+    'no_candidate_within_radius',
+    'no_routable_candidate',
+  ])
+  const isFallback = data?.fallback?.used === true
+  const validFallback = data?.fallback &&
+    typeof data.fallback === 'object' &&
+    typeof data.fallback.used === 'boolean' &&
+    (isFallback
+      ? validFallbackReasons.has(data.fallback.reason)
+      : data.fallback.reason === null)
+  const validAccess = data?.access &&
+    typeof data.access === 'object' &&
+    (data.access.type === 'route_geometry' || data.access.type === 'official_start') &&
+    isValidLatLng(data.access.coordinates) &&
+    typeof data.access.selection === 'string' &&
+    data.access.selection.length > 0 &&
+    isValidLatLng(data.access.snapped_coordinates) &&
+    isValidDirectionsDistance(data.access.destination_displacement_meters)
+  const validApproach = data?.approach &&
+    typeof data.approach === 'object' &&
+    isValidLineString(data.approach.geometry) &&
+    isValidDirectionsDistance(data.approach.distance_km) &&
+    (data.approach.duration_seconds === undefined ||
+      isValidDirectionsDistance(data.approach.duration_seconds))
+
+  if (
+    !data ||
+    typeof data !== 'object' ||
+    Array.isArray(data) ||
+    data.profile !== 'walking' ||
+    typeof routeId !== 'string' ||
+    data.route_id !== routeId ||
+    !Number.isInteger(data.map_revision) ||
+    data.map_revision < 0 ||
+    !validAccess ||
+    !validApproach ||
+    !validFallback ||
+    (data.access.type === 'official_start') !== isFallback ||
+    !Number.isInteger(data.evaluated_candidates) ||
+    data.evaluated_candidates < 0 ||
+    data.evaluated_candidates > 3
+  ) {
+    throw new Error('Offward returned an invalid walking access directions response.')
+  }
+}
+
 function validatePlaceDirectionsResponse(data, requestedProfile) {
   const isObject = data && typeof data === 'object' && !Array.isArray(data)
   const matchesRequestedProfile = data?.profile === requestedProfile
@@ -202,6 +301,43 @@ export async function getRouteDirections(routeSlug, origin, profile, signal) {
   }
 
   validateDirectionsResponse(data, profile)
+  return data
+}
+
+export async function getRouteAccessDirections(routeSlug, routeId, origin, signal) {
+  if (typeof routeSlug !== 'string' || routeSlug.trim().length === 0) {
+    throw new Error('A Route is required to request directions.')
+  }
+  if (typeof routeId !== 'string' || routeId.length === 0) {
+    throw new Error('A Route is required to request directions.')
+  }
+  if (
+    !origin ||
+    !isValidCoordinate(origin.lat, -90, 90) ||
+    !isValidCoordinate(origin.lng, -180, 180)
+  ) {
+    throw new Error('Your location is invalid. Check your location and try again.')
+  }
+
+  let data
+  try {
+    const response = await apiClient.post(
+      `/api/offward/routes/${encodeURIComponent(routeSlug)}/access-directions/`,
+      {
+        origin: { lat: origin.lat, lng: origin.lng },
+        profile: 'walking',
+      },
+      { signal },
+    )
+    data = response.data
+  } catch (error) {
+    if (signal?.aborted || error?.code === 'ERR_CANCELED') {
+      throw error
+    }
+    throw getRouteAccessDirectionsError(error)
+  }
+
+  validateRouteAccessDirectionsResponse(data, routeId)
   return data
 }
 
