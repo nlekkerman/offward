@@ -101,7 +101,9 @@ function StatisticsReport({ report, period }) {
     <>
       <p className="management-statistics-range">
         Reporting timezone: <strong>{report.timezone}</strong>
-        {' · '}Period: <strong>{dateRange.start_date} – {dateRange.end_date}</strong>
+        {' · '}Period: <strong>{dateRange.start_date === null
+          ? `All available history through ${dateRange.end_date}`
+          : `${dateRange.start_date} – ${dateRange.end_date}`}</strong>
         {period === 'all' && (
           <span> · The trend is limited to the most recent 90 days ({trendDates.start_date} – {trendDates.end_date}).</span>
         )}

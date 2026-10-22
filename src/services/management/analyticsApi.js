@@ -9,8 +9,27 @@ function isCount(value) {
   return Number.isSafeInteger(value) && value >= 0
 }
 
-function isDateRange(value) {
-  return value && DATE_PATTERN.test(value.start_date) && DATE_PATTERN.test(value.end_date)
+function isDate(value) {
+  if (typeof value !== 'string' || !DATE_PATTERN.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  if (year < 1 || month < 1 || month > 12) return false
+
+  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+  const daysInMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  return day >= 1 && day <= daysInMonth[month - 1]
+}
+
+function isValidRange(startDate, endDate) {
+  return isDate(startDate) && isDate(endDate) && startDate <= endDate
+}
+
+function isDateRange(value, period) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !isDate(value.end_date)) {
+    return false
+  }
+
+  if (value.start_date === null) return period === 'all'
+  return isValidRange(value.start_date, value.end_date)
 }
 
 function validateReport(data, period) {
@@ -20,7 +39,7 @@ function validateReport(data, period) {
   if (data.period !== period || typeof data.timezone !== 'string' || !data.timezone.trim()) {
     throw new Error('Analytics report response has an invalid period or timezone.')
   }
-  if (!isDateRange(data.date_range) || !isDateRange(data.trend_range)) {
+  if (!isDateRange(data.date_range, period) || !isDateRange(data.trend_range, null)) {
     throw new Error('Analytics report response has an invalid date range.')
   }
   if (!data.totals || !isCount(data.totals.visits) || !isCount(data.totals.page_views)) {
@@ -28,7 +47,7 @@ function validateReport(data, period) {
   }
   if (!Array.isArray(data.trends) || data.trends.some((trend) => (
     !trend ||
-    !DATE_PATTERN.test(trend.date) ||
+    !isDate(trend.date) ||
     !isCount(trend.visits) ||
     !isCount(trend.page_views)
   ))) {
