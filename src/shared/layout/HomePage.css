@@ -74,12 +74,12 @@
     align-items: stretch;
     padding: 0;
     overflow: hidden;
-    border-right: 2px solid rgba(255, 255, 255, 0.7);
     border: 0;
+    border-right: 2px solid rgba(255, 255, 255, 0.7);
     border-radius: 0;
     background: rgba(0, 0, 0, 0.5);
     box-shadow: 5px 0 18px rgba(0, 0, 0, 0.28);
-    transition: width 220ms ease, background-color 220ms ease;
+    transition: background-color 220ms ease;
   }
 
   .home-navigation-ribbon.has-management {
@@ -88,7 +88,6 @@
 
   .home-navigation-ribbon:not(.is-collapsed):hover,
   .home-navigation-ribbon:not(.is-collapsed):has(:focus-visible) {
-    width: 206px;
     background: rgba(0, 0, 0, 0.7);
   }
 
