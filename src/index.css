@@ -25,6 +25,8 @@ button, input, select, textarea { font: inherit; }
 }
 
 .app-shell-public {
+  display: flex;
+  flex-direction: column;
   --public-section-surface: rgba(18, 21, 16, 0.55);
   --public-card-surface: rgba(18, 21, 16, 0.75);
   background-color: #101713;
@@ -34,6 +36,8 @@ button, input, select, textarea { font: inherit; }
   background-size: cover;
   background-attachment: fixed;
 }
+
+.app-shell-public > main { flex: 1; }
 
 .app-shell-home { position: relative; }
 body:has(.app-shell-home) { min-width: 0; }

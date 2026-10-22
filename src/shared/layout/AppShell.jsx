@@ -5,6 +5,7 @@ import PublicPageAnalyticsObserver from '../components/PublicPageAnalyticsObserv
 import desktopLogo from '../../assets/images/home/logo_offward.webp'
 import mobileLogo from '../../assets/images/home/logo_arrow_only.webp'
 import HomeNavigationRibbon from './HomeNavigationRibbon.jsx'
+import Footer from './Footer.jsx'
 
 const NAV_LINKS = [
   { section: 'home', label: 'Home', to: '/' },
@@ -180,6 +181,7 @@ function AppShell() {
         </nav>
       </header>
       <main inert={isMenuOpen}><Outlet /></main>
+      {!isManagementPage && <Footer />}
     </div>
   )
 }

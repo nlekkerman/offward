@@ -1,5 +1,7 @@
 import { apiClient, ensureCsrfToken } from './apiClient.js'
-import { setOffwardAuthState } from './offwardAuthState.js'
+import { getOffwardAuthState, setOffwardAuthState } from './offwardAuthState.js'
+
+let offwardAccessRequestId = 0
 
 const UNAUTHENTICATED_SESSION = Object.freeze({
   isAuthenticated: false,
@@ -86,18 +88,28 @@ export async function getSession() {
 
 // Authoritative Offward authorization check; never derive access from /api/auth/session/.
 export async function getOffwardAccess() {
+  const requestId = ++offwardAccessRequestId
+
   try {
     const { data } = await apiClient.get('/api/offward/manage/access/')
     const result = normalizeOffwardAccess(data)
-    setOffwardAuthState(result.authState)
+    if (requestId === offwardAccessRequestId) {
+      setOffwardAuthState(result.authState)
+    }
     return result
   } catch {
-    setOffwardAuthState('failed')
+    if (requestId === offwardAccessRequestId) {
+      setOffwardAuthState('failed')
+    }
     return { ...UNAUTHORIZED_OFFWARD_ACCESS }
   }
 }
 
 export async function loginWithSession({ username, password }) {
+  const previousAuthState = getOffwardAuthState()
+  const loginRequestId = ++offwardAccessRequestId
+  setOffwardAuthState('pending')
+
   try {
     await getCsrf()
     await apiClient.post('/api/auth/login/', { username, password }, {
@@ -105,13 +117,27 @@ export async function loginWithSession({ username, password }) {
     })
     return getOffwardAccess()
   } catch (error) {
+    if (loginRequestId === offwardAccessRequestId) {
+      setOffwardAuthState(previousAuthState)
+    }
     throw new Error(getReadableAuthError(error), { cause: error })
   }
 }
 
 export async function logoutSession() {
-  await ensureCsrfToken()
-  await apiClient.post('/api/auth/logout/', {})
-  setOffwardAuthState('anonymous')
-  return true
+  const previousAuthState = getOffwardAuthState()
+  const logoutRequestId = ++offwardAccessRequestId
+  setOffwardAuthState('pending')
+
+  try {
+    await ensureCsrfToken()
+    await apiClient.post('/api/auth/logout/', {})
+    setOffwardAuthState('anonymous')
+    return true
+  } catch (error) {
+    if (logoutRequestId === offwardAccessRequestId) {
+      setOffwardAuthState(previousAuthState)
+    }
+    throw error
+  }
 }
