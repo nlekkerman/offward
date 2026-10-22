@@ -3,8 +3,6 @@ import { PUBLIC_PAGE_METADATA } from '../../src/shared/constants/publicPageMetad
 const PUBLIC_ORIGIN = 'https://offward.eu'
 const FALLBACK_IMAGE = `${PUBLIC_ORIGIN}/favicon.svg`
 const API_BASE_ENV = 'VITE_API_BASE_URL'
-const PUBLIC_LAUNCH_ENV = 'VITE_PUBLIC_LAUNCH_ENABLED'
-let missingLaunchSettingReported = false
 
 const CONTENT_TYPES = {
   routes: { endpoint: 'routes', titleField: 'title', descriptionField: 'summary', fallbackTitle: 'Route', type: 'website' },
@@ -20,17 +18,6 @@ function isObject(value) {
 
 function cleanText(value) {
   return typeof value === 'string' ? value.trim() : ''
-}
-
-function isPublicLaunchEnabled() {
-  const setting = Netlify.env.get(PUBLIC_LAUNCH_ENV)
-  if (setting === 'true') return true
-  if (setting === 'false') return false
-  if (!missingLaunchSettingReported) {
-    console.error(`${PUBLIC_LAUNCH_ENV} is unavailable to Edge Functions; public pages will remain noindex.`)
-    missingLaunchSettingReported = true
-  }
-  return false
 }
 
 function htmlEscape(value) {
@@ -285,16 +272,12 @@ export default async function handler(request, context) {
   const target = getRequestTarget(requestUrl.pathname)
   let response = await context.next()
   let originalHtml = null
-  const launchEnabled = isPublicLaunchEnabled()
 
   if (requestUrl.pathname === '/robots.txt' && (request.method === 'GET' || request.method === 'HEAD')) {
     const robots = [
       'User-agent: *',
       'Allow: /',
       'Disallow: /manage',
-      ...(launchEnabled
-        ? []
-        : ['# Crawling stays enabled so crawlers can read the noindex response header while Offward is closed.']),
       '',
     ].join('\n')
     return new Response(request.method === 'HEAD' ? null : robots, {
@@ -315,7 +298,7 @@ export default async function handler(request, context) {
     return createHtmlResponse(response, replaceNotFoundMetadata(html), 404, 'Not Found')
   }
 
-  if (isHtml && (!launchEnabled || isManagementPath || response.status === 404)) {
+  if (isHtml && (isManagementPath || response.status === 404)) {
     response = withRobotsHeader(response, 'noindex,nofollow')
     originalHtml = await response.text()
     if (response.status === 404) {
@@ -400,8 +383,6 @@ export default async function handler(request, context) {
       originalHtml = await response.text()
       return createHtmlResponse(response, replaceNotFoundMetadata(originalHtml), 404, 'Not Found')
     }
-    if (!launchEnabled || isManagementPath) return response
-
     const title = target.nestedType
       ? getNestedTitle(route, target, content)
       : cleanText(content[mapping.titleField])

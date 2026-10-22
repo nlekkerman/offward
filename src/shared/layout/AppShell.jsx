@@ -118,6 +118,11 @@ function AppShell() {
 
   return (
     <div className={`app-shell${isManagementPage ? '' : ' app-shell-public'}${pathname === '/' ? ' app-shell-home' : ''}${isDetailHeroPage ? ' app-shell-detail-hero' : ''}`}>
+      {!isManagementPage && (
+        <div className="visitor-notice">
+          <p>Offward is currently in testing. Content and features may change.</p>
+        </div>
+      )}
       <div className={`mobile-nav-backdrop${isMenuOpen ? ' is-open' : ''}`} aria-hidden="true" />
       {!isManagementPage && <HomeNavigationRibbon activeSection={activeSection} canManageOffward={canManageOffward === true} />}
       <header ref={headerRef} className={`app-header${isMenuOpen ? ' mobile-menu-open' : ''}`}>

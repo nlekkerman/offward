@@ -58,12 +58,12 @@
   .home-navigation-ribbon {
     position: fixed;
     z-index: 40;
-    top: 0;
+    top: 2rem;
     left: 0;
     display: grid;
     box-sizing: border-box;
     width: 54px;
-    height: 100dvh;
+    height: calc(100dvh - 2rem);
     grid-template-rows: repeat(8, minmax(0, 1fr));
     align-items: stretch;
     padding: 0;
