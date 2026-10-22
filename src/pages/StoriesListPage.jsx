@@ -7,6 +7,8 @@ import CountryFlag from '../shared/components/CountryFlag.jsx'
 import { findCountry } from '../shared/utils/country.js'
 import { collectionPreview, imagePreviewUrl } from '../features/management/imageCollectionUtils.js'
 import ListingPageHeader from '../shared/components/ListingPageHeader.jsx'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import { PUBLIC_PAGE_METADATA } from '../shared/constants/publicPageMetadata.js'
 
 function getImageUrl(image) {
   return image?.url || image?.image_url || image?.thumbnail_url || image?.image?.url || image?.image?.image_url || ''
@@ -87,6 +89,10 @@ function StoriesListPage() {
 
   return (
     <section className="explore-page">
+      <PageMetadata
+        {...PUBLIC_PAGE_METADATA.stories}
+        path="/stories"
+      />
       <ListingPageHeader
         eyebrow="PUBLIC STORIES"
         title="Stories"

@@ -6,6 +6,8 @@ import ExploreResults from '../features/explore/ExploreResults.jsx'
 import useExploreData from '../features/explore/useExploreData.js'
 import '../features/explore/explore.css'
 import ListingPageHeader from '../shared/components/ListingPageHeader.jsx'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import { PUBLIC_PAGE_METADATA } from '../shared/constants/publicPageMetadata.js'
 
 const ExploreMapBrowser = lazy(() => import('../features/explore/ExploreMapBrowser.jsx'))
 
@@ -35,6 +37,7 @@ function ExplorePage() {
   const selectedId = status === 'success' && items.some((item) => item.id === selection) ? selection : null
   const filtered = Boolean(country || activity)
   const title = filtered || mapMode ? `${mode === 'routes' ? 'Routes' : 'Places'}${country ? ` in ${countries.find((item) => item.slug === country || String(item.id) === country)?.name || country}` : ''}` : mode === 'routes' ? 'Routes to Explore' : 'Places to Explore'
+  const pageMetadata = PUBLIC_PAGE_METADATA.explore[mode]
 
   function updateFilters(changes) {
     resetSelection()
@@ -56,6 +59,7 @@ function ExplorePage() {
 
   return (
     <section className="explore-page explore-discovery">
+      <PageMetadata {...pageMetadata} path="/explore" />
       <ExploreHeader mode={mode} mapMode={mapMode} onMapChange={(value) => { resetSelection(); setMapMode(value) }} />
       <ExploreCategoryNav activeView={mode} onViewChange={(view) => {
         if (view === mode) return

@@ -1,13 +1,17 @@
+import { PUBLIC_PAGE_METADATA } from '../../src/shared/constants/publicPageMetadata.js'
+
 const PUBLIC_ORIGIN = 'https://offward.eu'
 const FALLBACK_IMAGE = `${PUBLIC_ORIGIN}/favicon.svg`
 const API_BASE_ENV = 'VITE_API_BASE_URL'
+const PUBLIC_LAUNCH_ENV = 'VITE_PUBLIC_LAUNCH_ENABLED'
+let missingLaunchSettingReported = false
 
 const CONTENT_TYPES = {
-  routes: { endpoint: 'routes', titleField: 'title', descriptionField: 'summary', type: 'website' },
-  places: { endpoint: 'places', titleField: 'name', descriptionField: 'summary', type: 'website' },
-  stories: { endpoint: 'stories', titleField: 'title', descriptionField: 'excerpt', type: 'article' },
-  food: { endpoint: 'food', titleField: 'title', descriptionField: 'summary', type: 'website' },
-  countries: { endpoint: 'countries', statusOnly: true },
+  routes: { endpoint: 'routes', titleField: 'title', descriptionField: 'summary', fallbackTitle: 'Route', type: 'website' },
+  places: { endpoint: 'places', titleField: 'name', descriptionField: 'summary', fallbackTitle: 'Place', type: 'website' },
+  stories: { endpoint: 'stories', titleField: 'title', descriptionField: 'excerpt', fallbackTitle: 'Story', type: 'article' },
+  food: { endpoint: 'food', titleField: 'title', descriptionField: 'summary', fallbackTitle: 'Food', type: 'website' },
+  countries: { endpoint: 'countries', titleField: 'name', descriptionField: 'summary', noImage: true, fallbackTitle: null, type: 'website' },
 }
 
 function isObject(value) {
@@ -16,6 +20,17 @@ function isObject(value) {
 
 function cleanText(value) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function isPublicLaunchEnabled() {
+  const setting = Netlify.env.get(PUBLIC_LAUNCH_ENV)
+  if (setting === 'true') return true
+  if (setting === 'false') return false
+  if (!missingLaunchSettingReported) {
+    console.error(`${PUBLIC_LAUNCH_ENV} is unavailable to Edge Functions; public pages will remain noindex.`)
+    missingLaunchSettingReported = true
+  }
+  return false
 }
 
 function htmlEscape(value) {
@@ -56,7 +71,10 @@ function getImageUrl(value, apiOrigin) {
     if (typeof candidate !== 'string' || !candidate.trim()) continue
     try {
       const url = new URL(candidate.trim(), `${apiOrigin}/`)
-      if (url.protocol === 'https:') return url.toString()
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        url.protocol = 'https:'
+        return url.toString()
+      }
     } catch {
       continue
     }
@@ -115,6 +133,16 @@ function clearMetadata(html) {
   return result
 }
 
+function replaceUnindexedMetadata(html) {
+  if (!/<\/head\s*>/i.test(html)) return html
+
+  const result = clearMetadata(html)
+  return result.replace(
+    /<\/head\s*>/i,
+    '    <title>Offward</title>\n    <meta name="robots" content="noindex,nofollow">\n  </head>',
+  )
+}
+
 function replaceMetadata(html, metadata) {
   if (!/<\/head\s*>/i.test(html)) return html
 
@@ -122,24 +150,27 @@ function replaceMetadata(html, metadata) {
   const title = htmlEscape(metadata.title)
   const description = htmlEscape(metadata.description)
   const canonical = htmlEscape(metadata.canonical)
-  const image = htmlEscape(metadata.image)
   const type = htmlEscape(metadata.type)
   const injected = [
-    `<title>${title}</title>`,
+    `<title>${title} | Offward</title>`,
     `<meta name="description" content="${description}">`,
     `<link rel="canonical" href="${canonical}">`,
     `<meta property="og:title" content="${title}">`,
     `<meta property="og:description" content="${description}">`,
     `<meta property="og:url" content="${canonical}">`,
-    `<meta property="og:image" content="${image}">`,
     `<meta property="og:type" content="${type}">`,
-    '<meta name="twitter:card" content="summary_large_image">',
     `<meta name="twitter:title" content="${title}">`,
     `<meta name="twitter:description" content="${description}">`,
-    `<meta name="twitter:image" content="${image}">`,
   ].join('\n    ')
+  const withImage = metadata.image
+    ? [
+        `<meta property="og:image" content="${htmlEscape(metadata.image)}">`,
+        '<meta name="twitter:card" content="summary_large_image">',
+        `<meta name="twitter:image" content="${htmlEscape(metadata.image)}">`,
+      ].join('\n    ')
+    : '<meta name="twitter:card" content="summary">'
 
-  return result.replace(/<\/head\s*>/i, `    ${injected}\n  </head>`)
+  return result.replace(/<\/head\s*>/i, `    ${injected}\n    ${withImage}\n  </head>`)
 }
 
 function replaceNotFoundMetadata(html) {
@@ -154,19 +185,38 @@ function replaceNotFoundMetadata(html) {
   return result.replace(/<\/head\s*>/i, `    ${injected}\n  </head>`)
 }
 
+function withRobotsHeader(response, value) {
+  const headers = new Headers(response.headers)
+  headers.set('x-robots-tag', value)
+  headers.set('cache-control', 'no-store')
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
 function createHtmlResponse(response, html, status = response.status, statusText = response.statusText) {
   const headers = new Headers(response.headers)
   headers.delete('content-length')
   headers.delete('content-encoding')
   headers.delete('content-md5')
   headers.delete('etag')
+  if (status === 404) headers.set('x-robots-tag', 'noindex,follow')
   return new Response(html, { status, statusText, headers })
 }
 
 function getRequestTarget(pathname) {
+  const nestedMatch = pathname.match(/^\/routes\/([^/]+)\/(waypoints|segments)\/([^/]+)\/?$/)
   const match = pathname.match(/^\/(routes|places|stories|food|countries)\/([^/]+)\/?$/)
-  if (!match) return null
+  if (!nestedMatch && !match) return null
   try {
+    if (nestedMatch) {
+      const [, rawSlug, nestedType, rawId] = nestedMatch
+      const slug = decodeURIComponent(rawSlug)
+      const id = decodeURIComponent(rawId)
+      return slug && id ? { type: 'routes', slug, nestedType, id } : null
+    }
     const slug = decodeURIComponent(match[2])
     return slug ? { type: match[1], slug } : null
   } catch {
@@ -174,13 +224,139 @@ function getRequestTarget(pathname) {
   }
 }
 
+function getNestedContent(route, target) {
+  const items = target.nestedType === 'waypoints' ? route.waypoints : route.segments
+  if (!Array.isArray(items)) return null
+  return items.find((item) => isObject(item) && String(item.id) === target.id) || null
+}
+
+function getNestedTitle(route, target, content) {
+  if (target.nestedType === 'waypoints') {
+    return cleanText(content.name)
+      || cleanText(content.label)
+      || cleanText(content.place_name)
+      || (content.order != null ? `Waypoint ${content.order}` : 'Waypoint')
+  }
+
+  const start = Array.isArray(route.waypoints)
+    ? route.waypoints.find((item) => isObject(item) && String(item.id) === String(content.start_waypoint_id))
+    : null
+  const end = Array.isArray(route.waypoints)
+    ? route.waypoints.find((item) => isObject(item) && String(item.id) === String(content.end_waypoint_id))
+    : null
+  const startName = cleanText(start?.name) || cleanText(start?.label) || 'Start'
+  const endName = cleanText(end?.name) || cleanText(end?.label) || 'End'
+  return cleanText(content.title) || `${startName} → ${endName}`
+}
+
+function isPlaceholderPath(pathname) {
+  return /^\/(events|tours|videos)\/[^/]+\/?$/.test(pathname)
+}
+
+function isInvalidRewrittenPath(pathname) {
+  const normalizedPath = pathname.replace(/\/+$/, '') || '/'
+  const rewrittenFamilies = [
+    { prefix: 'food', listPath: '/food' },
+    { prefix: 'countries', listPath: '/countries' },
+    { prefix: 'places' },
+    { prefix: 'routes' },
+    { prefix: 'stories', listPath: '/stories' },
+    { prefix: 'videos' },
+    { prefix: 'tours' },
+    { prefix: 'events' },
+  ]
+
+  for (const family of rewrittenFamilies) {
+    if (normalizedPath === `/${family.prefix}`) return family.listPath !== normalizedPath
+    if (!normalizedPath.startsWith(`/${family.prefix}/`)) continue
+    if (family.listPath === normalizedPath) return false
+    if (getRequestTarget(normalizedPath)) return false
+    if (family.prefix === 'events' || family.prefix === 'tours' || family.prefix === 'videos') {
+      return !new RegExp(`^/${family.prefix}/[^/]+$`).test(normalizedPath)
+        || !isPlaceholderPath(normalizedPath)
+    }
+    return true
+  }
+  return false
+}
+
 export default async function handler(request, context) {
-  const target = getRequestTarget(new URL(request.url).pathname)
-  const response = await context.next()
-  if (!target || request.method !== 'GET' || !response.ok) return response
+  const requestUrl = new URL(request.url)
+  const target = getRequestTarget(requestUrl.pathname)
+  let response = await context.next()
+  let originalHtml = null
+  const launchEnabled = isPublicLaunchEnabled()
+
+  if (requestUrl.pathname === '/robots.txt' && (request.method === 'GET' || request.method === 'HEAD')) {
+    const robots = [
+      'User-agent: *',
+      'Allow: /',
+      'Disallow: /manage',
+      ...(launchEnabled
+        ? []
+        : ['# Crawling stays enabled so crawlers can read the noindex response header while Offward is closed.']),
+      '',
+    ].join('\n')
+    return new Response(request.method === 'HEAD' ? null : robots, {
+      status: 200,
+      headers: {
+        'content-type': 'text/plain; charset=utf-8',
+        'cache-control': 'no-store',
+      },
+    })
+  }
 
   const contentTypeHeader = response.headers.get('content-type') || ''
-  if (!contentTypeHeader.toLowerCase().includes('text/html')) return response
+  const isHtml = contentTypeHeader.toLowerCase().includes('text/html')
+  const isManagementPath = requestUrl.pathname === '/manage' || requestUrl.pathname.startsWith('/manage/')
+  if (isHtml && response.ok && isInvalidRewrittenPath(requestUrl.pathname)) {
+    response = withRobotsHeader(response, 'noindex,follow')
+    const html = await response.text()
+    return createHtmlResponse(response, replaceNotFoundMetadata(html), 404, 'Not Found')
+  }
+
+  if (isHtml && (!launchEnabled || isManagementPath || response.status === 404)) {
+    response = withRobotsHeader(response, 'noindex,nofollow')
+    originalHtml = await response.text()
+    if (response.status === 404) {
+      return createHtmlResponse(response, replaceNotFoundMetadata(originalHtml), 404, 'Not Found')
+    }
+    response = createHtmlResponse(response, replaceUnindexedMetadata(originalHtml))
+    if (!target) return response
+  }
+
+  if (isHtml && response.ok && isPlaceholderPath(requestUrl.pathname)) {
+    response = withRobotsHeader(response, 'noindex,nofollow')
+    const html = await response.text()
+    return createHtmlResponse(response, replaceUnindexedMetadata(html))
+  }
+
+  if (request.method !== 'GET' || !response.ok || !isHtml) return response
+
+  if (!target) {
+    const metadataPath = requestUrl.pathname.replace(/\/+$/, '') || '/'
+    const metadata = {
+      '/explore': PUBLIC_PAGE_METADATA.explore,
+      '/countries': PUBLIC_PAGE_METADATA.countries,
+      '/stories': PUBLIC_PAGE_METADATA.stories,
+      '/food': PUBLIC_PAGE_METADATA.food,
+      '/about': PUBLIC_PAGE_METADATA.about,
+      '/contact': PUBLIC_PAGE_METADATA.contact,
+    }[metadataPath]
+    if (!metadata) return response
+
+    const pageMetadata = metadataPath === '/explore'
+      ? metadata[requestUrl.searchParams.get('view') === 'places' ? 'places' : 'routes']
+      : metadata
+    const canonical = `${PUBLIC_ORIGIN}${metadataPath}`
+    const html = await response.text()
+    return createHtmlResponse(response, replaceMetadata(html, {
+      ...pageMetadata,
+      canonical,
+      type: 'website',
+      image: FALLBACK_IMAGE,
+    }))
+  }
 
   const apiBase = Netlify.env.get(API_BASE_ENV)
   if (!apiBase) {
@@ -190,7 +366,6 @@ export default async function handler(request, context) {
 
   let apiOrigin
   let detailUrl
-  let originalHtml = null
   try {
     const apiBaseUrl = new URL(apiBase)
     if (apiBaseUrl.protocol !== 'https:' && apiBaseUrl.protocol !== 'http:') return response
@@ -212,22 +387,39 @@ export default async function handler(request, context) {
       clearTimeout(timeout)
     }
     if (apiResponse.status === 404) {
-      originalHtml = await response.text()
+      originalHtml = originalHtml ?? await response.text()
       return createHtmlResponse(response, replaceNotFoundMetadata(originalHtml), 404, 'Not Found')
     }
     if (!apiResponse.ok) return response
-    if (CONTENT_TYPES[target.type].statusOnly) return response
-
-    const content = await apiResponse.json()
-    if (!isObject(content)) return response
+    const route = await apiResponse.json()
+    if (!isObject(route)) return response
 
     const mapping = CONTENT_TYPES[target.type]
-    const title = cleanText(content[mapping.titleField])
-    if (!title) return response
-    const description = cleanText(content[mapping.descriptionField]) || [title, getCountry(content)].filter(Boolean).join(' — ')
-    const canonical = `${PUBLIC_ORIGIN}/${target.type}/${encodeURIComponent(target.slug)}`
-    const image = getSocialImage(content, target.type, apiOrigin)
-    originalHtml = await response.text()
+    const content = target.nestedType ? getNestedContent(route, target) : route
+    if (!content) {
+      originalHtml = await response.text()
+      return createHtmlResponse(response, replaceNotFoundMetadata(originalHtml), 404, 'Not Found')
+    }
+    if (!launchEnabled || isManagementPath) return response
+
+    const title = target.nestedType
+      ? getNestedTitle(route, target, content)
+      : cleanText(content[mapping.titleField])
+        || (mapping.fallbackTitle || target.slug.replace(/[-_]+/g, ' '))
+    const description = cleanText(target.nestedType
+      ? content.summary || content.note || content.description
+      : content[mapping.descriptionField])
+      || (target.nestedType || target.type === 'countries'
+        ? title
+        : [title, getCountry(content)].filter(Boolean).join(' — '))
+    const contentPath = target.nestedType
+      ? `/routes/${encodeURIComponent(target.slug)}/${target.nestedType}/${encodeURIComponent(target.id)}`
+      : `/${target.type}/${encodeURIComponent(target.slug)}`
+    const canonical = `${PUBLIC_ORIGIN}${contentPath}`
+    const image = mapping.noImage
+      ? null
+      : getSocialImage(target.nestedType ? route : content, target.type, apiOrigin)
+    originalHtml = originalHtml ?? await response.text()
     const updatedHtml = replaceMetadata(originalHtml, { title, description, canonical, image, type: mapping.type })
     return createHtmlResponse(response, updatedHtml)
   } catch (error) {

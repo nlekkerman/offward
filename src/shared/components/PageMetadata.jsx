@@ -57,21 +57,35 @@ function applyMetadata({ title, browserTitle = title, description, canonical, im
   setMeta('meta[property="og:title"]', 'property', 'og:title', title)
   setMeta('meta[property="og:description"]', 'property', 'og:description', description)
   setMeta('meta[property="og:url"]', 'property', 'og:url', canonical)
-  setMeta('meta[property="og:image"]', 'property', 'og:image', image)
   setMeta('meta[property="og:type"]', 'property', 'og:type', type)
-  setMeta('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image')
   setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title)
   setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description)
-  setMeta('meta[name="twitter:image"]', 'name', 'twitter:image', image)
+  if (image) {
+    setMeta('meta[property="og:image"]', 'property', 'og:image', image)
+    setMeta('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image')
+    setMeta('meta[name="twitter:image"]', 'name', 'twitter:image', image)
+  } else {
+    document.head.querySelectorAll('meta[property="og:image"], meta[name="twitter:image"]').forEach((element) => element.remove())
+    setMeta('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary')
+  }
 }
 
-function PageMetadata({ title, description, path, image, type = 'website', noindex = false }) {
+function PageMetadata({
+  title,
+  description,
+  path,
+  image,
+  type = 'website',
+  noindex = false,
+  noImage = false,
+  noindexTitle = NOT_FOUND_TITLE,
+}) {
   const canonical = noindex ? null : getPublicUrl(path)
-  const socialImage = noindex ? null : getPublicImageUrl(image) || FALLBACK_SOCIAL_IMAGE
+  const socialImage = noindex || noImage ? null : getPublicImageUrl(image) || FALLBACK_SOCIAL_IMAGE
 
   useEffect(() => {
     if (noindex) {
-      document.title = NOT_FOUND_TITLE
+      document.title = noindexTitle
       clearNotFoundMetadata()
       setMeta('meta[name="robots"]', 'name', 'robots', 'noindex,follow')
 
@@ -92,7 +106,7 @@ function PageMetadata({ title, description, path, image, type = 'website', noind
     })
 
     return () => applyMetadata(DEFAULT_METADATA)
-  }, [title, description, canonical, socialImage, type, noindex])
+  }, [title, description, canonical, socialImage, type, noindex, noindexTitle])
 
   return null
 }

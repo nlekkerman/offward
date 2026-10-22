@@ -6,6 +6,8 @@ import { getNextPage, loadPublicFoodPage } from '../features/food/publicFoodCach
 import usePublicCountries from '../features/food/usePublicCountries.js'
 import { formatActivityLabel } from '../features/home/latestContentFormatting.js'
 import ListingPageHeader from '../shared/components/ListingPageHeader.jsx'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import { PUBLIC_PAGE_METADATA } from '../shared/constants/publicPageMetadata.js'
 
 function FoodsListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -63,6 +65,10 @@ function FoodsListPage() {
 
   return (
     <section className="food-page food-listing-page">
+      <PageMetadata
+        {...PUBLIC_PAGE_METADATA.food}
+        path="/food"
+      />
       <ListingPageHeader eyebrow="PUBLIC FOOD" title="Food" aside={current.count !== undefined && <p className="explore-count" aria-live="polite">{current.foods.length} of {current.count} Food items</p>} />
       <div className="food-filters">
         <label>Country<select aria-describedby="food-country-catalog-note" value={country} onChange={(event) => updateFilter('country', event.target.value)}><option value="">All countries</option>{countries.countries.map((item) => <option key={item.id || item.slug} value={item.slug || item.id}>{item.name}</option>)}</select></label>

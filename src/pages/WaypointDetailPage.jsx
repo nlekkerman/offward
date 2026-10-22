@@ -9,6 +9,8 @@ import { getPublicPlaces } from '../services/placesApi.js'
 import { getPublicRouteBySlug } from '../services/routesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import { getContentDescription, getContentSocialImage } from '../shared/utils/publicUrls.js'
 import NotFoundPage from './NotFoundPage.jsx'
 
 function WaypointDetailPage() {
@@ -168,10 +170,24 @@ function WaypointDetailPage() {
   }
 
   const lightboxImages = lightbox.gallery?.images || []
-  const waypointLabel = waypoint.name || waypoint.label || waypoint.place_name || `Waypoint ${waypoint.order}`
+  const waypointLabel = waypoint.name
+    || waypoint.label
+    || waypoint.place_name
+    || (waypoint.order != null ? `Waypoint ${waypoint.order}` : 'Waypoint')
+  const waypointPath = `/routes/${encodeURIComponent(routeSlug)}/waypoints/${encodeURIComponent(id)}`
+  const waypointDescription = getContentDescription(
+    waypoint.summary || waypoint.note || waypoint.description,
+    waypointLabel,
+  )
 
   return (
     <section className="route-detail-page">
+      <PageMetadata
+        title={waypointLabel}
+        description={waypointDescription}
+        path={waypointPath}
+        image={getContentSocialImage(route)}
+      />
       <EntityRouteContext
         route={route}
         routeSlug={routeSlug}

@@ -1,6 +1,13 @@
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import { PUBLIC_PAGE_METADATA } from '../shared/constants/publicPageMetadata.js'
+
 function AboutPage() {
   return (
     <article className="about-page" aria-labelledby="about-title">
+      <PageMetadata
+        {...PUBLIC_PAGE_METADATA.about}
+        path="/about"
+      />
       <header className="about-intro">
         <p className="eyebrow">ABOUT</p>
         <h1 id="about-title">About Offward</h1>

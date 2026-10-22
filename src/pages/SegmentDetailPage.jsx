@@ -10,6 +10,8 @@ import { getPublicRouteBySlug } from '../services/routesApi.js'
 import { getPublicStories } from '../services/storiesApi.js'
 import { getPublicVideos } from '../services/videosApi.js'
 import ImageLightbox from '../shared/components/ImageLightbox.jsx'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import { getContentDescription, getContentSocialImage } from '../shared/utils/publicUrls.js'
 import NotFoundPage from './NotFoundPage.jsx'
 
 function SegmentDetailPage() {
@@ -173,10 +175,18 @@ function SegmentDetailPage() {
   const startWaypoint = route.waypoints.find((item) => item.id === segment.start_waypoint_id)
   const endWaypoint = route.waypoints.find((item) => item.id === segment.end_waypoint_id)
   const segmentTitle = segment.title || `${startWaypoint ? (startWaypoint.name || startWaypoint.label || 'Start') : 'Start'} → ${endWaypoint ? (endWaypoint.name || endWaypoint.label || 'End') : 'End'}`
+  const segmentPath = `/routes/${encodeURIComponent(routeSlug)}/segments/${encodeURIComponent(id)}`
+  const segmentDescription = getContentDescription(segment.summary || segment.note, segmentTitle)
   const lightboxImages = lightbox.gallery?.images || []
 
   return (
     <section className="route-detail-page">
+      <PageMetadata
+        title={segmentTitle}
+        description={segmentDescription}
+        path={segmentPath}
+        image={getContentSocialImage(route)}
+      />
       <EntityRouteContext
         route={route}
         routeSlug={routeSlug}

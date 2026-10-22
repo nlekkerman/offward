@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { submitContactMessage } from '../services/contactApi.js'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import { PUBLIC_PAGE_METADATA } from '../shared/constants/publicPageMetadata.js'
 
 const CONTACT_CATEGORIES = [
   { value: 'general', label: 'General' },
@@ -123,6 +125,10 @@ function ContactPage() {
 
   return (
     <section className="contact-page">
+      <PageMetadata
+        {...PUBLIC_PAGE_METADATA.contact}
+        path="/contact"
+      />
       <div className="contact-intro">
         <p className="eyebrow">CONTACT OFFWARD</p>
         <h1>Send a note from the road.</h1>

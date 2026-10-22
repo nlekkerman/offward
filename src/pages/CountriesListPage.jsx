@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { getPublicCountriesPage } from '../services/countriesApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
 import ListingPageHeader from '../shared/components/ListingPageHeader.jsx'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import { PUBLIC_PAGE_METADATA } from '../shared/constants/publicPageMetadata.js'
 
 function CountriesListPage() {
   const [attempt, setAttempt] = useState(0)
@@ -55,6 +57,10 @@ function CountriesListPage() {
 
   return (
     <section className="explore-page">
+      <PageMetadata
+        {...PUBLIC_PAGE_METADATA.countries}
+        path="/countries"
+      />
       <ListingPageHeader
         eyebrow="PUBLIC COUNTRIES"
         title="Countries"

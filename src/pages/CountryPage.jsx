@@ -6,6 +6,12 @@ import CountryFlag from '../shared/components/CountryFlag.jsx'
 import CountryFood from '../features/food/CountryFood.jsx'
 import CountryEntityPreview from './CountryEntityPreview.jsx'
 import '../features/explore/explore.css'
+import PageMetadata from '../shared/components/PageMetadata.jsx'
+import { getContentDescription } from '../shared/utils/publicUrls.js'
+
+function getCountryTitle(country, slug) {
+  return country.name || slug.replace(/[-_]+/g, ' ')
+}
 
 function CountryPage() {
   const { countrySlug } = useParams()
@@ -52,6 +58,12 @@ function CountryPage() {
 
   return (
     <section className="explore-page explore-discovery country-page">
+      <PageMetadata
+        title={getCountryTitle(country, countrySlug)}
+        description={getContentDescription(country.summary, getCountryTitle(country, countrySlug))}
+        path={`/countries/${encodeURIComponent(countrySlug)}`}
+        noImage
+      />
       <div className="country-detail-identity">
         <CountryFlag code={country.code} countryName={country.name} size="medium" />
         <div>
