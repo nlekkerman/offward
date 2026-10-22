@@ -18,25 +18,32 @@ function HomeNavigationRibbon({ activeSection, canManageOffward, onExpandedChang
   const { pathname, search } = useLocation()
   const params = new URLSearchParams(search)
   const [isCollapsedAfterClick, setIsCollapsedAfterClick] = useState(false)
+  const [isPointerOver, setIsPointerOver] = useState(false)
+  const [hasVisibleFocus, setHasVisibleFocus] = useState(false)
 
   return (
     <nav
       className={`home-navigation-ribbon${canManageOffward ? ' has-management' : ''}${isCollapsedAfterClick ? ' is-collapsed' : ''}`}
       aria-label="Primary navigation"
       onPointerEnter={() => {
+        setIsPointerOver(true)
         if (!isCollapsedAfterClick) onExpandedChange(true)
       }}
       onPointerLeave={() => {
+        setIsPointerOver(false)
         setIsCollapsedAfterClick(false)
-        onExpandedChange(false)
+        onExpandedChange(hasVisibleFocus)
       }}
-      onFocusCapture={() => {
-        if (!isCollapsedAfterClick) onExpandedChange(true)
+      onFocusCapture={(event) => {
+        const isVisible = event.target.matches(':focus-visible')
+        setHasVisibleFocus(isVisible)
+        if (!isCollapsedAfterClick) onExpandedChange(isVisible || isPointerOver)
       }}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
           setIsCollapsedAfterClick(false)
-          onExpandedChange(false)
+          setHasVisibleFocus(false)
+          if (!isPointerOver) onExpandedChange(false)
         }
       }}
       onClick={() => {
