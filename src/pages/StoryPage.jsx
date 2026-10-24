@@ -41,6 +41,13 @@ function getCollectionImages(collection) {
   return Array.isArray(collection?.images) ? collection.images : []
 }
 
+function getStoryParagraphs(body) {
+  return body
+    .split(/\r?\n(?:[ \t]*\r?\n)+/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+}
+
 function StoryPage() {
   const { storySlug } = useParams()
   const [storyResult, setStoryResult] = useState({ slug: null, status: 'loading', story: null })
@@ -274,7 +281,13 @@ function StoryPage() {
       </DetailHero>
       <Link className="route-detail-back" to="/explore?view=stories">Back to Explore</Link>
 
-      {story.body && <div className="story-detail-body">{story.body}</div>}
+      {story.body && (
+        <div className="story-detail-body">
+          {getStoryParagraphs(story.body).map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
+        </div>
+      )}
 
       {placeIds.length > relatedPlaces.length && placeCatalog.status === 'error' && (
         <p className="story-detail-status" role="alert">Unable to load related Place references.</p>

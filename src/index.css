@@ -4604,6 +4604,14 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .story-detail-content-page { padding-top: 0; }
 
+.story-detail-content-page .detail-hero .story-detail-header {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  border-radius: 0.65rem;
+  background: rgba(10, 13, 11, 0.82);
+}
+
 .story-detail-header {
   display: grid;
   gap: 1rem;
@@ -4682,9 +4690,28 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 .story-detail-body {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  border-radius: 0.65rem;
   color: #d8d1c3;
-  font: 1.05rem/1.8 Georgia, serif;
-  white-space: pre-wrap;
+  font: 1.1rem/1.7 Georgia, serif;
+}
+
+.story-detail-body p {
+  margin: 0 0 0.8em;
+}
+
+.story-detail-body p:last-child {
+  margin-bottom: 0;
+}
+
+.story-detail-content-page > .route-detail-back {
+  display: flex;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto 1rem;
 }
 
 .story-detail-related-group {
@@ -4914,6 +4941,12 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 @media (max-width: 900px) {
+  .story-detail-content-page .detail-hero .story-detail-header,
+  .story-detail-content-page .story-detail-body,
+  .story-detail-content-page > .route-detail-back {
+    max-width: 700px;
+  }
+
   .management-page-header {
     flex-direction: column;
     align-items: flex-start;
@@ -4965,6 +4998,22 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 @media (max-width: 640px) {
+  .story-detail-content-page {
+    padding-inline: 1rem;
+  }
+  .story-detail-content-page .detail-hero-content {
+    padding-inline: 0;
+  }
+  .story-detail-content-page .detail-hero .story-detail-header,
+  .story-detail-content-page .story-detail-body {
+    padding: 1rem 0;
+    border-radius: 0;
+  }
+  .story-detail-content-page .detail-hero .story-detail-header,
+  .story-detail-content-page .story-detail-body,
+  .story-detail-content-page > .route-detail-back {
+    max-width: 100%;
+  }
   .content-image-row { grid-template-columns: 88px minmax(0, 1fr); }
   .content-image-row-actions { grid-column: 1 / -1; }
   .story-detail-image-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
@@ -5154,7 +5203,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .app-shell-public .food-related-content,
 .app-shell-public .food-body,
 .app-shell-public .story-detail-body {
-  background: var(--public-section-surface);
+  background: rgba(10, 13, 11, 0.82);
 }
 
 .app-shell-public .explore-discovery-card,
