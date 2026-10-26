@@ -1,7 +1,7 @@
 # Offward Frontend Walking Alternatives & Arrival Audit
 
 **Date:** 2026-10-26  
-**Scope:** Read-only inspection of Route navigation, directions validation, GPS arrival, map controls, and styles. Only this audit document is created; no application code, backend code, tests, builds, lint, or dependencies were changed or run.
+**Scope:** Read-only inspection of Route navigation, directions validation, GPS arrival, map controls, and styles. Only this audit document is created; no application code, backend code, tests, builds, lint, or dependencies were changed or run..
 
 ## Executive summary
 
