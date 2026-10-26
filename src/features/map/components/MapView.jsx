@@ -55,6 +55,7 @@ function MapViewContent({
   resetViewWhenRoutesEmpty = false,
   followEnabled = false,
   mapChildren = null,
+  mapOverlay = null,
 }) {
   const [basemapId, setBasemapId] = useState(() => (
     showBasemapSwitcher ? getStoredBasemapId() : DEFAULT_BASEMAP_ID
@@ -176,6 +177,7 @@ function MapViewContent({
           <MapViewportController validRoutes={validRoutes} validSegments={validSegments} validWaypoints={validWaypoints} validPlaces={validPlaces} selectedRouteId={selectedRouteId} selectedSegmentId={selectedSegmentId} selectedWaypointId={selectedWaypointId} selectedPlaceId={selectedPlaceId} routeFocusRequest={routeFocusRequest} resetViewWhenRoutesEmpty={resetViewWhenRoutesEmpty} initialCenter={center} initialZoom={zoom} followEnabled={followEnabled} />
         )}
       </MapContainer>
+      {mapOverlay}
       {showBasemapSwitcher && (
         <div
           className="map-basemap-control"

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Polyline, useMap } from 'react-leaflet'
 import { getRouteAccessDirections, getRouteDirections, getStraightLineDistanceKm, MAX_LOCAL_DIRECTIONS_KM } from '../../../services/routeDirectionsApi.js'
 
@@ -9,6 +9,7 @@ const NAVIGATION_PATH_STYLE = {
   lineCap: 'round',
   lineJoin: 'round',
 }
+export const ROUTE_WALKING_PATH_COLORS = ['#FFD166', '#E76F51', '#B388EB']
 const NAVIGATION_PATH_PANE = 'route-directions-pane'
 
 function NavigationPathPaneController() {
@@ -18,13 +19,13 @@ function NavigationPathPaneController() {
     if (map.getPane(NAVIGATION_PATH_PANE)) return
     const pane = map.createPane(NAVIGATION_PATH_PANE)
     pane.style.zIndex = '450'
-    pane.style.pointerEvents = 'none'
+    pane.style.pointerEvents = 'auto'
   }, [map])
 
   return null
 }
 
-function DirectionsViewportController({ active, position, navigationPositions }) {
+function DirectionsViewportController({ active, position, navigationPositionSets }) {
   const map = useMap()
   const hasFittedRef = useRef(false)
 
@@ -33,7 +34,7 @@ function DirectionsViewportController({ active, position, navigationPositions })
       hasFittedRef.current = false
       return
     }
-    if (!navigationPositions) {
+    if (!navigationPositionSets.length) {
       hasFittedRef.current = false
       return
     }
@@ -42,13 +43,13 @@ function DirectionsViewportController({ active, position, navigationPositions })
     hasFittedRef.current = true
     map.fitBounds([
       [position.latitude, position.longitude],
-      ...navigationPositions,
+      ...navigationPositionSets.flat(),
     ], {
       padding: [50, 50],
       maxZoom: 13,
       animate: false,
     })
-  }, [active, map, navigationPositions, position])
+  }, [active, map, navigationPositionSets, position])
 
   return null
 }
@@ -63,6 +64,7 @@ function RouteDirectionsLayer({
   mode,
   destination = 'start',
   selectedAlternativeId = null,
+  onPathSelect,
   onStatusChange,
   requestDirections,
 }) {
@@ -155,9 +157,26 @@ function RouteDirectionsLayer({
           ? result.approach
           : { geometry: result.geometry, distance_km: result.distance_km, duration_seconds: result.duration_seconds }
         const alternatives = destination === 'access' ? result.alternatives : []
+        const pathOptions = [
+          {
+            id: null,
+            name: 'Recommended',
+            distanceKm: recommendedApproach.distance_km,
+            durationSeconds: recommendedApproach.duration_seconds,
+            color: ROUTE_WALKING_PATH_COLORS[0],
+          },
+          ...alternatives.map((alternative, index) => ({
+            id: alternative.id,
+            name: `Alternative ${index + 1}`,
+            distanceKm: alternative.approach.distance_km,
+            durationSeconds: alternative.approach.duration_seconds,
+            color: ROUTE_WALKING_PATH_COLORS[index + 1],
+          })),
+        ]
         setNavigationResult({
           recommendedApproach,
           alternatives,
+          pathOptions,
           destination,
           fallback: destination === 'access' ? result.fallback : null,
         })
@@ -168,12 +187,10 @@ function RouteDirectionsLayer({
           recommended: {
             distanceKm: recommendedApproach.distance_km,
             durationSeconds: recommendedApproach.duration_seconds,
+            name: pathOptions[0].name,
+            color: pathOptions[0].color,
           },
-          alternatives: alternatives.map((alternative) => ({
-            id: alternative.id,
-            distanceKm: alternative.approach.distance_km,
-            durationSeconds: alternative.approach.duration_seconds,
-          })),
+          alternatives: pathOptions.slice(1),
           destination,
           fallback: destination === 'access' ? result.fallback : null,
         })
@@ -198,19 +215,32 @@ function RouteDirectionsLayer({
 
   useEffect(() => () => requestControllerRef.current?.abort(), [])
 
-  const selectedApproach = navigationResult?.destination === 'access' && selectedAlternativeId
-    ? navigationResult.alternatives.find((alternative) => alternative.id === selectedAlternativeId)?.approach
-    : null
-  const displayedApproach = selectedApproach || navigationResult?.recommendedApproach
-  const navigationPositions = displayedApproach?.geometry.coordinates.map(
+  const isWalkingAccess = navigationResult?.destination === 'access'
+  const navigationPaths = isWalkingAccess
+    ? [
+        {
+          id: null,
+          geometry: navigationResult.recommendedApproach.geometry,
+          color: ROUTE_WALKING_PATH_COLORS[0],
+        },
+        ...navigationResult.alternatives.map((alternative, index) => ({
+          id: alternative.id,
+          geometry: alternative.approach.geometry,
+          color: ROUTE_WALKING_PATH_COLORS[index + 1],
+        })),
+      ]
+    : navigationResult
+      ? [{ id: null, geometry: navigationResult.recommendedApproach.geometry, color: NAVIGATION_PATH_STYLE.color }]
+      : []
+  const navigationPositionSets = navigationPaths.map((path) => path.geometry.coordinates.map(
     ([longitude, latitude]) => [latitude, longitude],
-  ) || null
+  ))
 
   if (!active || !position) {
     return (
       <>
         <NavigationPathPaneController />
-        <DirectionsViewportController active={active} position={null} navigationPositions={null} />
+        <DirectionsViewportController active={active} position={null} navigationPositionSets={[]} />
       </>
     )
   }
@@ -221,16 +251,50 @@ function RouteDirectionsLayer({
       <DirectionsViewportController
         active={active}
         position={position}
-        navigationPositions={navigationPositions}
+        navigationPositionSets={navigationPositionSets}
       />
-      {navigationPositions && (
-        <Polyline
-          positions={navigationPositions}
-          pathOptions={NAVIGATION_PATH_STYLE}
-          pane={NAVIGATION_PATH_PANE}
-          interactive={false}
-        />
-      )}
+      {isWalkingAccess
+        ? navigationPaths.map((path, index) => {
+            const isSelected = path.id === selectedAlternativeId
+            const isRecommended = path.id === null
+            const positions = navigationPositionSets[index]
+            const selectPath = () => onPathSelect?.(path.id)
+            const eventHandlers = { click: selectPath }
+            const pathOptions = {
+              color: path.color,
+              weight: isSelected ? 9 : isRecommended ? 7 : 6,
+              opacity: isSelected ? 1 : isRecommended ? 0.88 : 0.68,
+              dashArray: !isSelected && !isRecommended ? '9 7' : null,
+              lineCap: 'round',
+              lineJoin: 'round',
+              bubblingMouseEvents: false,
+            }
+
+            return (
+              <Fragment key={path.id || 'recommended'}>
+                <Polyline
+                  positions={positions}
+                  pathOptions={{ ...pathOptions, weight: 24, opacity: 0.01, dashArray: null }}
+                  pane={NAVIGATION_PATH_PANE}
+                  eventHandlers={eventHandlers}
+                />
+                <Polyline
+                  positions={positions}
+                  pathOptions={pathOptions}
+                  pane={NAVIGATION_PATH_PANE}
+                  eventHandlers={eventHandlers}
+                />
+              </Fragment>
+            )
+          })
+        : navigationPositionSets[0] && (
+            <Polyline
+              positions={navigationPositionSets[0]}
+              pathOptions={NAVIGATION_PATH_STYLE}
+              pane={NAVIGATION_PATH_PANE}
+              interactive={false}
+            />
+          )}
     </>
   )
 }

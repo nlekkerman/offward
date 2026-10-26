@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
-import RouteDirectionsLayer from '../features/map/components/RouteDirectionsLayer.jsx'
+import RouteDirectionsLayer, { ROUTE_WALKING_PATH_COLORS } from '../features/map/components/RouteDirectionsLayer.jsx'
 import RouteUserLocationLayer from '../features/map/components/RouteUserLocationLayer.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import { createRouteArrivalDetector } from '../features/map/routeProximity.js'
@@ -76,11 +76,6 @@ function formatDirectionsDuration(durationSeconds) {
     return `${hours} hr${hours === 1 ? '' : 's'}${minutes > 0 ? ` ${minutes} min` : ''}`
   }
   return `${minutes} min`
-}
-
-function formatDirectionsOption(label, distanceKm, durationSeconds) {
-  const duration = formatDirectionsDuration(durationSeconds)
-  return `${label} — ${distanceKm.toFixed(1)} km${duration ? ` · ${duration}` : ''}`
 }
 
 function getOrderedRouteWaypoints(route) {
@@ -560,14 +555,13 @@ function RoutePage() {
       setSelectedAlternativeId(null)
     }
   }, [])
-  const handleAlternativeChange = (event) => {
-    const alternativeId = event.target.value || null
-    const selectedOption = alternativeId
-      ? directionsStatus?.alternatives?.find((alternative) => alternative.id === alternativeId)
+  const handleWalkingPathSelect = (pathId) => {
+    const selectedOption = pathId
+      ? directionsStatus?.alternatives?.find((alternative) => alternative.id === pathId)
       : directionsStatus?.recommended
     if (!selectedOption) return
 
-    setSelectedAlternativeId(alternativeId)
+    setSelectedAlternativeId(pathId)
     setDirectionsStatus((current) => current?.status === 'ready'
       ? {
           ...current,
@@ -604,6 +598,19 @@ function RoutePage() {
   const activityLabel = formatActivity(route?.activity_type)
   const routeTitle = route?.title || 'Route'
   const directionsActive = navigationState !== 'idle'
+  const selectedWalkingPath = directionsActive &&
+    directionsMode === 'walking' &&
+    directionsDestination === 'access' &&
+    directionsStatus?.status === 'ready'
+    ? selectedAlternativeId
+      ? directionsStatus.alternatives?.find((alternative) => alternative.id === selectedAlternativeId)
+      : directionsStatus.recommended
+    : null
+  const selectedAlternativeIndex = directionsStatus?.alternatives?.findIndex(
+    (alternative) => alternative.id === selectedAlternativeId,
+  ) ?? -1
+  const selectedWalkingPathName = selectedWalkingPath?.name ||
+    (selectedAlternativeId ? `Alternative ${selectedAlternativeIndex + 1}` : 'Recommended')
   const routeDescription = getContentDescription(route?.summary, routeTitle, route?.country ? countryLabel : '')
   const routePath = `/routes/${encodeURIComponent(routeSlug)}`
   const routeUrl = getPublicUrl(routePath)
@@ -749,36 +756,6 @@ function RoutePage() {
                     )}
                   </div>
                 )}
-                {directionsActive &&
-                  directionsMode === 'walking' &&
-                  directionsDestination === 'access' &&
-                  directionsStatus?.status === 'ready' &&
-                  directionsStatus.alternatives?.length > 0 && (
-                    <label className="route-alternative-paths">
-                      <span>Alternative paths</span>
-                      <select
-                        value={selectedAlternativeId || ''}
-                        onChange={handleAlternativeChange}
-                      >
-                        <option value="">
-                          {formatDirectionsOption(
-                            'Recommended',
-                            directionsStatus.recommended.distanceKm,
-                            directionsStatus.recommended.durationSeconds,
-                          )}
-                        </option>
-                        {directionsStatus.alternatives.map((alternative, index) => (
-                          <option key={alternative.id} value={alternative.id}>
-                            {formatDirectionsOption(
-                              `Alternative ${index + 1}`,
-                              alternative.distanceKm,
-                              alternative.durationSeconds,
-                            )}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
                 {directionsStatus?.status === 'error' && (
                   <p className="route-directions-feedback is-error" id="route-directions-feedback" role="alert">
                     {directionsStatus.message}{' '}
@@ -822,6 +799,25 @@ function RoutePage() {
             initialCenter={[50, 10]}
             initialZoom={4}
             followEnabled={locationFollowing && Boolean(userPosition)}
+            mapOverlay={selectedWalkingPath && (
+              <div className="route-walking-path-overlay" role="status" aria-live="polite">
+                <span
+                  className="route-walking-path-overlay-color"
+                  style={{ '--route-walking-path-color': selectedWalkingPath.color || ROUTE_WALKING_PATH_COLORS[0] }}
+                  aria-hidden="true"
+                />
+                <div className="route-walking-path-overlay-copy">
+                  <div className="route-walking-path-overlay-heading">
+                    <strong>{selectedWalkingPathName}</strong>
+                    <span>{selectedAlternativeId ? 'Selected' : 'Recommended · selected'}</span>
+                  </div>
+                  <p>Walking · {directionsStatus.distanceKm.toFixed(1)} km</p>
+                  {formatDirectionsDuration(directionsStatus.durationSeconds) && (
+                    <p>Estimated {formatDirectionsDuration(directionsStatus.durationSeconds)}</p>
+                  )}
+                </div>
+              </div>
+            )}
             mapChildren={(
               <>
                 <RouteDirectionsLayer
@@ -834,6 +830,7 @@ function RoutePage() {
                   mode={directionsMode}
                   destination={directionsDestination}
                   selectedAlternativeId={selectedAlternativeId}
+                  onPathSelect={handleWalkingPathSelect}
                   onStatusChange={handleDirectionsStatusChange}
                 />
                 <RouteUserLocationLayer

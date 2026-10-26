@@ -22,6 +22,63 @@
   z-index: 1;
 }
 
+.route-walking-path-overlay {
+  position: absolute;
+  top: 3.25rem;
+  left: 0.75rem;
+  z-index: 850;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  width: min(18rem, calc(100% - 1.5rem));
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(242, 236, 228, 0.22);
+  border-radius: 0.55rem;
+  background: rgba(18, 21, 16, 0.94);
+  color: #f2ece4;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
+.route-walking-path-overlay-color {
+  width: 0.3rem;
+  flex: 0 0 0.3rem;
+  align-self: stretch;
+  min-height: 2.6rem;
+  border-radius: 1rem;
+  background: var(--route-walking-path-color);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.route-walking-path-overlay-copy {
+  min-width: 0;
+  font: 0.78rem/1.4 sans-serif;
+}
+
+.route-walking-path-overlay-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.55rem;
+}
+
+.route-walking-path-overlay-heading strong {
+  color: #fff;
+  font-size: 0.88rem;
+}
+
+.route-walking-path-overlay-heading span {
+  color: #d8b47c;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.route-walking-path-overlay-copy p {
+  margin: 0.15rem 0 0;
+  color: #d4d0c6;
+}
+
 .map-basemap-control {
   position: absolute;
   bottom: 0.75rem;
@@ -458,6 +515,13 @@
 }
 
 @media (max-width: 699px) {
+  .route-walking-path-overlay {
+    top: 3.1rem;
+    left: 0.6rem;
+    width: min(17rem, calc(100% - 1.2rem));
+    padding: 0.6rem 0.7rem;
+  }
+
   .map-basemap-control {
     left: 0.6rem;
     bottom: 0.6rem;
