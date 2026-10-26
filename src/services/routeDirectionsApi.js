@@ -195,6 +195,37 @@ function isValidLatLng(coordinates) {
     isValidCoordinate(coordinates.lng, -180, 180)
 }
 
+function isValidRouteAccess(access) {
+  return access &&
+    typeof access === 'object' &&
+    (access.type === 'route_geometry' || access.type === 'official_start') &&
+    isValidLatLng(access.coordinates) &&
+    typeof access.selection === 'string' &&
+    access.selection.length > 0 &&
+    isValidLatLng(access.snapped_coordinates) &&
+    isValidDirectionsDistance(access.destination_displacement_meters)
+}
+
+function isValidRouteApproach(approach) {
+  return approach &&
+    typeof approach === 'object' &&
+    isValidLineString(approach.geometry) &&
+    isValidDirectionsDistance(approach.distance_km) &&
+    (approach.duration_seconds === undefined ||
+      isValidDirectionsDistance(approach.duration_seconds))
+}
+
+function isValidRouteAlternative(alternative) {
+  return alternative &&
+    typeof alternative === 'object' &&
+    !Array.isArray(alternative) &&
+    typeof alternative.id === 'string' &&
+    alternative.id.length > 0 &&
+    alternative.access?.type === 'route_geometry' &&
+    isValidRouteAccess(alternative.access) &&
+    isValidRouteApproach(alternative.approach)
+}
+
 function validateRouteAccessDirectionsResponse(data, routeId) {
   const validFallbackReasons = new Set([
     'geometry_missing',
@@ -210,20 +241,10 @@ function validateRouteAccessDirectionsResponse(data, routeId) {
     (isFallback
       ? validFallbackReasons.has(data.fallback.reason)
       : data.fallback.reason === null)
-  const validAccess = data?.access &&
-    typeof data.access === 'object' &&
-    (data.access.type === 'route_geometry' || data.access.type === 'official_start') &&
-    isValidLatLng(data.access.coordinates) &&
-    typeof data.access.selection === 'string' &&
-    data.access.selection.length > 0 &&
-    isValidLatLng(data.access.snapped_coordinates) &&
-    isValidDirectionsDistance(data.access.destination_displacement_meters)
-  const validApproach = data?.approach &&
-    typeof data.approach === 'object' &&
-    isValidLineString(data.approach.geometry) &&
-    isValidDirectionsDistance(data.approach.distance_km) &&
-    (data.approach.duration_seconds === undefined ||
-      isValidDirectionsDistance(data.approach.duration_seconds))
+  const validAlternatives = Array.isArray(data?.alternatives) &&
+    data.alternatives.length <= 2 &&
+    data.alternatives.every(isValidRouteAlternative) &&
+    new Set(data.alternatives.map((alternative) => alternative.id)).size === data.alternatives.length
 
   if (
     !data ||
@@ -234,8 +255,9 @@ function validateRouteAccessDirectionsResponse(data, routeId) {
     data.route_id !== routeId ||
     !Number.isInteger(data.map_revision) ||
     data.map_revision < 0 ||
-    !validAccess ||
-    !validApproach ||
+    !isValidRouteAccess(data.access) ||
+    !isValidRouteApproach(data.approach) ||
+    !validAlternatives ||
     !validFallback ||
     (data.access.type === 'official_start') !== isFallback ||
     !Number.isInteger(data.evaluated_candidates) ||

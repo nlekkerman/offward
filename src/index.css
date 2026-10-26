@@ -4097,6 +4097,33 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   color: #e2c99e;
 }
 
+.route-alternative-paths {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem;
+  max-width: min(30rem, 100%);
+  color: #c8c2b6;
+  font: 0.78rem/1.3 sans-serif;
+}
+
+.route-alternative-paths select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #706b61;
+  border-radius: 4px;
+  background: #262923;
+  color: #f2ece4;
+  font: inherit;
+}
+
+.route-alternative-paths select:focus-visible {
+  outline: 2px solid #d8b47c;
+  outline-offset: 2px;
+}
+
 .route-arrival-panel {
   display: grid;
   gap: 0.85rem;

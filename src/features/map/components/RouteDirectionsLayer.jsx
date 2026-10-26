@@ -62,6 +62,7 @@ function RouteDirectionsLayer({
   startCoordinates,
   mode,
   destination = 'start',
+  selectedAlternativeId = null,
   onStatusChange,
   requestDirections,
 }) {
@@ -150,20 +151,31 @@ function RouteDirectionsLayer({
           requestControllerRef.current !== controller ||
           currentKeyRef.current !== requestKey
         ) return
-        const geometry = destination === 'access' ? result.approach.geometry : result.geometry
-        const navigationPositions = geometry.coordinates.map(([longitude, latitude]) => [latitude, longitude])
-        const nextNavigationResult = {
-          navigationPositions,
-          distanceKm: destination === 'access' ? result.approach.distance_km : result.distance_km,
+        const recommendedApproach = destination === 'access'
+          ? result.approach
+          : { geometry: result.geometry, distance_km: result.distance_km, duration_seconds: result.duration_seconds }
+        const alternatives = destination === 'access' ? result.alternatives : []
+        setNavigationResult({
+          recommendedApproach,
+          alternatives,
           destination,
           fallback: destination === 'access' ? result.fallback : null,
-        }
-        setNavigationResult(nextNavigationResult)
+        })
         onStatusChange({
           status: 'ready',
-          distanceKm: nextNavigationResult.distanceKm,
+          distanceKm: recommendedApproach.distance_km,
+          durationSeconds: recommendedApproach.duration_seconds,
+          recommended: {
+            distanceKm: recommendedApproach.distance_km,
+            durationSeconds: recommendedApproach.duration_seconds,
+          },
+          alternatives: alternatives.map((alternative) => ({
+            id: alternative.id,
+            distanceKm: alternative.approach.distance_km,
+            durationSeconds: alternative.approach.duration_seconds,
+          })),
           destination,
-          fallback: nextNavigationResult.fallback,
+          fallback: destination === 'access' ? result.fallback : null,
         })
       })
       .catch((routingError) => {
@@ -186,6 +198,14 @@ function RouteDirectionsLayer({
 
   useEffect(() => () => requestControllerRef.current?.abort(), [])
 
+  const selectedApproach = navigationResult?.destination === 'access' && selectedAlternativeId
+    ? navigationResult.alternatives.find((alternative) => alternative.id === selectedAlternativeId)?.approach
+    : null
+  const displayedApproach = selectedApproach || navigationResult?.recommendedApproach
+  const navigationPositions = displayedApproach?.geometry.coordinates.map(
+    ([longitude, latitude]) => [latitude, longitude],
+  ) || null
+
   if (!active || !position) {
     return (
       <>
@@ -201,11 +221,11 @@ function RouteDirectionsLayer({
       <DirectionsViewportController
         active={active}
         position={position}
-        navigationPositions={navigationResult?.navigationPositions || null}
+        navigationPositions={navigationPositions}
       />
-      {navigationResult && (
+      {navigationPositions && (
         <Polyline
-          positions={navigationResult.navigationPositions}
+          positions={navigationPositions}
           pathOptions={NAVIGATION_PATH_STYLE}
           pane={NAVIGATION_PATH_PANE}
           interactive={false}

@@ -64,6 +64,25 @@ function formatActivity(value) {
   return value.replace(/[_-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
+function formatDirectionsDuration(durationSeconds) {
+  if (typeof durationSeconds !== 'number' || !Number.isFinite(durationSeconds) || durationSeconds < 0) {
+    return null
+  }
+
+  const totalMinutes = Math.round(durationSeconds / 60)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours > 0) {
+    return `${hours} hr${hours === 1 ? '' : 's'}${minutes > 0 ? ` ${minutes} min` : ''}`
+  }
+  return `${minutes} min`
+}
+
+function formatDirectionsOption(label, distanceKm, durationSeconds) {
+  const duration = formatDirectionsDuration(durationSeconds)
+  return `${label} — ${distanceKm.toFixed(1)} km${duration ? ` · ${duration}` : ''}`
+}
+
 function getOrderedRouteWaypoints(route) {
   if (!Array.isArray(route?.waypoints)) {
     return []
@@ -112,6 +131,7 @@ function RoutePage() {
   const [directionsMode, setDirectionsMode] = useState('walking')
   const [directionsDestination, setDirectionsDestination] = useState('access')
   const [directionsRequestId, setDirectionsRequestId] = useState(0)
+  const [selectedAlternativeId, setSelectedAlternativeId] = useState(null)
   const [goToStartRequested, setGoToStartRequested] = useState(false)
   const [directionsStatus, setDirectionsStatus] = useState(null)
   const [locationFollowing, setLocationFollowing] = useState(false)
@@ -220,6 +240,7 @@ function RoutePage() {
       setDirectionsMode('walking')
       setDirectionsDestination('access')
       setDirectionsRequestId((current) => current + 1)
+      setSelectedAlternativeId(null)
       setGoToStartRequested(false)
       arrivalActionTakenRef.current = false
       setDirectionsStatus(null)
@@ -456,6 +477,7 @@ function RoutePage() {
     if (countActivation) trackInteraction('directions', 'route', route?.id)
     arrivalDetectorRef.current.reset()
     arrivalActionTakenRef.current = false
+    setSelectedAlternativeId(null)
     setDirectionsDestination(directionsMode === 'walking' ? 'access' : 'start')
     setGoToStartRequested(false)
     setDirectionsRequestId((current) => current + 1)
@@ -466,6 +488,7 @@ function RoutePage() {
   const stopDirections = () => {
     arrivalDetectorRef.current.reset()
     arrivalActionTakenRef.current = true
+    setSelectedAlternativeId(null)
     setNavigationState('idle')
     setLocationFollowing(independentTracking)
     setDirectionsMode('walking')
@@ -476,6 +499,7 @@ function RoutePage() {
   const startTrackingFromArrival = () => {
     if (navigationState !== 'arrived' || arrivalActionTakenRef.current) return
     arrivalActionTakenRef.current = true
+    setSelectedAlternativeId(null)
     arrivalDetectorRef.current.reset()
     setNavigationState('idle')
     setDirectionsStatus(null)
@@ -490,6 +514,7 @@ function RoutePage() {
     if (!canonicalStartWaypoint || navigationState !== 'arrived' || arrivalActionTakenRef.current) return
     arrivalActionTakenRef.current = true
     arrivalDetectorRef.current.reset()
+    setSelectedAlternativeId(null)
     setDirectionsDestination('start')
     setGoToStartRequested(true)
     setDirectionsRequestId((current) => current + 1)
@@ -505,6 +530,7 @@ function RoutePage() {
   const retryLocation = () => {
     if (directionsSessionActive) {
       arrivalDetectorRef.current.reset()
+      setSelectedAlternativeId(null)
       setDirectionsRequestId((current) => current + 1)
       setDirectionsStatus({ status: 'locating' })
       setNavigationState(goToStartRequested ? 'to-start' : 'approaching')
@@ -519,6 +545,7 @@ function RoutePage() {
     if (!directionsSessionActive) return
     arrivalDetectorRef.current.reset()
     arrivalActionTakenRef.current = false
+    setSelectedAlternativeId(null)
     setDirectionsRequestId((current) => current + 1)
     setDirectionsStatus(userPosition ? { status: 'routing' } : { status: 'locating' })
     setNavigationState(goToStartRequested ? 'to-start' : 'approaching')
@@ -529,11 +556,31 @@ function RoutePage() {
   }, [])
   const handleDirectionsStatusChange = useCallback((status) => {
     setDirectionsStatus(status)
+    if (status.status !== 'ready') {
+      setSelectedAlternativeId(null)
+    }
   }, [])
+  const handleAlternativeChange = (event) => {
+    const alternativeId = event.target.value || null
+    const selectedOption = alternativeId
+      ? directionsStatus?.alternatives?.find((alternative) => alternative.id === alternativeId)
+      : directionsStatus?.recommended
+    if (!selectedOption) return
+
+    setSelectedAlternativeId(alternativeId)
+    setDirectionsStatus((current) => current?.status === 'ready'
+      ? {
+          ...current,
+          distanceKm: selectedOption.distanceKm,
+          durationSeconds: selectedOption.durationSeconds,
+        }
+      : current)
+  }
   const handleTravelModeChange = (mode) => {
     if (mode === directionsMode) return
     arrivalDetectorRef.current.reset()
     arrivalActionTakenRef.current = false
+    setSelectedAlternativeId(null)
     setDirectionsMode(mode)
     if (directionsSessionActive) {
       setDirectionsDestination(goToStartRequested || mode === 'driving' ? 'start' : 'access')
@@ -693,6 +740,7 @@ function RoutePage() {
                   <div className="route-directions-feedback" id="route-directions-feedback" role="status">
                     <p>
                       {directionsMode === 'walking' ? 'Walking' : 'Driving'} route to {directionsStatus.fallback?.used || directionsDestination === 'start' ? 'the official Route start' : 'Route access'}: {directionsStatus.distanceKm.toFixed(1)} km
+                      {formatDirectionsDuration(directionsStatus.durationSeconds) && ` · ${formatDirectionsDuration(directionsStatus.durationSeconds)}`}
                     </p>
                     {directionsStatus.fallback?.used && (
                       <p className="route-directions-fallback">
@@ -701,6 +749,36 @@ function RoutePage() {
                     )}
                   </div>
                 )}
+                {directionsActive &&
+                  directionsMode === 'walking' &&
+                  directionsDestination === 'access' &&
+                  directionsStatus?.status === 'ready' &&
+                  directionsStatus.alternatives?.length > 0 && (
+                    <label className="route-alternative-paths">
+                      <span>Alternative paths</span>
+                      <select
+                        value={selectedAlternativeId || ''}
+                        onChange={handleAlternativeChange}
+                      >
+                        <option value="">
+                          {formatDirectionsOption(
+                            'Recommended',
+                            directionsStatus.recommended.distanceKm,
+                            directionsStatus.recommended.durationSeconds,
+                          )}
+                        </option>
+                        {directionsStatus.alternatives.map((alternative, index) => (
+                          <option key={alternative.id} value={alternative.id}>
+                            {formatDirectionsOption(
+                              `Alternative ${index + 1}`,
+                              alternative.distanceKm,
+                              alternative.durationSeconds,
+                            )}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 {directionsStatus?.status === 'error' && (
                   <p className="route-directions-feedback is-error" id="route-directions-feedback" role="alert">
                     {directionsStatus.message}{' '}
@@ -755,6 +833,7 @@ function RoutePage() {
                   startCoordinates={canonicalStartWaypoint?.coordinates}
                   mode={directionsMode}
                   destination={directionsDestination}
+                  selectedAlternativeId={selectedAlternativeId}
                   onStatusChange={handleDirectionsStatusChange}
                 />
                 <RouteUserLocationLayer
