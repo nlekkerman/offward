@@ -4092,11 +4092,6 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   margin: 0;
 }
 
-.route-directions-feedback .route-directions-fallback {
-  margin-top: 0.25rem;
-  color: #e2c99e;
-}
-
 .route-arrival-panel {
   display: grid;
   gap: 0.85rem;
@@ -4149,15 +4144,6 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .route-arrival-action:focus-visible {
   outline: 2px solid #d8b47c;
   outline-offset: 2px;
-}
-
-.route-start-arrival-acknowledgement {
-  margin: 0.8rem 0 0;
-  padding: 0.75rem 1rem;
-  border: 1px solid #496276;
-  border-radius: 0.45rem;
-  background: #1d2930;
-  color: #f2ece4;
 }
 
 .place-directions-summary {

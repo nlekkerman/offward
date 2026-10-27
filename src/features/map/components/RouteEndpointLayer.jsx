@@ -6,7 +6,7 @@ import { createWaypointMarkerIcon } from '../waypointMarkerIcon.js'
 // Renders start/finish/stop/via markers for a Route's waypoints.
 // Public markers are read-only: click pins the rich detail overlay, while
 // hover callbacks are attached only when the page detects a fine pointer.
-function PublicWaypointMarker({ waypoint, mediaCount, selected, directionsStart, onWaypointSelect, onWaypointHoverStart, onWaypointHoverEnd }) {
+function PublicWaypointMarker({ waypoint, mediaCount, selected, onWaypointSelect, onWaypointHoverStart, onWaypointHoverEnd }) {
   const displayName = getWaypointDisplayName(waypoint)
   const hasMedia = mediaCount > 0
   const icon = useMemo(
@@ -15,9 +15,9 @@ function PublicWaypointMarker({ waypoint, mediaCount, selected, directionsStart,
       displayName,
       selected,
       hasMedia,
-      extraClassNames: ['public-route-waypoint-marker', `is-${waypoint.markerType}`, directionsStart ? 'is-directions-start' : ''],
+      extraClassNames: ['public-route-waypoint-marker', `is-${waypoint.markerType}`],
     }),
-    [displayName, directionsStart, hasMedia, selected, waypoint.markerType, waypoint.order],
+    [displayName, hasMedia, selected, waypoint.markerType, waypoint.order],
   )
 
   return (
@@ -34,14 +34,13 @@ function PublicWaypointMarker({ waypoint, mediaCount, selected, directionsStart,
   )
 }
 
-function RouteEndpointLayer({ waypoints, waypointMediaCountById, selectedWaypointId, directionsStartWaypointId, onWaypointSelect, onWaypointHoverStart, onWaypointHoverEnd }) {
+function RouteEndpointLayer({ waypoints, waypointMediaCountById, selectedWaypointId, onWaypointSelect, onWaypointHoverStart, onWaypointHoverEnd }) {
   return waypoints.map((waypoint) => (
     <PublicWaypointMarker
       key={waypoint.id}
       waypoint={waypoint}
       mediaCount={waypointMediaCountById.get(waypoint.id) || 0}
       selected={waypoint.id === selectedWaypointId}
-      directionsStart={waypoint.id === directionsStartWaypointId}
       onWaypointSelect={onWaypointSelect}
       onWaypointHoverStart={onWaypointHoverStart}
       onWaypointHoverEnd={onWaypointHoverEnd}

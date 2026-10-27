@@ -5,7 +5,6 @@ import RouteDirectionsLayer from '../features/map/components/RouteDirectionsLaye
 import RouteUserLocationLayer from '../features/map/components/RouteUserLocationLayer.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import { createRouteArrivalDetector } from '../features/map/routeProximity.js'
-import { MAX_LOCAL_DIRECTIONS_KM } from '../services/routeDirectionsApi.js'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
@@ -124,10 +123,8 @@ function RoutePage() {
   const [routeFocusRequest, setRouteFocusRequest] = useState(0)
   const [navigationState, setNavigationState] = useState('idle')
   const [directionsMode, setDirectionsMode] = useState('walking')
-  const [directionsDestination, setDirectionsDestination] = useState('access')
   const [directionsRequestId, setDirectionsRequestId] = useState(0)
   const [selectedAlternativeId, setSelectedAlternativeId] = useState(null)
-  const [goToStartRequested, setGoToStartRequested] = useState(false)
   const [directionsStatus, setDirectionsStatus] = useState(null)
   const [locationFollowing, setLocationFollowing] = useState(false)
   const [independentTracking, setIndependentTracking] = useState(false)
@@ -137,34 +134,6 @@ function RoutePage() {
   const arrivalActionTakenRef = useRef(false)
   const hoverCloseTimerRef = useRef(null)
   const supportsHover = useHoverCapability()
-  const canonicalStartWaypoint = useMemo(() => {
-    if (route?.id === null || route?.id === undefined || !Array.isArray(route?.waypoints)) return null
-    const starts = route.waypoints.filter((item) =>
-      item &&
-      typeof item === 'object' &&
-      item.type === 'start' &&
-      item.route_id === route.id
-    )
-    if (starts.length !== 1) return null
-    const waypoint = starts[0]
-    const latitude = waypoint?.coordinates?.lat
-    const longitude = waypoint?.coordinates?.lng
-    if (
-      typeof waypoint.id !== 'string' ||
-      waypoint.id.length === 0 ||
-      typeof latitude !== 'number' ||
-      !Number.isFinite(latitude) ||
-      latitude < -90 ||
-      latitude > 90 ||
-      typeof longitude !== 'number' ||
-      !Number.isFinite(longitude) ||
-      longitude < -180 ||
-      longitude > 180
-    ) {
-      return null
-    }
-    return waypoint
-  }, [route])
   const handleLocationUpdate = useCallback((position) => {
     if (navigationState === 'approaching') {
       const arrived = arrivalDetectorRef.current.process(
@@ -175,30 +144,10 @@ function RoutePage() {
       if (arrived) {
         arrivalActionTakenRef.current = false
         setNavigationState('arrived')
-        setDirectionsStatus((current) => current?.fallback?.used ? current : null)
+        setDirectionsStatus(null)
       }
-      return
     }
-
-    if (navigationState !== 'to-start') return
-    const startCoordinate = canonicalStartWaypoint?.coordinates
-    if (!startCoordinate) return
-    const arrived = arrivalDetectorRef.current.process(
-      position,
-      {
-        type: 'LineString',
-        coordinates: [
-          [startCoordinate.lng, startCoordinate.lat],
-          [startCoordinate.lng, startCoordinate.lat],
-        ],
-      },
-      directionsMode,
-    )
-    if (arrived) {
-      setNavigationState('start-arrived')
-      setDirectionsStatus(null)
-    }
-  }, [canonicalStartWaypoint, directionsMode, navigationState, route])
+  }, [directionsMode, navigationState, route])
   const {
     position: userPosition,
     active: locationActive,
@@ -233,10 +182,8 @@ function RoutePage() {
       setSelectedSegmentId(null)
       setNavigationState('idle')
       setDirectionsMode('walking')
-      setDirectionsDestination('access')
       setDirectionsRequestId((current) => current + 1)
       setSelectedAlternativeId(null)
-      setGoToStartRequested(false)
       arrivalActionTakenRef.current = false
       setDirectionsStatus(null)
       setLocationFollowing(false)
@@ -468,13 +415,10 @@ function RoutePage() {
     setLocationFollowing(false)
   }
   const startDirections = (countActivation = true) => {
-    if (!canonicalStartWaypoint) return
     if (countActivation) trackInteraction('directions', 'route', route?.id)
     arrivalDetectorRef.current.reset()
     arrivalActionTakenRef.current = false
     setSelectedAlternativeId(null)
-    setDirectionsDestination(directionsMode === 'walking' ? 'access' : 'start')
-    setGoToStartRequested(false)
     setDirectionsRequestId((current) => current + 1)
     if (!locationActive) startLocation()
     setDirectionsStatus({ status: 'locating' })
@@ -487,8 +431,6 @@ function RoutePage() {
     setNavigationState('idle')
     setLocationFollowing(independentTracking)
     setDirectionsMode('walking')
-    setDirectionsDestination('access')
-    setGoToStartRequested(false)
     setDirectionsStatus(null)
   }
   const startTrackingFromArrival = () => {
@@ -498,23 +440,9 @@ function RoutePage() {
     arrivalDetectorRef.current.reset()
     setNavigationState('idle')
     setDirectionsStatus(null)
-    setDirectionsDestination('access')
-    setGoToStartRequested(false)
     setIndependentTracking(true)
     setLocationFollowing(true)
     if (!independentTracking) trackInteraction('track', 'route', route?.id)
-    if (!locationActive) startLocation()
-  }
-  const goToOfficialStart = () => {
-    if (!canonicalStartWaypoint || navigationState !== 'arrived' || arrivalActionTakenRef.current) return
-    arrivalActionTakenRef.current = true
-    arrivalDetectorRef.current.reset()
-    setSelectedAlternativeId(null)
-    setDirectionsDestination('start')
-    setGoToStartRequested(true)
-    setDirectionsRequestId((current) => current + 1)
-    setDirectionsStatus(userPosition ? { status: 'routing' } : { status: 'locating' })
-    setNavigationState('to-start')
     if (!locationActive) startLocation()
   }
   const recenterOnLocation = () => {
@@ -528,7 +456,7 @@ function RoutePage() {
       setSelectedAlternativeId(null)
       setDirectionsRequestId((current) => current + 1)
       setDirectionsStatus({ status: 'locating' })
-      setNavigationState(goToStartRequested ? 'to-start' : 'approaching')
+      setNavigationState('approaching')
       if (!locationActive) startLocation()
     } else if (independentTracking) {
       startFollowing(false)
@@ -543,7 +471,7 @@ function RoutePage() {
     setSelectedAlternativeId(null)
     setDirectionsRequestId((current) => current + 1)
     setDirectionsStatus(userPosition ? { status: 'routing' } : { status: 'locating' })
-    setNavigationState(goToStartRequested ? 'to-start' : 'approaching')
+    setNavigationState('approaching')
     if (!locationActive) startLocation()
   }
   const handleManualMapMovement = useCallback(() => {
@@ -577,10 +505,9 @@ function RoutePage() {
     setSelectedAlternativeId(null)
     setDirectionsMode(mode)
     if (directionsSessionActive) {
-      setDirectionsDestination(goToStartRequested || mode === 'driving' ? 'start' : 'access')
       setDirectionsRequestId((current) => current + 1)
       setDirectionsStatus(userPosition ? { status: 'routing' } : { status: 'locating' })
-      setNavigationState(goToStartRequested ? 'to-start' : 'approaching')
+      setNavigationState('approaching')
     }
   }
   const viewMapEntityDetails = (detail) => {
@@ -600,7 +527,6 @@ function RoutePage() {
   const directionsActive = navigationState !== 'idle'
   const selectedWalkingPath = directionsActive &&
     directionsMode === 'walking' &&
-    directionsDestination === 'access' &&
     directionsStatus?.status === 'ready'
     ? selectedAlternativeId
       ? directionsStatus.alternatives?.find((alternative) => alternative.id === selectedAlternativeId)
@@ -669,8 +595,7 @@ function RoutePage() {
                   type="button"
                   className={`public-map-action public-map-action-directions${directionsActive ? ' is-active' : ''}`}
                   onClick={directionsActive ? stopDirections : startDirections}
-                  disabled={!directionsActive && !canonicalStartWaypoint}
-                  aria-describedby={(directionsStatus || !canonicalStartWaypoint) ? 'route-directions-feedback' : undefined}
+                  aria-describedby={directionsStatus ? 'route-directions-feedback' : undefined}
                   aria-label={directionsActive ? 'Directions are active. Stop directions' : 'Start directions to the Route'}
                   aria-pressed={directionsActive}
                 >
@@ -725,22 +650,12 @@ function RoutePage() {
                     </button>
                   </div>
                 )}
-                {!canonicalStartWaypoint && (
-                  <p className="route-directions-feedback" id="route-directions-feedback">
-                    Directions are unavailable because this Route does not have exactly one valid, Route-owned starting waypoint.
-                  </p>
-                )}
                 {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
                   <p className="route-directions-feedback" id="route-directions-feedback" role="status">Waiting for your location...</p>
                 )}
                 {directionsActive && directionsStatus?.status === 'routing' && (
                   <p className="route-directions-feedback" id="route-directions-feedback" role="status">
-                    Calculating {directionsDestination === 'access' ? 'walking access' : directionsMode} directions...
-                  </p>
-                )}
-                {directionsActive && directionsStatus?.status === 'too-far' && (
-                  <p className="route-directions-feedback" id="route-directions-feedback" role="status">
-                    You're more than {MAX_LOCAL_DIRECTIONS_KM} km from the Route start. Directions are available when you're closer.
+                    Calculating {directionsMode} Route access directions...
                   </p>
                 )}
                 {directionsActive && directionsStatus?.status === 'ready' && (
@@ -754,16 +669,11 @@ function RoutePage() {
                         </>
                       ) : (
                         <>
-                          {directionsMode === 'walking' ? 'Walking' : 'Driving'} route to {directionsStatus.fallback?.used || directionsDestination === 'start' ? 'the official Route start' : 'Route access'}: {directionsStatus.distanceKm.toFixed(1)} km
+                          {directionsMode === 'walking' ? 'Walking' : 'Driving'} · {directionsStatus.distanceKm.toFixed(1)} km
                           {formatDirectionsDuration(directionsStatus.durationSeconds) && ` · ${formatDirectionsDuration(directionsStatus.durationSeconds)}`}
                         </>
                       )}
                     </p>
-                    {directionsStatus.fallback?.used && (
-                      <p className="route-directions-fallback">
-                        A nearest walking connection could not be established. Directions are going to the official Route start instead.
-                      </p>
-                    )}
                   </div>
                 )}
                 {directionsStatus?.status === 'error' && (
@@ -796,7 +706,6 @@ function RoutePage() {
             waypoints={waypoints}
             waypointMediaCountById={waypointMediaCountById}
             selectedWaypointId={selectedWaypointId}
-            directionsStartWaypointId={directionsActive ? canonicalStartWaypoint?.id : null}
             onWaypointSelect={selectWaypoint}
             onWaypointHoverStart={supportsHover ? previewWaypoint : undefined}
             onWaypointHoverEnd={supportsHover ? scheduleHoverClose : undefined}
@@ -812,14 +721,13 @@ function RoutePage() {
             mapChildren={(
               <>
                 <RouteDirectionsLayer
-                  active={directionsActive && Boolean(canonicalStartWaypoint)}
+                  active={directionsActive}
                   position={userPosition}
                   routeSlug={routeSlug}
                   routeId={route?.id}
                   requestId={directionsRequestId}
-                  startCoordinates={canonicalStartWaypoint?.coordinates}
                   mode={directionsMode}
-                  destination={directionsDestination}
+                  destination="access"
                   selectedAlternativeId={selectedAlternativeId}
                   onPathSelect={handleWalkingPathSelect}
                   onStatusChange={handleDirectionsStatusChange}
@@ -855,19 +763,11 @@ function RoutePage() {
                 <button type="button" className="route-arrival-action is-primary" onClick={startTrackingFromArrival}>
                   Start Tracking
                 </button>
-                <button type="button" className="route-arrival-action" onClick={goToOfficialStart}>
-                  Go to Start
-                </button>
                 <button type="button" className="route-arrival-action" onClick={stopDirections}>
                   End Directions
                 </button>
               </div>
             </section>
-          )}
-          {navigationState === 'start-arrived' && (
-            <p className="route-start-arrival-acknowledgement" role="status">
-              You've reached the Route start.
-            </p>
           )}
         </section>
         <aside className="route-detail-side-content" aria-label="Route details">

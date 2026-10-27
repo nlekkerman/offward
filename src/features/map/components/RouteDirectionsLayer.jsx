@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Polyline, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import { Marker, Polyline, useMap } from 'react-leaflet'
 import { getRouteAccessDirections, getRouteDirections, getStraightLineDistanceKm, MAX_LOCAL_DIRECTIONS_KM } from '../../../services/routeDirectionsApi.js'
 
 const NAVIGATION_PATH_STYLE = {
@@ -11,6 +12,12 @@ const NAVIGATION_PATH_STYLE = {
 }
 export const ROUTE_WALKING_PATH_COLORS = ['#FFD166', '#E76F51', '#B388EB']
 const NAVIGATION_PATH_PANE = 'route-directions-pane'
+const ROUTE_ACCESS_MARKER_ICON = L.divIcon({
+  className: 'route-access-marker-icon',
+  html: '<span class="route-access-marker-dot"></span>',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+})
 
 function NavigationPathPaneController() {
   const map = useMap()
@@ -126,11 +133,6 @@ function RouteDirectionsLayer({
       }
     }
 
-    if (destination === 'access' && mode !== 'walking') {
-      onStatusChange({ status: 'error', message: 'Walking access directions require Walking mode.' })
-      return
-    }
-
     tooFarKeyRef.current = null
     requestedKeyRef.current = requestKey
     const controller = new AbortController()
@@ -139,7 +141,7 @@ function RouteDirectionsLayer({
 
     const origin = { lat: position.latitude, lng: position.longitude }
     const request = destination === 'access'
-      ? getRouteAccessDirections(routeSlug, routeId, origin, controller.signal)
+      ? getRouteAccessDirections(routeSlug, routeId, origin, mode, controller.signal)
       : requestDirections
         ? requestDirections(routeSlug, origin, mode, controller.signal)
         : getRouteDirections(routeSlug, origin, mode, controller.signal)
@@ -156,7 +158,7 @@ function RouteDirectionsLayer({
         const recommendedApproach = destination === 'access'
           ? result.approach
           : { geometry: result.geometry, distance_km: result.distance_km, duration_seconds: result.duration_seconds }
-        const alternatives = destination === 'access' ? result.alternatives : []
+        const alternatives = destination === 'access' && mode === 'walking' ? result.alternatives : []
         const pathOptions = [
           {
             id: null,
@@ -164,6 +166,7 @@ function RouteDirectionsLayer({
             distanceKm: recommendedApproach.distance_km,
             durationSeconds: recommendedApproach.duration_seconds,
             color: ROUTE_WALKING_PATH_COLORS[0],
+            access: destination === 'access' ? result.access : null,
           },
           ...alternatives.map((alternative, index) => ({
             id: alternative.id,
@@ -171,14 +174,15 @@ function RouteDirectionsLayer({
             distanceKm: alternative.approach.distance_km,
             durationSeconds: alternative.approach.duration_seconds,
             color: ROUTE_WALKING_PATH_COLORS[index + 1],
+            access: alternative.access,
           })),
         ]
         setNavigationResult({
+          requestKey,
           recommendedApproach,
           alternatives,
           pathOptions,
           destination,
-          fallback: destination === 'access' ? result.fallback : null,
         })
         onStatusChange({
           status: 'ready',
@@ -192,7 +196,6 @@ function RouteDirectionsLayer({
           },
           alternatives: pathOptions.slice(1),
           destination,
-          fallback: destination === 'access' ? result.fallback : null,
         })
       })
       .catch((routingError) => {
@@ -215,22 +218,29 @@ function RouteDirectionsLayer({
 
   useEffect(() => () => requestControllerRef.current?.abort(), [])
 
-  const isWalkingAccess = navigationResult?.destination === 'access'
+  const currentNavigationResult = navigationResult?.requestKey === requestKey ? navigationResult : null
+  const isRouteAccess = currentNavigationResult?.destination === 'access'
+  const isWalkingAccess = isRouteAccess && mode === 'walking'
+  const selectedAccess = isRouteAccess
+    ? selectedAlternativeId
+      ? currentNavigationResult.alternatives.find((alternative) => alternative.id === selectedAlternativeId)?.access
+      : currentNavigationResult.pathOptions[0].access
+    : null
   const navigationPaths = isWalkingAccess
     ? [
         {
           id: null,
-          geometry: navigationResult.recommendedApproach.geometry,
+          geometry: currentNavigationResult.recommendedApproach.geometry,
           color: ROUTE_WALKING_PATH_COLORS[0],
         },
-        ...navigationResult.alternatives.map((alternative, index) => ({
+        ...currentNavigationResult.alternatives.map((alternative, index) => ({
           id: alternative.id,
           geometry: alternative.approach.geometry,
           color: ROUTE_WALKING_PATH_COLORS[index + 1],
         })),
       ]
-    : navigationResult
-      ? [{ id: null, geometry: navigationResult.recommendedApproach.geometry, color: NAVIGATION_PATH_STYLE.color }]
+    : currentNavigationResult
+      ? [{ id: null, geometry: currentNavigationResult.recommendedApproach.geometry, color: NAVIGATION_PATH_STYLE.color }]
       : []
   const navigationPositionSets = navigationPaths.map((path) => path.geometry.coordinates.map(
     ([longitude, latitude]) => [latitude, longitude],
@@ -309,6 +319,16 @@ function RouteDirectionsLayer({
               interactive={false}
             />
           )}
+      {selectedAccess?.coordinates && (
+        <Marker
+          position={[selectedAccess.coordinates.lat, selectedAccess.coordinates.lng]}
+          icon={ROUTE_ACCESS_MARKER_ICON}
+          title="Selected Route access point"
+          alt="Selected Route access point"
+          keyboard={false}
+          zIndexOffset={800}
+        />
+      )}
     </>
   )
 }

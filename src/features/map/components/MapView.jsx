@@ -36,7 +36,6 @@ function MapViewContent({
   waypointMediaCountById = new Map(),
   selectedRouteId = null,
   selectedWaypointId = null,
-  directionsStartWaypointId = null,
   places = [],
   selectedPlaceId = null,
   directionsPlaceId = null,
@@ -167,7 +166,6 @@ function MapViewContent({
           waypoints={validWaypoints}
           waypointMediaCountById={waypointMediaCountById}
           selectedWaypointId={selectedWaypointId}
-          directionsStartWaypointId={directionsStartWaypointId}
           onWaypointSelect={onWaypointSelect}
           onWaypointHoverStart={onWaypointHoverStart}
           onWaypointHoverEnd={onWaypointHoverEnd}
