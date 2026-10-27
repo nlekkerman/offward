@@ -22,44 +22,6 @@
   z-index: 1;
 }
 
-.route-walking-path-overlay {
-  position: absolute;
-  top: 3.25rem;
-  left: 0.75rem;
-  z-index: 850;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  width: fit-content;
-  max-width: calc(100% - 1.5rem);
-  padding: 0.35rem 0.55rem;
-  border: 1px solid rgba(242, 236, 228, 0.22);
-  border-radius: 0.4rem;
-  background: rgba(18, 21, 16, 0.94);
-  color: #f2ece4;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-  backdrop-filter: blur(6px);
-}
-
-.route-walking-path-overlay-color {
-  width: 0.55rem;
-  height: 0.55rem;
-  flex: 0 0 0.55rem;
-  border-radius: 50%;
-  background: var(--route-walking-path-color);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
-}
-
-.route-walking-path-overlay-copy {
-  min-width: 0;
-  overflow: hidden;
-  color: #f2ece4;
-  font: 600 0.78rem/1.2 sans-serif;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .map-basemap-control {
   position: absolute;
   bottom: 0.75rem;
@@ -496,13 +458,6 @@
 }
 
 @media (max-width: 699px) {
-  .route-walking-path-overlay {
-    top: 3.25rem;
-    left: 0.6rem;
-    max-width: calc(100% - 1.2rem);
-    padding: 0.35rem 0.5rem;
-  }
-
   .map-basemap-control {
     left: 0.6rem;
     bottom: 0.6rem;

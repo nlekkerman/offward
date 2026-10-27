@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import MapView from '../features/map/components/MapView.jsx'
-import RouteDirectionsLayer, { ROUTE_WALKING_PATH_COLORS } from '../features/map/components/RouteDirectionsLayer.jsx'
+import RouteDirectionsLayer from '../features/map/components/RouteDirectionsLayer.jsx'
 import RouteUserLocationLayer from '../features/map/components/RouteUserLocationLayer.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import { createRouteArrivalDetector } from '../features/map/routeProximity.js'
@@ -746,8 +746,18 @@ function RoutePage() {
                 {directionsActive && directionsStatus?.status === 'ready' && (
                   <div className="route-directions-feedback" id="route-directions-feedback" role="status">
                     <p>
-                      {directionsMode === 'walking' ? 'Walking' : 'Driving'} route to {directionsStatus.fallback?.used || directionsDestination === 'start' ? 'the official Route start' : 'Route access'}: {directionsStatus.distanceKm.toFixed(1)} km
-                      {formatDirectionsDuration(directionsStatus.durationSeconds) && ` · ${formatDirectionsDuration(directionsStatus.durationSeconds)}`}
+                      {selectedWalkingPath ? (
+                        <>
+                          {selectedWalkingPathName} · Walking · {selectedWalkingPath.distanceKm.toFixed(1)} km
+                          {formatDirectionsDuration(selectedWalkingPath.durationSeconds) &&
+                            ` · ${formatDirectionsDuration(selectedWalkingPath.durationSeconds)}`}
+                        </>
+                      ) : (
+                        <>
+                          {directionsMode === 'walking' ? 'Walking' : 'Driving'} route to {directionsStatus.fallback?.used || directionsDestination === 'start' ? 'the official Route start' : 'Route access'}: {directionsStatus.distanceKm.toFixed(1)} km
+                          {formatDirectionsDuration(directionsStatus.durationSeconds) && ` · ${formatDirectionsDuration(directionsStatus.durationSeconds)}`}
+                        </>
+                      )}
                     </p>
                     {directionsStatus.fallback?.used && (
                       <p className="route-directions-fallback">
@@ -799,20 +809,6 @@ function RoutePage() {
             initialCenter={[50, 10]}
             initialZoom={4}
             followEnabled={locationFollowing && Boolean(userPosition)}
-            mapOverlay={selectedWalkingPath && (
-              <div className="route-walking-path-overlay" role="status" aria-live="polite">
-                <span
-                  className="route-walking-path-overlay-color"
-                  style={{ '--route-walking-path-color': selectedWalkingPath.color || ROUTE_WALKING_PATH_COLORS[0] }}
-                  aria-hidden="true"
-                />
-                <span className="route-walking-path-overlay-copy">
-                  {selectedWalkingPathName} · {selectedWalkingPath.distanceKm.toFixed(1)} km
-                  {formatDirectionsDuration(selectedWalkingPath.durationSeconds) &&
-                    ` · ${formatDirectionsDuration(selectedWalkingPath.durationSeconds)}`}
-                </span>
-              </div>
-            )}
             mapChildren={(
               <>
                 <RouteDirectionsLayer
