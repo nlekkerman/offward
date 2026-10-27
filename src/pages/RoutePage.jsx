@@ -806,16 +806,11 @@ function RoutePage() {
                   style={{ '--route-walking-path-color': selectedWalkingPath.color || ROUTE_WALKING_PATH_COLORS[0] }}
                   aria-hidden="true"
                 />
-                <div className="route-walking-path-overlay-copy">
-                  <div className="route-walking-path-overlay-heading">
-                    <strong>{selectedWalkingPathName}</strong>
-                    <span>{selectedAlternativeId ? 'Selected' : 'Recommended · selected'}</span>
-                  </div>
-                  <p>Walking · {directionsStatus.distanceKm.toFixed(1)} km</p>
-                  {formatDirectionsDuration(directionsStatus.durationSeconds) && (
-                    <p>Estimated {formatDirectionsDuration(directionsStatus.durationSeconds)}</p>
-                  )}
-                </div>
+                <span className="route-walking-path-overlay-copy">
+                  {selectedWalkingPathName} · {selectedWalkingPath.distanceKm.toFixed(1)} km
+                  {formatDirectionsDuration(selectedWalkingPath.durationSeconds) &&
+                    ` · ${formatDirectionsDuration(selectedWalkingPath.durationSeconds)}`}
+                </span>
               </div>
             )}
             mapChildren={(

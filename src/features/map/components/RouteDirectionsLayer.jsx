@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Polyline, useMap } from 'react-leaflet'
 import { getRouteAccessDirections, getRouteDirections, getStraightLineDistanceKm, MAX_LOCAL_DIRECTIONS_KM } from '../../../services/routeDirectionsApi.js'
 
@@ -253,38 +253,52 @@ function RouteDirectionsLayer({
         position={position}
         navigationPositionSets={navigationPositionSets}
       />
+      {isWalkingAccess && navigationPaths.map((path) => {
+        const selectPath = () => onPathSelect?.(path.id)
+        const eventHandlers = { click: selectPath }
+
+        return (
+          <Polyline
+            key={`${path.id || 'recommended'}-hit-area`}
+            positions={path.geometry.coordinates.map(
+              ([longitude, latitude]) => [latitude, longitude],
+            )}
+            pathOptions={{
+              color: path.color,
+              weight: 24,
+              opacity: 0.01,
+              dashArray: null,
+              bubblingMouseEvents: false,
+            }}
+            pane={NAVIGATION_PATH_PANE}
+            eventHandlers={eventHandlers}
+          />
+        )
+      })}
       {isWalkingAccess
         ? navigationPaths.map((path, index) => {
             const isSelected = path.id === selectedAlternativeId
             const isRecommended = path.id === null
             const positions = navigationPositionSets[index]
-            const selectPath = () => onPathSelect?.(path.id)
-            const eventHandlers = { click: selectPath }
+            const dashArray = isRecommended ? null : index === 1 ? '9 7' : '2 6'
             const pathOptions = {
               color: path.color,
               weight: isSelected ? 9 : isRecommended ? 7 : 6,
               opacity: isSelected ? 1 : isRecommended ? 0.88 : 0.68,
-              dashArray: !isSelected && !isRecommended ? '9 7' : null,
+              dashArray,
               lineCap: 'round',
               lineJoin: 'round',
               bubblingMouseEvents: false,
             }
 
             return (
-              <Fragment key={path.id || 'recommended'}>
-                <Polyline
-                  positions={positions}
-                  pathOptions={{ ...pathOptions, weight: 24, opacity: 0.01, dashArray: null }}
-                  pane={NAVIGATION_PATH_PANE}
-                  eventHandlers={eventHandlers}
-                />
-                <Polyline
-                  positions={positions}
-                  pathOptions={pathOptions}
-                  pane={NAVIGATION_PATH_PANE}
-                  eventHandlers={eventHandlers}
-                />
-              </Fragment>
+              <Polyline
+                key={path.id || 'recommended'}
+                positions={positions}
+                pathOptions={pathOptions}
+                pane={NAVIGATION_PATH_PANE}
+                eventHandlers={{ click: () => onPathSelect?.(path.id) }}
+              />
             )
           })
         : navigationPositionSets[0] && (
