@@ -4516,7 +4516,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   display: grid;
   gap: 1rem;
   max-width: 880px;
-  margin-bottom: 2rem;
+  margin-bottom: 0;
 }
 
 .place-detail-header h1,
@@ -4530,17 +4530,32 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .place-detail-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 460px);
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
   align-items: start;
 }
 
-.place-detail-layout.has-gallery {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.place-detail-main-column,
+.place-detail-media-column {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 1rem;
 }
 
-.place-detail-layout.has-gallery .place-detail-map-section {
-  grid-column: 1 / -1;
+.place-detail-media-column {
+  padding-top: 5.5rem;
+}
+
+.place-detail-layout .detail-hero {
+  min-width: 0;
+  margin: 0;
+}
+
+.place-detail-layout .detail-hero-content {
+  max-width: none;
+  margin: 0;
+  padding: 5.5rem 0 0;
 }
 
 .place-detail-copy,
@@ -4555,6 +4570,10 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .place-detail-copy,
 .place-detail-map-section {
   padding: 1rem;
+}
+
+.place-detail-copy {
+  min-width: 0;
 }
 
 .place-detail-body {
@@ -4711,6 +4730,8 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 .place-detail-map {
+  width: 100%;
+  min-width: 0;
   height: 420px;
 }
 
@@ -5110,7 +5131,31 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   }
 
   .place-detail-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .place-detail-main-column,
+  .place-detail-media-column,
+  .place-detail-layout .detail-hero,
+  .place-detail-layout .detail-hero-content {
+    display: contents;
+  }
+
+  .place-detail-layout .place-detail-header {
+    order: 1;
+    padding-top: 5.5rem;
+  }
+
+  .place-detail-layout .place-gallery-preview {
+    order: 2;
+  }
+
+  .place-detail-layout .place-detail-map-section {
+    order: 3;
+  }
+
+  .place-detail-layout .place-detail-copy {
+    order: 4;
   }
 
   .route-detail-map {
@@ -5281,6 +5326,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .route-detail-map { height: min(50svh, 400px); min-height: 320px; }
   .place-detail-page { padding: 2rem 1.25rem 3rem; }
   .place-detail-content-page { padding-top: 0; }
+  .place-detail-layout .place-detail-header { padding-top: 6rem; }
   .place-detail-header h1, .place-detail-error h1 { font-size: clamp(2.4rem, 15vw, 3.4rem); }
   .place-detail-map { height: 50svh; min-height: 340px; }
 }

@@ -497,248 +497,252 @@ function PlacePage() {
         path={placePath}
         image={getContentSocialImage(place)}
       />
-      <DetailHero>
-        <header className="place-detail-header">
-          <p className="eyebrow">PUBLIC PLACE</p>
-          <h1>{placeTitle}</h1>
-          <ShareControl type="place" title={placeTitle} url={placeUrl} description={typeof place.summary === 'string' && place.summary.trim() ? place.summary.trim() : undefined} />
-          <div className="route-detail-meta" aria-label="Place metadata">
-            <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
-            {place.visited_at && <span>Visited {place.visited_at}</span>}
-          </div>
-          {place.summary && <p className="route-detail-summary">{place.summary}</p>}
-        </header>
-      </DetailHero>
       <Link className="route-detail-back" to="/explore?view=places">Back to Explore</Link>
-      <div className={`place-detail-layout${displayGalleries.length ? ' has-gallery' : ''}`}>
-        <PlaceGalleryPreview
-          galleries={displayGalleries}
-          onOpenGallery={openGallery}
-          loadingGalleryId={galleryLoadingId}
-          loadingGalleryIds={galleryLoadingIds}
-          galleryErrorByCollectionId={galleryErrorByCollectionId}
-        />
-        {place.body && (
-          <article className="place-detail-copy">
-            <div className="place-detail-body">{place.body}</div>
-          </article>
-        )}
-        <section className="place-detail-map-section" aria-labelledby="place-map-title">
-          <div className="route-map-heading">
-            <div><p className="eyebrow">MAP</p><h2 id="place-map-title">Place location</h2></div>
-            <div className="public-map-controls">
-              <div className="public-map-action-bar" role="group" aria-label="Map actions">
-                <button
-                  type="button"
-                  className={`public-map-action public-map-action-directions${directionsActive ? ' is-active' : ''}`}
-                  onClick={directionsActive ? stopDirections : startDirections}
-                  disabled={!directionsActive && !directionsAvailable}
-                  aria-describedby={directionsStatus || !directionsAvailable || locationError ? 'place-directions-feedback' : undefined}
-                  aria-label={directionsActive ? 'Directions are active. Stop directions to the Place' : 'Start directions to the Place'}
-                  aria-pressed={directionsActive}
-                >
-                  Directions
-                  {directionsActive && <span className="public-map-action-state" aria-hidden="true">On</span>}
-                </button>
-                <button
-                  type="button"
-                  className={`public-map-action public-map-action-you${locationLoading ? ' is-loading' : ''}`}
-                  onClick={locateCurrentPosition}
-                  disabled={locationLoading || locationActive}
-                  aria-label={locationLoading ? 'Locating your position' : 'Show your location'}
-                  aria-busy={locationLoading}
-                >
-                  {locationLoading && <span className="public-map-location-spinner" aria-hidden="true" />}
-                  You
-                </button>
-                <button
-                  type="button"
-                  className={`public-map-action public-map-action-track${independentTracking ? ' is-active' : ''}`}
-                  onClick={independentTracking ? stopFollowing : startFollowing}
-                  aria-label={independentTracking ? 'Stop continuous location tracking' : 'Start continuous location tracking'}
-                  aria-pressed={independentTracking}
-                >
-                  {independentTracking && <span className="public-map-track-dot" aria-hidden="true" />}
-                  {independentTracking ? 'Stop Track' : 'Track'}
-                </button>
+      <div className="place-detail-layout">
+        <div className="place-detail-main-column">
+          <DetailHero>
+            <header className="place-detail-header">
+              <p className="eyebrow">PUBLIC PLACE</p>
+              <h1>{placeTitle}</h1>
+              <ShareControl type="place" title={placeTitle} url={placeUrl} description={typeof place.summary === 'string' && place.summary.trim() ? place.summary.trim() : undefined} />
+              <div className="route-detail-meta" aria-label="Place metadata">
+                <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
+                {place.visited_at && <span>Visited {place.visited_at}</span>}
               </div>
-              {userPosition && (
-                <button type="button" className="public-map-recenter" onClick={recenterOnLocation}>
-                  Recenter
-                </button>
-              )}
-              <div className="public-map-secondary-controls">
-                {directionsActive && (!hasManualAccessPath ||
-                  (initialMarkerDistanceKm > 1 && initialMarkerDistanceKm <= 5 &&
-                    placeJourneyPhase !== 'walking-after-driving')) && (
-                  <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
-                    <button
-                      type="button"
-                      className="route-directions-mode"
-                      aria-pressed={directionsMode === 'walking'}
-                      onClick={() => handleTravelModeChange('walking')}
-                    >
-                      Walking
-                    </button>
-                    <button
-                      type="button"
-                      className="route-directions-mode"
-                      aria-pressed={directionsMode === 'driving'}
-                      onClick={() => handleTravelModeChange('driving')}
-                    >
-                      Driving
-                    </button>
-                  </div>
+              {place.summary && <p className="route-detail-summary">{place.summary}</p>}
+            </header>
+          </DetailHero>
+          {place.body && (
+            <article className="place-detail-copy">
+              <div className="place-detail-body">{place.body}</div>
+            </article>
+          )}
+        </div>
+        <div className="place-detail-media-column">
+          <PlaceGalleryPreview
+            galleries={displayGalleries}
+            onOpenGallery={openGallery}
+            loadingGalleryId={galleryLoadingId}
+            loadingGalleryIds={galleryLoadingIds}
+            galleryErrorByCollectionId={galleryErrorByCollectionId}
+          />
+          <section className="place-detail-map-section" aria-labelledby="place-map-title">
+            <div className="route-map-heading">
+              <div><p className="eyebrow">MAP</p><h2 id="place-map-title">Place location</h2></div>
+              <div className="public-map-controls">
+                <div className="public-map-action-bar" role="group" aria-label="Map actions">
+                  <button
+                    type="button"
+                    className={`public-map-action public-map-action-directions${directionsActive ? ' is-active' : ''}`}
+                    onClick={directionsActive ? stopDirections : startDirections}
+                    disabled={!directionsActive && !directionsAvailable}
+                    aria-describedby={directionsStatus || !directionsAvailable || locationError ? 'place-directions-feedback' : undefined}
+                    aria-label={directionsActive ? 'Directions are active. Stop directions to the Place' : 'Start directions to the Place'}
+                    aria-pressed={directionsActive}
+                  >
+                    Directions
+                    {directionsActive && <span className="public-map-action-state" aria-hidden="true">On</span>}
+                  </button>
+                  <button
+                    type="button"
+                    className={`public-map-action public-map-action-you${locationLoading ? ' is-loading' : ''}`}
+                    onClick={locateCurrentPosition}
+                    disabled={locationLoading || locationActive}
+                    aria-label={locationLoading ? 'Locating your position' : 'Show your location'}
+                    aria-busy={locationLoading}
+                  >
+                    {locationLoading && <span className="public-map-location-spinner" aria-hidden="true" />}
+                    You
+                  </button>
+                  <button
+                    type="button"
+                    className={`public-map-action public-map-action-track${independentTracking ? ' is-active' : ''}`}
+                    onClick={independentTracking ? stopFollowing : startFollowing}
+                    aria-label={independentTracking ? 'Stop continuous location tracking' : 'Start continuous location tracking'}
+                    aria-pressed={independentTracking}
+                  >
+                    {independentTracking && <span className="public-map-track-dot" aria-hidden="true" />}
+                    {independentTracking ? 'Stop Track' : 'Track'}
+                  </button>
+                </div>
+                {userPosition && (
+                  <button type="button" className="public-map-recenter" onClick={recenterOnLocation}>
+                    Recenter
+                  </button>
                 )}
-                {!directionsAvailable && (
-                  <p className="route-directions-feedback" id="place-directions-feedback">
-                    Directions are unavailable because this Place does not have valid coordinates.
-                  </p>
-                )}
-                {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
-                  <p className="route-directions-feedback" id="place-directions-feedback" role="status">Waiting for your location...</p>
-                )}
-                {directionsActive && directionsStatus?.status === 'routing' && (
-                  <p className="route-directions-feedback" id="place-directions-feedback" role="status">
-                    Calculating {directionsMode} directions...
-                  </p>
-                )}
-                {directionsActive && !hasManualAccessPath && directionsStatus?.status === 'too-far' && (
-                  <p className="route-directions-feedback" id="place-directions-feedback" role="status">
-                    You're more than {MAX_LOCAL_DIRECTIONS_KM} km from this Place. Directions are available when you're closer.
-                  </p>
-                )}
-                {directionsActive && !hasManualAccessPath && directionsStatus?.status === 'ready' && (
-                  <p className="route-directions-feedback" id="place-directions-feedback" role="status">
-                    {directionsMode === 'walking' ? 'Walking' : 'Driving'} route: {directionsStatus.distanceKm.toFixed(1)} km
-                  </p>
-                )}
-                {directionsStatus?.status === 'error' && (
-                  <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
-                    {directionsStatus.message}
-                  </p>
-                )}
-                {locationError && (
-                  <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
-                    {locationError}{' '}
-                    <button type="button" className="route-directions-mode" onClick={retryLocation}>
-                      Retry location
-                    </button>
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-          {directionsActive && hasManualAccessPath && placeJourneyPhase && (
-            <section className="place-directions-summary" aria-label="Journey instructions">
-              {(placeJourneyPhase === 'driving' || placeJourneyPhase === 'walking-to-marker') && (
-                <>
-                  <p className="place-directions-leg">
-                    <span className="place-directions-icon" aria-hidden="true">
-                      {(directionsRoute?.profile || directionsMode) === 'walking' ? '🚶' : '🚗'}
-                    </span>
-                    {directionsRoute
-                      ? `${directionsRoute.profile === 'walking' ? 'Walk' : 'Drive'} ${directionsRoute.distanceKm.toFixed(1)} km to ${accessMarkerSummaryName}.`
-                      : directionsStatus?.status === 'error'
-                        ? `${directionsMode === 'walking' ? 'Walking' : 'Driving'} route to ${accessMarkerSummaryName} could not be calculated.`
-                        : `Calculating ${directionsMode === 'walking' ? 'walking' : 'driving'} route to ${accessMarkerSummaryName}...`}
-                  </p>
-                  <p className="place-directions-leg">
-                    <span className="place-directions-icon" aria-hidden="true">🚶</span>
-                    Then walk {formatWalkingDistance(walkingDistanceMeters)} to {placeTitle}.
-                  </p>
-                  <p className="place-directions-note">The solid line reaches the marker; the orange dashed line is the saved walking path from the marker.</p>
-                  {directionsRoute && directionsRoute.profile !== directionsMode &&
-                    (directionsStatus?.status === 'error' || directionsStatus?.status === 'routing') && (
-                    <p className="place-directions-note">
-                      {directionsStatus.status === 'error'
-                        ? `Showing the previous ${directionsRoute.profile} route because the requested route failed.`
-                        : `Showing the previous ${directionsRoute.profile} route while the ${directionsMode} route is calculated.`}
+                <div className="public-map-secondary-controls">
+                  {directionsActive && (!hasManualAccessPath ||
+                    (initialMarkerDistanceKm > 1 && initialMarkerDistanceKm <= 5 &&
+                      placeJourneyPhase !== 'walking-after-driving')) && (
+                    <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
+                      <button
+                        type="button"
+                        className="route-directions-mode"
+                        aria-pressed={directionsMode === 'walking'}
+                        onClick={() => handleTravelModeChange('walking')}
+                      >
+                        Walking
+                      </button>
+                      <button
+                        type="button"
+                        className="route-directions-mode"
+                        aria-pressed={directionsMode === 'driving'}
+                        onClick={() => handleTravelModeChange('driving')}
+                      >
+                        Driving
+                      </button>
+                    </div>
+                  )}
+                  {!directionsAvailable && (
+                    <p className="route-directions-feedback" id="place-directions-feedback">
+                      Directions are unavailable because this Place does not have valid coordinates.
                     </p>
                   )}
-                  {placeJourneyPhase === 'driving' && (
-                    <button type="button" className="route-directions-mode" onClick={startWalking}>Start Walking</button>
+                  {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
+                    <p className="route-directions-feedback" id="place-directions-feedback" role="status">Waiting for your location...</p>
                   )}
-                </>
-              )}
-              {(placeJourneyPhase === 'walking' || placeJourneyPhase === 'walking-after-driving') && (
-                <>
-                  <p className="place-directions-leg">
-                    <span className="place-directions-icon" aria-hidden="true">🚶</span>
-                    {placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker
-                      ? `Walk ${formatWalkingDistance(walkingDistanceMeters)} to ${placeTitle}.`
-                      : `Walk ${formatWalkingDistance(walkingDistanceMeters)} from ${accessMarkerSummaryName} to ${placeTitle}.`}
-                  </p>
-                  {placeJourneyPhase === 'walking' && !isAtAccessMarker && (
-                    <p className="place-directions-note">The orange dashed line is the saved path from the directions marker; the visitor-to-marker route is not shown.</p>
+                  {directionsActive && directionsStatus?.status === 'routing' && (
+                    <p className="route-directions-feedback" id="place-directions-feedback" role="status">
+                      Calculating {directionsMode} directions...
+                    </p>
                   )}
-                  {(placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker) && (
-                    <p className="place-directions-note">The orange dashed saved walking path starts at {accessMarkerSummaryName}.</p>
+                  {directionsActive && !hasManualAccessPath && directionsStatus?.status === 'too-far' && (
+                    <p className="route-directions-feedback" id="place-directions-feedback" role="status">
+                      You're more than {MAX_LOCAL_DIRECTIONS_KM} km from this Place. Directions are available when you're closer.
+                    </p>
                   )}
-                </>
-              )}
-              {accessMarkerDescription && (
-                <p className="place-directions-summary-description">{accessMarkerDescription}</p>
-              )}
-            </section>
-          )}
-          {hasCoordinates ? (
-            <MapView
-              className="place-detail-map"
-              showBasemapSwitcher
-              places={[place]}
-              selectedPlaceId={place.id}
-              directionsPlaceId={directionsActive ? place.id : null}
-              showPlaceLabel
-              initialCenter={[place.latitude, place.longitude]}
-              initialZoom={10}
-              followEnabled={locationFollowing && Boolean(userPosition)}
-              mapChildren={(
-                <>
-                  {accessMarkerCoordinates && (
-                    <PlaceDirectionsLayer
-                      active={directionsActive && directionsAvailable && hasManualAccessPath}
-                      showSavedPath={accessPathVisible && hasManualAccessPath}
-                      phase={placeJourneyPhase}
-                      onPhaseChange={setPlaceJourneyPhase}
-                      mode={directionsMode}
+                  {directionsActive && !hasManualAccessPath && directionsStatus?.status === 'ready' && (
+                    <p className="route-directions-feedback" id="place-directions-feedback" role="status">
+                      {directionsMode === 'walking' ? 'Walking' : 'Driving'} route: {directionsStatus.distanceKm.toFixed(1)} km
+                    </p>
+                  )}
+                  {directionsStatus?.status === 'error' && (
+                    <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
+                      {directionsStatus.message}
+                    </p>
+                  )}
+                  {locationError && (
+                    <p className="route-directions-feedback is-error" id="place-directions-feedback" role="alert">
+                      {locationError}{' '}
+                      <button type="button" className="route-directions-mode" onClick={retryLocation}>
+                        Retry location
+                      </button>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+            {directionsActive && hasManualAccessPath && placeJourneyPhase && (
+              <section className="place-directions-summary" aria-label="Journey instructions">
+                {(placeJourneyPhase === 'driving' || placeJourneyPhase === 'walking-to-marker') && (
+                  <>
+                    <p className="place-directions-leg">
+                      <span className="place-directions-icon" aria-hidden="true">
+                        {(directionsRoute?.profile || directionsMode) === 'walking' ? '🚶' : '🚗'}
+                      </span>
+                      {directionsRoute
+                        ? `${directionsRoute.profile === 'walking' ? 'Walk' : 'Drive'} ${directionsRoute.distanceKm.toFixed(1)} km to ${accessMarkerSummaryName}.`
+                        : directionsStatus?.status === 'error'
+                          ? `${directionsMode === 'walking' ? 'Walking' : 'Driving'} route to ${accessMarkerSummaryName} could not be calculated.`
+                          : `Calculating ${directionsMode === 'walking' ? 'walking' : 'driving'} route to ${accessMarkerSummaryName}...`}
+                    </p>
+                    <p className="place-directions-leg">
+                      <span className="place-directions-icon" aria-hidden="true">🚶</span>
+                      Then walk {formatWalkingDistance(walkingDistanceMeters)} to {placeTitle}.
+                    </p>
+                    <p className="place-directions-note">The solid line reaches the marker; the orange dashed line is the saved walking path from the marker.</p>
+                    {directionsRoute && directionsRoute.profile !== directionsMode &&
+                      (directionsStatus?.status === 'error' || directionsStatus?.status === 'routing') && (
+                      <p className="place-directions-note">
+                        {directionsStatus.status === 'error'
+                          ? `Showing the previous ${directionsRoute.profile} route because the requested route failed.`
+                          : `Showing the previous ${directionsRoute.profile} route while the ${directionsMode} route is calculated.`}
+                      </p>
+                    )}
+                    {placeJourneyPhase === 'driving' && (
+                      <button type="button" className="route-directions-mode" onClick={startWalking}>Start Walking</button>
+                    )}
+                  </>
+                )}
+                {(placeJourneyPhase === 'walking' || placeJourneyPhase === 'walking-after-driving') && (
+                  <>
+                    <p className="place-directions-leg">
+                      <span className="place-directions-icon" aria-hidden="true">🚶</span>
+                      {placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker
+                        ? `Walk ${formatWalkingDistance(walkingDistanceMeters)} to ${placeTitle}.`
+                        : `Walk ${formatWalkingDistance(walkingDistanceMeters)} from ${accessMarkerSummaryName} to ${placeTitle}.`}
+                    </p>
+                    {placeJourneyPhase === 'walking' && !isAtAccessMarker && (
+                      <p className="place-directions-note">The orange dashed line is the saved path from the directions marker; the visitor-to-marker route is not shown.</p>
+                    )}
+                    {(placeJourneyPhase === 'walking-after-driving' || isAtAccessMarker) && (
+                      <p className="place-directions-note">The orange dashed saved walking path starts at {accessMarkerSummaryName}.</p>
+                    )}
+                  </>
+                )}
+                {accessMarkerDescription && (
+                  <p className="place-directions-summary-description">{accessMarkerDescription}</p>
+                )}
+              </section>
+            )}
+            {hasCoordinates ? (
+              <MapView
+                className="place-detail-map"
+                showBasemapSwitcher
+                places={[place]}
+                selectedPlaceId={place.id}
+                directionsPlaceId={directionsActive ? place.id : null}
+                showPlaceLabel
+                initialCenter={[place.latitude, place.longitude]}
+                initialZoom={10}
+                followEnabled={locationFollowing && Boolean(userPosition)}
+                mapChildren={(
+                  <>
+                    {accessMarkerCoordinates && (
+                      <PlaceDirectionsLayer
+                        active={directionsActive && directionsAvailable && hasManualAccessPath}
+                        showSavedPath={accessPathVisible && hasManualAccessPath}
+                        phase={placeJourneyPhase}
+                        onPhaseChange={setPlaceJourneyPhase}
+                        mode={directionsMode}
+                        position={userPosition}
+                        origin={directionsOrigin}
+                        placeSlug={placeSlug}
+                        placeCoordinates={placeCoordinates}
+                        accessGeometry={accessGeometry}
+                        markerCoordinates={accessMarkerCoordinates}
+                        markerName={accessMarkerName}
+                        markerDescription={accessMarkerDescription}
+                        onStatusChange={handleDirectionsStatusChange}
+                      />
+                    )}
+                    {!hasManualAccessPath && (
+                      <RouteDirectionsLayer
+                        active={directionsActive && directionsAvailable}
+                        position={userPosition}
+                        routeSlug={placeSlug}
+                        startCoordinates={placeCoordinates}
+                        mode={directionsMode}
+                        onStatusChange={handleDirectionsStatusChange}
+                        requestDirections={requestPlaceDirections}
+                      />
+                    )}
+                    <RouteUserLocationLayer
                       position={userPosition}
-                      origin={directionsOrigin}
-                      placeSlug={placeSlug}
-                      placeCoordinates={placeCoordinates}
-                      accessGeometry={accessGeometry}
-                      markerCoordinates={accessMarkerCoordinates}
-                      markerName={accessMarkerName}
-                      markerDescription={accessMarkerDescription}
-                      onStatusChange={handleDirectionsStatusChange}
+                      followEnabled={locationFollowing && Boolean(userPosition)}
+                      recenterRequest={recenterRequest}
+                      centerRequest={locationCenterRequest}
+                      onManualMovement={handleManualMapMovement}
                     />
-                  )}
-                  {!hasManualAccessPath && (
-                    <RouteDirectionsLayer
-                      active={directionsActive && directionsAvailable}
-                      position={userPosition}
-                      routeSlug={placeSlug}
-                      startCoordinates={placeCoordinates}
-                      mode={directionsMode}
-                      onStatusChange={handleDirectionsStatusChange}
-                      requestDirections={requestPlaceDirections}
-                    />
-                  )}
-                  <RouteUserLocationLayer
-                    position={userPosition}
-                    followEnabled={locationFollowing && Boolean(userPosition)}
-                    recenterRequest={recenterRequest}
-                    centerRequest={locationCenterRequest}
-                    onManualMovement={handleManualMapMovement}
-                  />
-                </>
-              )}
-            >
-            </MapView>
-          ) : (
-            <p className="route-map-message" role="status">Map location is unavailable for this Place.</p>
-          )}
-        </section>
+                  </>
+                )}
+              >
+              </MapView>
+            ) : (
+              <p className="route-map-message" role="status">Map location is unavailable for this Place.</p>
+            )}
+          </section>
+        </div>
       </div>
       {videoCatalog.status === 'error' && <p className="place-detail-secondary-error" role="alert">Unable to load Place videos.</p>}
       <EntityMediaSection videos={videos} />
