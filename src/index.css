@@ -5365,3 +5365,10 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
     background: rgba(8, 12, 10, 0.9);
   }
 }
+
+@media (max-width: 1079px) {
+  .app-shell-public .app-header {
+    max-width: none;
+    margin: 0;
+  }
+}
