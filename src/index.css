@@ -5495,8 +5495,18 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 @media (max-width: 1079px) {
+  .app-shell-public > main {
+    position: relative;
+    z-index: 1;
+  }
+
   .app-shell-public .app-header {
     max-width: none;
     margin: 0;
+    z-index: 31;
+  }
+
+  .app-shell-public .app-header.mobile-menu-open nav {
+    pointer-events: auto;
   }
 }
