@@ -53,6 +53,86 @@ function formatWalkingDistance(distanceMeters) {
   return `${distanceMeters} m`
 }
 
+function PlaceGalleryPreview({ galleries, onOpenGallery, loadingGalleryId, loadingGalleryIds, galleryErrorByCollectionId }) {
+  const imageEntries = galleries.flatMap((gallery) => (
+    orderedCollectionImages(gallery).map((image, index) => ({ gallery, image, index }))
+  ))
+  const previewImages = imageEntries.slice(0, 3)
+  const remainingImages = imageEntries.slice(3)
+
+  if (!galleries.length) return null
+
+  const firstGallery = galleries[0]
+  const isLoading = (gallery) => {
+    const galleryId = String(gallery.id || '')
+    return galleryId && (loadingGalleryId === galleryId || loadingGalleryIds[galleryId])
+  }
+  const errorMessage = (gallery) => galleryErrorByCollectionId?.[String(gallery.id || '')]
+
+  return (
+    <section className="place-gallery-preview" aria-label="Place photos">
+      <div className="place-gallery-preview-heading">
+        <h2>Photos</h2>
+        <span>{imageEntries.length} {imageEntries.length === 1 ? 'photo' : 'photos'}</span>
+      </div>
+      {previewImages.length > 0 ? (
+        <div className={`place-gallery-image-grid${previewImages.length === 1 ? ' is-single' : ''}${previewImages.length === 2 ? ' is-double' : ''}`}>
+          {previewImages.map(({ gallery, image, index }, previewIndex) => (
+            <button
+              type="button"
+              className={`place-gallery-image${previewIndex === 0 ? ' is-featured' : ''}`}
+              key={`${gallery.id}-${image.id || index}`}
+              onClick={() => onOpenGallery(gallery, index)}
+              aria-label={`Open photo ${index + 1} of ${orderedCollectionImages(gallery).length}${image.caption ? `: ${image.caption}` : ''}`}
+            >
+              <img src={image.thumbnail_url || image.url} alt={image.caption || ''} loading="lazy" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="place-gallery-empty" role="status">
+          {isLoading(firstGallery) ? 'Loading photos…' : 'No public photos are available.'}
+        </p>
+      )}
+      {remainingImages.length > 0 && (
+        <button
+          type="button"
+          className="place-gallery-more"
+          onClick={() => onOpenGallery(remainingImages[0].gallery, remainingImages[0].index)}
+          disabled={isLoading(remainingImages[0].gallery)}
+        >
+          +{remainingImages.length} {remainingImages.length === 1 ? 'photo' : 'photos'}
+        </button>
+      )}
+      {galleries.length > 1 && (
+        <div className="place-gallery-other-collections" aria-label="Other photo galleries">
+          {galleries.map((gallery, index) => {
+            if (index === 0) return null
+            const count = orderedCollectionImages(gallery).length
+            return (
+              <button
+                type="button"
+                key={gallery.id || gallery.title || index}
+                onClick={() => onOpenGallery(gallery)}
+                disabled={isLoading(gallery)}
+              >
+                {isLoading(gallery) ? 'Loading…' : `Open ${gallery.title || 'gallery'}${count ? ` · ${count} ${count === 1 ? 'photo' : 'photos'}` : ''}`}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {galleries.map((gallery) => {
+        const message = errorMessage(gallery)
+        return message ? <p className="place-gallery-error" role="alert" key={`error-${gallery.id || gallery.title}`}>{message}</p> : null
+      })}
+      {isLoading(firstGallery) && previewImages.length > 0 && (
+        <p className="place-gallery-loading" role="status">Loading more photos…</p>
+      )}
+    </section>
+  )
+}
+
 function PlacePage() {
   const { placeSlug } = useParams()
   const [placeResult, setPlaceResult] = useState({ slug: null, status: 'loading', place: null })
@@ -430,7 +510,14 @@ function PlacePage() {
         </header>
       </DetailHero>
       <Link className="route-detail-back" to="/explore?view=places">Back to Explore</Link>
-      <div className="place-detail-layout">
+      <div className={`place-detail-layout${displayGalleries.length ? ' has-gallery' : ''}`}>
+        <PlaceGalleryPreview
+          galleries={displayGalleries}
+          onOpenGallery={openGallery}
+          loadingGalleryId={galleryLoadingId}
+          loadingGalleryIds={galleryLoadingIds}
+          galleryErrorByCollectionId={galleryErrorByCollectionId}
+        />
         {place.body && (
           <article className="place-detail-copy">
             <div className="place-detail-body">{place.body}</div>
@@ -654,7 +741,7 @@ function PlacePage() {
         </section>
       </div>
       {videoCatalog.status === 'error' && <p className="place-detail-secondary-error" role="alert">Unable to load Place videos.</p>}
-      <EntityMediaSection videos={videos} galleries={displayGalleries} onOpenGallery={openGallery} loadingGalleryId={galleryLoadingId} loadingGalleryIds={galleryLoadingIds} galleryErrorByCollectionId={galleryErrorByCollectionId} showAllImages />
+      <EntityMediaSection videos={videos} />
       {storyCatalog.status === 'error' && <p className="place-detail-secondary-error" role="alert">Unable to load related Stories.</p>}
       <RelatedStories stories={relatedStories} />
       <RelatedFood foodIds={place.food_ids} />
