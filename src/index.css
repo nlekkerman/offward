@@ -4573,13 +4573,23 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 .place-detail-copy {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
   min-width: 0;
 }
 
-.place-detail-body {
+.place-detail-body,
+.place-detail-introduction {
+  min-width: 0;
   color: #d8d1c3;
   font: 1rem/1.7 sans-serif;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.place-detail-introduction {
+  margin: 0;
 }
 
 .place-detail-map-section {
@@ -4733,6 +4743,22 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   width: 100%;
   min-width: 0;
   height: 420px;
+}
+
+.place-map-controls {
+  justify-items: start;
+  width: 100%;
+  margin-left: 0;
+}
+
+.place-map-controls .public-map-action-bar {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.place-map-controls .public-map-action {
+  min-width: 5.5rem;
 }
 
 .place-detail-error,
@@ -5141,21 +5167,77 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
     display: contents;
   }
 
+  .place-detail-media-column {
+    padding-top: 0;
+  }
+
   .place-detail-layout .place-detail-header {
     order: 1;
     padding-top: 5.5rem;
   }
 
-  .place-detail-layout .place-gallery-preview {
+  .place-detail-layout .place-detail-copy {
+    display: contents;
+  }
+
+  .place-detail-layout .place-detail-introduction {
     order: 2;
   }
 
-  .place-detail-layout .place-detail-map-section {
+  .place-detail-layout .place-gallery-preview {
     order: 3;
   }
 
-  .place-detail-layout .place-detail-copy {
+  .place-detail-layout .place-detail-description {
     order: 4;
+  }
+
+  .place-detail-layout .place-detail-map-section {
+    order: 5;
+  }
+
+  .place-detail-map-section {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .place-gallery-preview {
+    gap: 0.55rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .place-gallery-image-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+
+  .place-gallery-image.is-featured {
+    grid-row: auto;
+    aspect-ratio: 4 / 3;
+    min-height: 0;
+  }
+
+  .place-gallery-image:nth-child(n + 3) {
+    display: none;
+  }
+
+  .place-detail-copy,
+  .place-detail-introduction,
+  .place-detail-description {
+    min-width: 0;
+  }
+
+  .place-detail-content-page > .route-detail-back {
+    display: none;
+  }
+
+  .place-map-controls .public-map-action {
+    min-width: 0;
   }
 
   .route-detail-map {

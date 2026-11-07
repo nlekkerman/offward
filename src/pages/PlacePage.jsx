@@ -58,11 +58,11 @@ function PlaceGalleryPreview({ galleries, onOpenGallery, loadingGalleryId, loadi
     orderedCollectionImages(gallery).map((image, index) => ({ gallery, image, index }))
   ))
   const previewImages = imageEntries.slice(0, 3)
-  const remainingImages = imageEntries.slice(3)
 
   if (!galleries.length) return null
 
   const firstGallery = galleries[0]
+  const firstGalleryWithImages = galleries.find((gallery) => orderedCollectionImages(gallery).length > 0) || firstGallery
   const isLoading = (gallery) => {
     const galleryId = String(gallery.id || '')
     return galleryId && (loadingGalleryId === galleryId || loadingGalleryIds[galleryId])
@@ -94,14 +94,14 @@ function PlaceGalleryPreview({ galleries, onOpenGallery, loadingGalleryId, loadi
           {isLoading(firstGallery) ? 'Loading photos…' : 'No public photos are available.'}
         </p>
       )}
-      {remainingImages.length > 0 && (
+      {imageEntries.length > 0 && (
         <button
           type="button"
           className="place-gallery-more"
-          onClick={() => onOpenGallery(remainingImages[0].gallery, remainingImages[0].index)}
-          disabled={isLoading(remainingImages[0].gallery)}
+          onClick={() => onOpenGallery(firstGalleryWithImages)}
+          disabled={isLoading(firstGalleryWithImages)}
         >
-          +{remainingImages.length} {remainingImages.length === 1 ? 'photo' : 'photos'}
+          View all photos
         </button>
       )}
       {galleries.length > 1 && (
@@ -474,6 +474,11 @@ function PlacePage() {
   const countryLabel = countryName(country, formatCountrySlug(place.country))
   const lightboxImages = lightbox.gallery?.images || []
   const placeTitle = place.name || 'Place'
+  const placeBodyParagraphs = typeof place.body === 'string'
+    ? place.body.split(/\r?\n\s*\r?\n/).filter((paragraph) => paragraph.trim())
+    : []
+  const placeIntroduction = placeBodyParagraphs[0] || ''
+  const remainingPlaceDescription = placeBodyParagraphs.slice(1).join('\n\n')
   const placeDescription = getContentDescription(place.summary, placeTitle, place.country ? countryLabel : '')
   const placePath = `/places/${encodeURIComponent(placeSlug)}`
   const placeUrl = getPublicUrl(placePath)
@@ -512,9 +517,10 @@ function PlacePage() {
               {place.summary && <p className="route-detail-summary">{place.summary}</p>}
             </header>
           </DetailHero>
-          {place.body && (
+          {(placeIntroduction || remainingPlaceDescription) && (
             <article className="place-detail-copy">
-              <div className="place-detail-body">{place.body}</div>
+              {placeIntroduction && <p className="place-detail-introduction">{placeIntroduction}</p>}
+              {remainingPlaceDescription && <div className="place-detail-body place-detail-description">{remainingPlaceDescription}</div>}
             </article>
           )}
         </div>
@@ -529,48 +535,105 @@ function PlacePage() {
           <section className="place-detail-map-section" aria-labelledby="place-map-title">
             <div className="route-map-heading">
               <div><p className="eyebrow">MAP</p><h2 id="place-map-title">Place location</h2></div>
-              <div className="public-map-controls">
-                <div className="public-map-action-bar" role="group" aria-label="Map actions">
-                  <button
-                    type="button"
-                    className={`public-map-action public-map-action-directions${directionsActive ? ' is-active' : ''}`}
-                    onClick={directionsActive ? stopDirections : startDirections}
-                    disabled={!directionsActive && !directionsAvailable}
-                    aria-describedby={directionsStatus || !directionsAvailable || locationError ? 'place-directions-feedback' : undefined}
-                    aria-label={directionsActive ? 'Directions are active. Stop directions to the Place' : 'Start directions to the Place'}
-                    aria-pressed={directionsActive}
-                  >
-                    Directions
-                    {directionsActive && <span className="public-map-action-state" aria-hidden="true">On</span>}
-                  </button>
-                  <button
-                    type="button"
-                    className={`public-map-action public-map-action-you${locationLoading ? ' is-loading' : ''}`}
-                    onClick={locateCurrentPosition}
-                    disabled={locationLoading || locationActive}
-                    aria-label={locationLoading ? 'Locating your position' : 'Show your location'}
-                    aria-busy={locationLoading}
-                  >
-                    {locationLoading && <span className="public-map-location-spinner" aria-hidden="true" />}
-                    You
-                  </button>
-                  <button
-                    type="button"
-                    className={`public-map-action public-map-action-track${independentTracking ? ' is-active' : ''}`}
-                    onClick={independentTracking ? stopFollowing : startFollowing}
-                    aria-label={independentTracking ? 'Stop continuous location tracking' : 'Start continuous location tracking'}
-                    aria-pressed={independentTracking}
-                  >
-                    {independentTracking && <span className="public-map-track-dot" aria-hidden="true" />}
-                    {independentTracking ? 'Stop Track' : 'Track'}
-                  </button>
-                </div>
-                {userPosition && (
-                  <button type="button" className="public-map-recenter" onClick={recenterOnLocation}>
-                    Recenter
-                  </button>
+            </div>
+            {hasCoordinates ? (
+              <MapView
+                className="place-detail-map"
+                showBasemapSwitcher
+                places={[place]}
+                selectedPlaceId={place.id}
+                directionsPlaceId={directionsActive ? place.id : null}
+                showPlaceLabel
+                initialCenter={[place.latitude, place.longitude]}
+                initialZoom={10}
+                followEnabled={locationFollowing && Boolean(userPosition)}
+                mapChildren={(
+                  <>
+                    {accessMarkerCoordinates && (
+                      <PlaceDirectionsLayer
+                        active={directionsActive && directionsAvailable && hasManualAccessPath}
+                        showSavedPath={accessPathVisible && hasManualAccessPath}
+                        phase={placeJourneyPhase}
+                        onPhaseChange={setPlaceJourneyPhase}
+                        mode={directionsMode}
+                        position={userPosition}
+                        origin={directionsOrigin}
+                        placeSlug={placeSlug}
+                        placeCoordinates={placeCoordinates}
+                        accessGeometry={accessGeometry}
+                        markerCoordinates={accessMarkerCoordinates}
+                        markerName={accessMarkerName}
+                        markerDescription={accessMarkerDescription}
+                        onStatusChange={handleDirectionsStatusChange}
+                      />
+                    )}
+                    {!hasManualAccessPath && (
+                      <RouteDirectionsLayer
+                        active={directionsActive && directionsAvailable}
+                        position={userPosition}
+                        routeSlug={placeSlug}
+                        startCoordinates={placeCoordinates}
+                        mode={directionsMode}
+                        onStatusChange={handleDirectionsStatusChange}
+                        requestDirections={requestPlaceDirections}
+                      />
+                    )}
+                    <RouteUserLocationLayer
+                      position={userPosition}
+                      followEnabled={locationFollowing && Boolean(userPosition)}
+                      recenterRequest={recenterRequest}
+                      centerRequest={locationCenterRequest}
+                      onManualMovement={handleManualMapMovement}
+                    />
+                  </>
                 )}
-                <div className="public-map-secondary-controls">
+              >
+              </MapView>
+            ) : (
+              <p className="route-map-message" role="status">Map location is unavailable for this Place.</p>
+            )}
+            <div className="public-map-controls place-map-controls">
+              <div className="public-map-action-bar" role="group" aria-label="Map actions">
+                <button
+                  type="button"
+                  className={`public-map-action public-map-action-directions${directionsActive ? ' is-active' : ''}`}
+                  onClick={directionsActive ? stopDirections : startDirections}
+                  disabled={!directionsActive && !directionsAvailable}
+                  aria-describedby={directionsStatus || !directionsAvailable || locationError ? 'place-directions-feedback' : undefined}
+                  aria-label={directionsActive ? 'Directions are active. Stop directions to the Place' : 'Start directions to the Place'}
+                  aria-pressed={directionsActive}
+                >
+                  Directions
+                  {directionsActive && <span className="public-map-action-state" aria-hidden="true">On</span>}
+                </button>
+                <button
+                  type="button"
+                  className={`public-map-action public-map-action-you${locationLoading ? ' is-loading' : ''}`}
+                  onClick={locateCurrentPosition}
+                  disabled={locationLoading || locationActive}
+                  aria-label={locationLoading ? 'Locating your position' : 'Show your location'}
+                  aria-busy={locationLoading}
+                >
+                  {locationLoading && <span className="public-map-location-spinner" aria-hidden="true" />}
+                  You
+                </button>
+                <button
+                  type="button"
+                  className={`public-map-action public-map-action-track${independentTracking ? ' is-active' : ''}`}
+                  onClick={independentTracking ? stopFollowing : startFollowing}
+                  aria-label={independentTracking ? 'Stop continuous location tracking' : 'Start continuous location tracking'}
+                  aria-pressed={independentTracking}
+                >
+                  {independentTracking && <span className="public-map-track-dot" aria-hidden="true" />}
+                  {independentTracking ? 'Stop Track' : 'Track'}
+                </button>
+              </div>
+              {userPosition && (
+                <button type="button" className="public-map-recenter" onClick={recenterOnLocation}>
+                  Recenter
+                </button>
+              )}
+              <div className="public-map-secondary-controls">
                   {directionsActive && (!hasManualAccessPath ||
                     (initialMarkerDistanceKm > 1 && initialMarkerDistanceKm <= 5 &&
                       placeJourneyPhase !== 'walking-after-driving')) && (
@@ -684,62 +747,6 @@ function PlacePage() {
                   <p className="place-directions-summary-description">{accessMarkerDescription}</p>
                 )}
               </section>
-            )}
-            {hasCoordinates ? (
-              <MapView
-                className="place-detail-map"
-                showBasemapSwitcher
-                places={[place]}
-                selectedPlaceId={place.id}
-                directionsPlaceId={directionsActive ? place.id : null}
-                showPlaceLabel
-                initialCenter={[place.latitude, place.longitude]}
-                initialZoom={10}
-                followEnabled={locationFollowing && Boolean(userPosition)}
-                mapChildren={(
-                  <>
-                    {accessMarkerCoordinates && (
-                      <PlaceDirectionsLayer
-                        active={directionsActive && directionsAvailable && hasManualAccessPath}
-                        showSavedPath={accessPathVisible && hasManualAccessPath}
-                        phase={placeJourneyPhase}
-                        onPhaseChange={setPlaceJourneyPhase}
-                        mode={directionsMode}
-                        position={userPosition}
-                        origin={directionsOrigin}
-                        placeSlug={placeSlug}
-                        placeCoordinates={placeCoordinates}
-                        accessGeometry={accessGeometry}
-                        markerCoordinates={accessMarkerCoordinates}
-                        markerName={accessMarkerName}
-                        markerDescription={accessMarkerDescription}
-                        onStatusChange={handleDirectionsStatusChange}
-                      />
-                    )}
-                    {!hasManualAccessPath && (
-                      <RouteDirectionsLayer
-                        active={directionsActive && directionsAvailable}
-                        position={userPosition}
-                        routeSlug={placeSlug}
-                        startCoordinates={placeCoordinates}
-                        mode={directionsMode}
-                        onStatusChange={handleDirectionsStatusChange}
-                        requestDirections={requestPlaceDirections}
-                      />
-                    )}
-                    <RouteUserLocationLayer
-                      position={userPosition}
-                      followEnabled={locationFollowing && Boolean(userPosition)}
-                      recenterRequest={recenterRequest}
-                      centerRequest={locationCenterRequest}
-                      onManualMovement={handleManualMapMovement}
-                    />
-                  </>
-                )}
-              >
-              </MapView>
-            ) : (
-              <p className="route-map-message" role="status">Map location is unavailable for this Place.</p>
             )}
           </section>
         </div>
