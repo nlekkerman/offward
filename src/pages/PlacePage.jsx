@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RelatedStories from '../features/routes/components/RelatedStories.jsx'
 import RelatedFood from '../features/food/RelatedFood.jsx'
-import { normalizeMediaIds, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
+import { normalizeMediaIds, orderedCollectionImages, orderedImageCollections, resolveAttachedVideos } from '../features/routes/components/routeMediaUtils.js'
 import MapView from '../features/map/components/MapView.jsx'
 import PlaceDirectionsLayer from '../features/map/components/PlaceDirectionsLayer.jsx'
 import RouteDirectionsLayer from '../features/map/components/RouteDirectionsLayer.jsx'
@@ -61,6 +61,8 @@ function PlacePage() {
   const [storyCatalog, setStoryCatalog] = useState({ status: 'idle', stories: [] })
   const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
   const [galleryLoadingId, setGalleryLoadingId] = useState(null)
+  const [galleryLoadingIds, setGalleryLoadingIds] = useState({})
+  const [completeGalleryById, setCompleteGalleryById] = useState({})
   const [galleryErrorByCollectionId, setGalleryErrorByCollectionId] = useState({})
   const [directionsActive, setDirectionsActive] = useState(false)
   const [directionsMode, setDirectionsMode] = useState('walking')
@@ -220,7 +222,47 @@ function PlacePage() {
 
   const videoById = useMemo(() => new Map(videoCatalog.videos.map((video) => [String(video.id), video])), [videoCatalog.videos])
   const videos = useMemo(() => resolveAttachedVideos(place, videoById), [place, videoById])
-  const galleries = useMemo(() => resolveImageCollections(place), [place])
+  const galleries = useMemo(() => orderedImageCollections(place), [place])
+  const displayGalleries = useMemo(() => galleries.map((gallery) => {
+    const id = String(gallery.id)
+    return completeGalleryById[id] || galleryCacheRef.current.get(id) || { ...gallery, images: [] }
+  }), [galleries, completeGalleryById])
+
+  useEffect(() => {
+    let isCurrent = true
+    const pendingGalleries = galleries.filter((gallery) => {
+      const id = String(gallery.id)
+      return !galleryCacheRef.current.has(id)
+    })
+
+    if (pendingGalleries.length === 0) return undefined
+
+    setGalleryLoadingIds((current) => ({
+      ...current,
+      ...Object.fromEntries(pendingGalleries.map((gallery) => [String(gallery.id), true])),
+    }))
+
+    Promise.all(pendingGalleries.map(async (gallery) => {
+      const id = String(gallery.id)
+      try {
+        const collection = await getPublicImageCollection(id)
+        galleryCacheRef.current.set(id, collection)
+        if (isCurrent) {
+          setCompleteGalleryById((current) => ({ ...current, [id]: collection }))
+          setGalleryErrorByCollectionId((current) => ({ ...current, [id]: null }))
+        }
+      } catch {
+        if (isCurrent) {
+          setGalleryErrorByCollectionId((current) => ({ ...current, [id]: 'Unable to load gallery images. Try again.' }))
+        }
+      } finally {
+        setGalleryLoadingIds((current) => ({ ...current, [id]: false }))
+      }
+    }))
+
+    return () => { isCurrent = false }
+  }, [galleries])
+
   const relatedStories = useMemo(() => {
     const ids = new Set((place?.story_ids || []).map((storyId) => String(storyId)))
     return storyCatalog.stories.filter((story) => ids.has(String(story.id)))
@@ -228,18 +270,29 @@ function PlacePage() {
 
   const openGallery = async (galleryPreview, startIndex = 0) => {
     const collectionId = galleryPreview?.id ? String(galleryPreview.id) : ''
-    if (!collectionId || galleryLoadingId === collectionId) return
+    if (!collectionId || galleryLoadingId === collectionId || galleryLoadingIds[collectionId]) return
     setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: null }))
     const cached = galleryCacheRef.current.get(collectionId)
     if (cached) {
-      setLightbox({ gallery: cached, index: Math.min(startIndex, Math.max(0, (cached.images || []).length - 1)) })
+      const images = orderedCollectionImages(cached)
+      if (images.length > 0) {
+        setLightbox({ gallery: { ...cached, images }, index: Math.min(startIndex, images.length - 1) })
+      } else {
+        setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'No public images are available in this gallery.' }))
+      }
       return
     }
     setGalleryLoadingId(collectionId)
     try {
       const fullCollection = await getPublicImageCollection(collectionId)
       galleryCacheRef.current.set(collectionId, fullCollection)
-      setLightbox({ gallery: fullCollection, index: Math.min(startIndex, Math.max(0, (fullCollection.images || []).length - 1)) })
+      const images = orderedCollectionImages(fullCollection)
+      if (images.length > 0) {
+        setCompleteGalleryById((current) => ({ ...current, [collectionId]: fullCollection }))
+        setLightbox({ gallery: { ...fullCollection, images }, index: Math.min(startIndex, images.length - 1) })
+      } else {
+        setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'No public images are available in this gallery.' }))
+      }
     } catch {
       setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Unable to load gallery. Try again.' }))
     } finally {
@@ -601,7 +654,7 @@ function PlacePage() {
         </section>
       </div>
       {videoCatalog.status === 'error' && <p className="place-detail-secondary-error" role="alert">Unable to load Place videos.</p>}
-      <EntityMediaSection videos={videos} galleries={galleries} onOpenGallery={openGallery} loadingGalleryId={galleryLoadingId} galleryErrorByCollectionId={galleryErrorByCollectionId} />
+      <EntityMediaSection videos={videos} galleries={displayGalleries} onOpenGallery={openGallery} loadingGalleryId={galleryLoadingId} loadingGalleryIds={galleryLoadingIds} galleryErrorByCollectionId={galleryErrorByCollectionId} showAllImages />
       {storyCatalog.status === 'error' && <p className="place-detail-secondary-error" role="alert">Unable to load related Stories.</p>}
       <RelatedStories stories={relatedStories} />
       <RelatedFood foodIds={place.food_ids} />

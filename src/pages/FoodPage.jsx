@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import FoodRelatedContent from '../features/food/FoodRelatedContent.jsx'
 import { rememberPublicFoods } from '../features/food/publicFoodCache.js'
@@ -30,6 +30,8 @@ function FoodPage() {
   const { countries } = usePublicCountries()
   const [lightbox, setLightbox] = useState({ slug: null, gallery: null, index: -1 })
   const [galleryStatus, setGalleryStatus] = useState({ loading: null, errors: {} })
+  const [galleryLoadingIds, setGalleryLoadingIds] = useState({})
+  const [completeGalleryById, setCompleteGalleryById] = useState({})
   const galleryCache = useRef(new Map())
   const galleryPending = useRef(new Set())
   const currentSlug = useRef(slug)
@@ -48,16 +50,48 @@ function FoodPage() {
 
   const status = result.slug === slug ? result.status : 'loading'
   const food = result.slug === slug ? result.food : null
+  const galleries = useMemo(() => orderedImageCollections(food), [food])
   usePublicDetailPageView(status, 'food', food)
+
+  useEffect(() => {
+    let isCurrent = true
+    const pendingGalleries = galleries.filter((gallery) => {
+      const id = String(gallery.id)
+      return !galleryCache.current.has(id)
+    })
+
+    if (pendingGalleries.length === 0) return undefined
+
+    setGalleryLoadingIds((current) => ({
+      ...current,
+      ...Object.fromEntries(pendingGalleries.map((gallery) => [String(gallery.id), true])),
+    }))
+
+    Promise.all(pendingGalleries.map(async (gallery) => {
+      const id = String(gallery.id)
+      try {
+        const collection = await getPublicImageCollection(id)
+        galleryCache.current.set(id, collection)
+        if (isCurrent) {
+          setCompleteGalleryById((current) => ({ ...current, [id]: collection }))
+          setGalleryStatus((value) => ({ ...value, errors: { ...value.errors, [id]: null } }))
+        }
+      } catch {
+        if (isCurrent) {
+          setGalleryStatus((value) => ({ ...value, errors: { ...value.errors, [id]: 'Unable to load gallery images. Try again.' } }))
+        }
+      } finally {
+        setGalleryLoadingIds((current) => ({ ...current, [id]: false }))
+      }
+    }))
+
+    return () => { isCurrent = false }
+  }, [galleries])
+
   const openGallery = async (preview, startIndex = 0) => {
     const id = String(preview.id || '')
-    if (!id || galleryPending.current.has(id)) return
+    if (!id || galleryPending.current.has(id) || galleryLoadingIds[id]) return
     const requestSlug = slug
-    const embeddedImages = orderedCollectionImages(preview)
-    if (embeddedImages.length) {
-      setLightbox({ slug: requestSlug, gallery: { ...preview, images: embeddedImages }, index: Math.min(startIndex, embeddedImages.length - 1) })
-      return
-    }
     galleryPending.current.add(id)
     setGalleryStatus((value) => ({ loading: id, errors: { ...value.errors, [id]: null } }))
     try {
@@ -70,7 +104,10 @@ function FoodPage() {
         throw new Error('No public images are available in this gallery.')
       }
       galleryCache.current.set(id, collection)
-      if (currentSlug.current === requestSlug) setLightbox({ slug: requestSlug, gallery: { ...collection, images: fetchedImages }, index: Math.min(startIndex, fetchedImages.length - 1) })
+      if (currentSlug.current === requestSlug) {
+        setCompleteGalleryById((current) => ({ ...current, [id]: collection }))
+        setLightbox({ slug: requestSlug, gallery: { ...collection, images: fetchedImages }, index: Math.min(startIndex, fetchedImages.length - 1) })
+      }
     } catch {
       if (currentSlug.current === requestSlug) setGalleryStatus((value) => ({ ...value, errors: { ...value.errors, [id]: 'Unable to load gallery images. Try again.' } }))
     } finally {
@@ -94,7 +131,10 @@ function FoodPage() {
   const steps = orderedRows(food.steps)
   const images = lightbox.slug === slug ? lightbox.gallery?.images || [] : []
   const videos = resolveAttachedVideos(food)
-  const galleries = orderedImageCollections(food)
+  const displayGalleries = galleries.map((gallery) => {
+    const id = String(gallery.id)
+    return completeGalleryById[id] || galleryCache.current.get(id) || { ...gallery, images: [] }
+  })
   const invalidVideos = Array.isArray(food.videos) ? food.videos.length - videos.length : 0
 
   return (
@@ -125,7 +165,7 @@ function FoodPage() {
         {ingredients.length > 0 && <section><h2>Ingredients</h2><ul className="food-ingredients">{ingredients.map((row, index) => <li key={row.id || index}>{row.quantity && <strong>{row.quantity} </strong>}{row.name}{row.note && <span className="food-ingredient-note"> — {row.note}</span>}</li>)}</ul></section>}
         {steps.length > 0 && <section><h2>Steps</h2><ol className="food-steps">{steps.map((row, index) => <li key={row.id || index}>{row.text}</li>)}</ol></section>}
       </div>}
-      <EntityMediaSection videos={videos} galleries={galleries} onOpenGallery={openGallery} loadingGalleryId={galleryStatus.loading} galleryErrorByCollectionId={galleryStatus.errors} showAllImages />
+      <EntityMediaSection videos={videos} galleries={displayGalleries} onOpenGallery={openGallery} loadingGalleryId={galleryStatus.loading} loadingGalleryIds={galleryLoadingIds} galleryErrorByCollectionId={galleryStatus.errors} showAllImages />
       {invalidVideos > 0 && <p role="status">{invalidVideos} attached video {invalidVideos === 1 ? 'is' : 'items are'} not publicly playable.</p>}
       <FoodRelatedContent food={food} />
       <ImageLightbox images={images} activeIndex={lightbox.index} isOpen={lightbox.slug === slug && lightbox.index >= 0} onClose={() => setLightbox({ slug: null, gallery: null, index: -1 })} onPrevious={() => setLightbox((value) => ({ ...value, index: (value.index - 1 + images.length) % images.length }))} onNext={() => setLightbox((value) => ({ ...value, index: (value.index + 1) % images.length }))} />

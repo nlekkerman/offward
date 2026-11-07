@@ -118,6 +118,8 @@ function RoutePage() {
   const [activeVideo, setActiveVideo] = useState(null)
   const [lightbox, setLightbox] = useState({ gallery: null, index: -1 })
   const [galleryLoadingId, setGalleryLoadingId] = useState(null)
+  const [galleryLoadingIds, setGalleryLoadingIds] = useState({})
+  const [completeGalleryById, setCompleteGalleryById] = useState({})
   const [galleryErrorByCollectionId, setGalleryErrorByCollectionId] = useState({})
   const galleryCacheRef = useRef(new Map())
   const [routeFocusRequest, setRouteFocusRequest] = useState(0)
@@ -243,6 +245,46 @@ function RoutePage() {
   const segments = useMemo(() => (Array.isArray(route?.segments) ? route.segments : []), [route])
   const foodIds = useMemo(() => getRouteFoodIds(route), [route])
   const routeImageCollections = useMemo(() => orderedImageCollections(route), [route])
+  const displayImageCollections = useMemo(() => routeImageCollections.map((gallery) => {
+    const id = String(gallery.id)
+    return completeGalleryById[id] || galleryCacheRef.current.get(id) || { ...gallery, images: [] }
+  }), [routeImageCollections, completeGalleryById])
+
+  useEffect(() => {
+    let isCurrent = true
+    const pendingGalleries = routeImageCollections.filter((gallery) => {
+      const id = String(gallery.id)
+      return !galleryCacheRef.current.has(id)
+    })
+
+    if (pendingGalleries.length === 0) return undefined
+
+    setGalleryLoadingIds((current) => ({
+      ...current,
+      ...Object.fromEntries(pendingGalleries.map((gallery) => [String(gallery.id), true])),
+    }))
+
+    Promise.all(pendingGalleries.map(async (gallery) => {
+      const id = String(gallery.id)
+      try {
+        const collection = await getPublicImageCollection(id)
+        galleryCacheRef.current.set(id, collection)
+        if (isCurrent) {
+          setCompleteGalleryById((current) => ({ ...current, [id]: collection }))
+          setGalleryErrorByCollectionId((current) => ({ ...current, [id]: null }))
+        }
+      } catch {
+        if (isCurrent) {
+          setGalleryErrorByCollectionId((current) => ({ ...current, [id]: 'Unable to load gallery images. Try again.' }))
+        }
+      } finally {
+        setGalleryLoadingIds((current) => ({ ...current, [id]: false }))
+      }
+    }))
+
+    return () => { isCurrent = false }
+  }, [routeImageCollections])
+
   const cancelHoverClose = () => {
     window.clearTimeout(hoverCloseTimerRef.current)
     hoverCloseTimerRef.current = null
@@ -273,13 +315,7 @@ function RoutePage() {
   }
   const openGallery = async (gallery, startIndex = 0) => {
     const collectionId = gallery?.id ? String(gallery.id) : ''
-    if (!collectionId || galleryLoadingId === collectionId) return
-
-    const embeddedImages = orderedCollectionImages(gallery)
-    if (embeddedImages.length > 0) {
-      setLightbox({ gallery: { ...gallery, images: embeddedImages }, index: Math.min(startIndex, embeddedImages.length - 1) })
-      return
-    }
+    if (!collectionId || galleryLoadingId === collectionId || galleryLoadingIds[collectionId]) return
 
     setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: null }))
     const cached = galleryCacheRef.current.get(collectionId)
@@ -287,8 +323,10 @@ function RoutePage() {
       const images = orderedCollectionImages(cached)
       if (images.length > 0) {
         setLightbox({ gallery: { ...cached, images }, index: Math.min(startIndex, images.length - 1) })
-        return
+      } else {
+        setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'No public images are available in this gallery.' }))
       }
+      return
     }
 
     setGalleryLoadingId(collectionId)
@@ -299,6 +337,7 @@ function RoutePage() {
         throw new Error('No public images are available in this gallery.')
       }
       galleryCacheRef.current.set(collectionId, collection)
+      setCompleteGalleryById((current) => ({ ...current, [collectionId]: collection }))
       setLightbox({ gallery: { ...collection, images }, index: Math.min(startIndex, images.length - 1) })
     } catch {
       setGalleryErrorByCollectionId((current) => ({ ...current, [collectionId]: 'Unable to load gallery images. Try again.' }))
@@ -774,9 +813,10 @@ function RoutePage() {
           {route.summary && <p className="route-detail-summary">{route.summary}</p>}
           {routeImageCollections.length > 0 && (
             <EntityMediaSection
-              galleries={routeImageCollections}
+              galleries={displayImageCollections}
               onOpenGallery={openGallery}
               loadingGalleryId={galleryLoadingId}
+              loadingGalleryIds={galleryLoadingIds}
               galleryErrorByCollectionId={galleryErrorByCollectionId}
               showAllImages
               sectionLabel="Images"

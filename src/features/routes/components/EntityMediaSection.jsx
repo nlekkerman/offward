@@ -2,12 +2,13 @@ import VideoPlayer from '../../video/VideoPlayer.jsx'
 import { collectionCount, collectionPreview } from '../../management/imageCollectionUtils.js'
 import { orderedCollectionImages } from './routeMediaUtils.js'
 
-// showAllImages renders every embedded image of every collection (in order) instead of one cover per collection.
+// showAllImages renders every available image of every collection (in order) instead of one cover per collection.
 function EntityMediaSection({
   videos = [],
   galleries = [],
   onOpenGallery,
   loadingGalleryId = null,
+  loadingGalleryIds = {},
   galleryErrorByCollectionId = {},
   showAllImages = false,
   sectionLabel = 'Media',
@@ -29,12 +30,12 @@ function EntityMediaSection({
     const cover = collectionPreview(gallery)
     const imageCount = collectionCount(gallery)
     const galleryId = gallery.id ? String(gallery.id) : ''
-    const isLoading = galleryId && loadingGalleryId === galleryId
+    const isLoading = galleryId && (loadingGalleryId === galleryId || loadingGalleryIds[galleryId])
     const errorMessage = galleryId ? galleryErrorByCollectionId?.[galleryId] : null
 
     return (
       <article className="route-map-gallery-preview" key={galleryId || gallery.title || index}>
-        <span className="route-map-gallery-cover">{cover ? <img src={cover} alt="" loading="lazy" /> : <span aria-hidden="true">▧</span>}</span>
+        <span className="route-map-gallery-cover">{cover && !showAllImages ? <img src={cover} alt="" loading="lazy" /> : <span aria-hidden="true">▧</span>}</span>
         <span className="route-map-gallery-copy">
           <strong>{gallery.title || 'Gallery'}</strong>
           {imageCount > 0 && <span>{imageCount} {imageCount === 1 ? 'photo' : 'photos'}</span>}
