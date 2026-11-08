@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { imageCollectionsApi } from '../../../services/management/imageCollectionsApi.js'
 import { collectionCount, collectionPreview, formatManagementDate } from '../../../features/management/imageCollectionUtils.js'
 import useManagementCatalog from '../../../features/management/useManagementCatalog.js'
@@ -23,15 +24,24 @@ export function GalleryListCard({ collection }) {
 }
 
 function GalleryListPage() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [notice] = useState(() => location.state?.galleryNotice || '')
   const catalog = useManagementCatalog(imageCollectionsApi)
   const { items: collections, loading, error } = catalog
 
+  useEffect(() => {
+    if (location.state?.galleryNotice) {
+      navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: null })
+    }
+  }, [location, navigate])
+
   if (loading) {
-    return <section className="management-page"><h1>Galleries</h1><div className="management-empty">Loading galleries...</div></section>
+    return <section className="management-page"><h1>Galleries</h1>{notice && <p className="gallery-notice" role="status">{notice}</p>}<div className="management-empty">Loading galleries...</div></section>
   }
 
   if (error && !collections.length) {
-    return <section className="management-page"><h1>Galleries</h1><CatalogStatus catalog={catalog} label="galleries" /></section>
+    return <section className="management-page"><h1>Galleries</h1>{notice && <p className="gallery-notice" role="status">{notice}</p>}<CatalogStatus catalog={catalog} label="galleries" /></section>
   }
 
   return (
@@ -44,6 +54,7 @@ function GalleryListPage() {
         <Link to="/manage/galleries/new" className="primary-button">Create Gallery</Link>
       </div>
 
+      {notice && <p className="gallery-notice" role="status">{notice}</p>}
       {!collections.length ? (
         <div className="management-empty">
           <p>No galleries found.</p>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { imageCollectionsApi, uploadImage } from '../../../services/management/imageCollectionsApi.js'
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -14,7 +14,9 @@ import {
 
 function GalleryEditPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const inputRef = useRef(null)
+  const deletingRef = useRef(false)
   const [collection, setCollection] = useState(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -85,6 +87,7 @@ function GalleryEditPage() {
 
   const saveMetadata = async (event) => {
     event.preventDefault()
+    if (deletingRef.current) return
     const trimmedTitle = title.trim()
     if (!trimmedTitle) {
       setError('Enter a gallery title.')
@@ -101,6 +104,32 @@ function GalleryEditPage() {
     } catch (errorValue) {
       setError(errorMessage(errorValue, 'Unable to save this gallery.'))
     } finally {
+      setStatus('idle')
+    }
+  }
+
+  const deleteGallery = async () => {
+    if (status !== 'idle' || deletingRef.current) return
+
+    const confirmed = window.confirm(
+      `Delete "${collection?.title || 'Untitled gallery'}"?\n\n` +
+      'This will permanently remove the gallery and remove its attachments from other content. ' +
+      'Images not used elsewhere will be permanently deleted. Images shared with other galleries or used by Stories will be preserved.\n\n' +
+      'This action cannot be undone.',
+    )
+    if (!confirmed) return
+
+    deletingRef.current = true
+    setStatus('deleting')
+    setError('')
+    setNotice('')
+    try {
+      await imageCollectionsApi.delete(id)
+      navigate('/manage/galleries', { replace: true, state: { galleryNotice: 'Gallery deleted.' } })
+    } catch (errorValue) {
+      setError(errorMessage(errorValue, 'Unable to delete this gallery.'))
+    } finally {
+      deletingRef.current = false
       setStatus('idle')
     }
   }
@@ -197,6 +226,7 @@ function GalleryEditPage() {
           <textarea id="gallery-description" className="form-input" rows="5" value={description} onChange={(event) => setDescription(event.target.value)} />
         </label>
         <div className="management-form-actions">
+          <button type="button" className="danger-button" onClick={deleteGallery} disabled={status !== 'idle'}>{status === 'deleting' ? 'Deleting...' : 'Delete Gallery'}</button>
           <button type="submit" className="primary-button" disabled={status !== 'idle'}>{status === 'saving' ? 'Saving...' : 'Save details'}</button>
         </div>
       </form>
@@ -227,7 +257,7 @@ function GalleryEditPage() {
                 </div>
                 <label className="form-field">
                   Caption
-                  <input className="form-input" value={imageCaption(image)} onChange={(event) => updateCaption(index, event.target.value)} onBlur={() => persistImages(images, 'Caption saved.')} />
+                  <input className="form-input" value={imageCaption(image)} onChange={(event) => updateCaption(index, event.target.value)} onBlur={() => { if (!deletingRef.current) persistImages(images, 'Caption saved.') }} disabled={status === 'deleting'} />
                 </label>
                 <div className="gallery-image-actions">
                   <button type="button" className="secondary-button small-button" onClick={() => moveImage(index, -1)} disabled={index === 0 || status !== 'idle'}>Move left</button>
