@@ -2,13 +2,14 @@ import { Link } from 'react-router-dom'
 import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
 import { getDetailHeroImage } from '../../shared/utils/detailHeroImage.js'
+import { selectedCardImageUrl } from '../../shared/utils/cardImageSelections.js'
 import { formatCountryLabel, formatPublishedDate } from './latestContentFormatting.js'
 
 function LatestStoryCard({ story, countryRecords = [] }) {
   const countryLabel = formatCountryLabel(story.country)
   const country = findCountry(countryRecords, story.country)
   const publishedLabel = formatPublishedDate(story.published_at)
-  const heroUrl = getDetailHeroImage(story, 'story')
+  const heroUrl = selectedCardImageUrl(story, 'homepage') || getDetailHeroImage(story, 'story')
 
   const cardContent = (
     <>

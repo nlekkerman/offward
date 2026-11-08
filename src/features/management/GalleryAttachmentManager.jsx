@@ -4,12 +4,13 @@ import { imageCollectionsApi } from '../../services/management/imageCollectionsA
 import { collectionCount, collectionPreview, errorMessage } from './imageCollectionUtils.js'
 import useManagementCatalog from './useManagementCatalog.js'
 import CatalogStatus from './CatalogStatus.jsx'
+import CardImageSelectionSection from './CardImageSelectionSection.jsx'
 
 function normalizeIds(ids) {
   return (Array.isArray(ids) ? ids : []).filter(Boolean).map(String)
 }
 
-function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = [], onAttach, onDetach, onPreview, disabled = false, persistImmediately = false }) {
+function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = [], onAttach, onDetach, onPreview, cardImageSelections, onCardImageSelectionsChange, disabled = false, persistImmediately = false }) {
   const catalog = useManagementCatalog(imageCollectionsApi, attachedCollectionIds)
   const collections = catalog.items
   const loading = catalog.loading
@@ -21,6 +22,7 @@ function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = 
   const selectedIds = useMemo(() => normalizeIds(attachedCollectionIds), [attachedCollectionIds])
   const collectionById = useMemo(() => new Map(collections.map((collection) => [String(collection.id), collection])), [collections])
   const attachedCollections = selectedIds.map((id) => collectionById.get(id)).filter(Boolean)
+  const attachedImages = attachedCollections.flatMap((collection) => Array.isArray(collection?.images) ? collection.images : [])
 
   const openPreview = async (collection) => {
     onPreview?.(collection)
@@ -92,6 +94,15 @@ function GalleryAttachmentManager({ ownerType, ownerId, attachedCollectionIds = 
             </article>
           ))}
         </div>
+      )}
+
+      {onCardImageSelectionsChange && (
+        <CardImageSelectionSection
+          images={attachedImages}
+          selections={cardImageSelections}
+          onSelectionsChange={onCardImageSelectionsChange}
+          disabled={disabled || isSaving}
+        />
       )}
 
       {isPickerOpen && (

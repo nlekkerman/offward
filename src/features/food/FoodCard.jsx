@@ -3,11 +3,13 @@ import { collectionPreview, imagePreviewUrl, imageUrl } from '../management/imag
 import { formatActivityLabel, formatCountryLabel, formatPublishedDate } from '../home/latestContentFormatting.js'
 import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
+import { selectedCardImageUrl } from '../../shared/utils/cardImageSelections.js'
 import { trackInteraction } from '../../services/analytics.js'
 import './food.css'
 
 function FoodCard({ food, countries = [], compact = false, showCountry = true }) {
-  const preview = imagePreviewUrl(food.preview_image)
+  const preview = selectedCardImageUrl(food, compact ? 'related' : 'standard')
+    || imagePreviewUrl(food.preview_image)
     || food.preview_image_url || collectionPreview(food.image_collections?.[0])
     || imageUrl(food.image) || imageUrl(food.thumbnail)
   const country = showCountry ? findCountry(countries, food.country) : null

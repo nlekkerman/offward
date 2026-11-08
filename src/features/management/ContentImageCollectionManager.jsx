@@ -4,8 +4,9 @@ import { imageCollectionsApi } from '../../services/management/imageCollectionsA
 import { collectionCount, collectionPreview, imageId, imageUrl } from './imageCollectionUtils.js'
 import useManagementCatalog from './useManagementCatalog.js'
 import CatalogStatus from './CatalogStatus.jsx'
+import CardImageSelectionSection from './CardImageSelectionSection.jsx'
 
-function ContentImageCollectionManager({ attachedCollectionIds = [], heroImageId = null, onAttachmentsChange, onHeroImageChange, disabled = false }) {
+function ContentImageCollectionManager({ attachedCollectionIds = [], heroImageId = null, onAttachmentsChange, onHeroImageChange, cardImageSelections, onCardImageSelectionsChange, disabled = false }) {
   const catalog = useManagementCatalog(imageCollectionsApi, attachedCollectionIds)
   const collections = catalog.items
   const loading = catalog.loading
@@ -69,6 +70,14 @@ function ContentImageCollectionManager({ attachedCollectionIds = [], heroImageId
         <label className="checkbox-item"><input type="radio" name="story-hero-image" checked={!heroImageId} onChange={() => onHeroImageChange(null)} disabled={disabled} />Automatic — using last attached image</label>
         <div className="content-image-hero-picker">{attachedImages.map((image, index) => <button type="button" className={String(heroImageId) === imageId(image) ? 'content-image-hero-item is-selected' : 'content-image-hero-item'} key={`${imageId(image)}-${index}`} onClick={() => onHeroImageChange(imageId(image))} disabled={disabled}><span className="content-image-picker-preview">{imageUrl(image) ? <img src={imageUrl(image)} alt="" /> : <span>Image</span>}</span><span>Image {index + 1}</span></button>)}</div>
       </div>}
+      {onCardImageSelectionsChange && (
+        <CardImageSelectionSection
+          images={attachedImages}
+          selections={cardImageSelections}
+          onSelectionsChange={onCardImageSelectionsChange}
+          disabled={disabled}
+        />
+      )}
     </section>
   )
 }

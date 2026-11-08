@@ -2,12 +2,13 @@ import { Link } from 'react-router-dom'
 import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
 import { getExplorePreview } from '../explore/exploreUtils.js'
+import { selectedCardImageUrl } from '../../shared/utils/cardImageSelections.js'
 import { formatCountryLabel } from './latestContentFormatting.js'
 
 function LatestPlaceCard({ place, countryRecords = [] }) {
   const country = findCountry(countryRecords, place.country)
   const countryLabel = country?.name || formatCountryLabel(place.country)
-  const image = getExplorePreview(place)
+  const image = selectedCardImageUrl(place, 'homepage') || getExplorePreview(place)
   const content = (
     <>
       {image && <img className="latest-rail-content-image" src={image} alt="" loading="lazy" />}

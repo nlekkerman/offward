@@ -16,6 +16,7 @@ import { isValidLatitude, isValidLongitude } from '../map/mapGeometry.js'
 import FoodRecipeEditor from '../food/FoodRecipeEditor.jsx'
 import { FOOD_STATUSES, FOOD_TYPES } from '../food/foodConstants.js'
 import { buildFoodPayload, foodFieldErrors, FOOD_LIST_FIELDS, hydrateFoodLists, validateFood } from '../food/foodForm.js'
+import { normalizeCardImageSelections } from './CardImageSelectionSection.jsx'
 import { errorMessage, formatManagementDate } from './imageCollectionUtils.js'
 import { invalidatePublicFoods } from '../food/publicFoodCache.js'
 import FoodRelationshipManager from './FoodRelationshipManager.jsx'
@@ -96,6 +97,10 @@ function getInitialValues(resourceKey, data = {}) {
   if (resourceKey === 'foods') {
     FOOD_LIST_FIELDS.forEach((field) => delete base[field])
     Object.assign(base, hydrateFoodLists(data))
+  }
+
+  if (Object.prototype.hasOwnProperty.call(base, 'card_image_selections')) {
+    base.card_image_selections = normalizeCardImageSelections(data.card_image_selections)
   }
 
   if (Object.prototype.hasOwnProperty.call(base, 'country')) {
@@ -509,6 +514,13 @@ function EntityFormPage({ resourceKey, title }) {
       if (!payload.hero_image_id) {
         payload.hero_image_id = null
       }
+    }
+
+    // Manual card image selections: keep uuid/null placement keys so explicit
+    // null clears a selection (Automatic) and untouched keys stay preserved.
+    if (Object.prototype.hasOwnProperty.call(payload, 'card_image_selections')) {
+      payload.card_image_selections = normalizeCardImageSelections(payload.card_image_selections)
+      if (!Object.keys(payload.card_image_selections).length) delete payload.card_image_selections
     }
 
     Object.keys(payload).forEach((key) => {
@@ -1022,7 +1034,7 @@ function EntityFormPage({ resourceKey, title }) {
           isEdit
             ? <section key="food-videos" className="food-content-section"><h3>Videos</h3><p>Video attachments save immediately. Cancel does not undo attachment changes.</p><ContentVideoManager resourceKey="foods" resourceId={id} attachedVideoIds={formData.video_ids || []} onAttachmentsChange={(ids) => change('video_ids', ids)} disabled={submitting} onBusyChange={setFoodMediaBusy} /></section>
             : <p key="food-video-notice">Create Food first, then attach videos on its edit page.</p>,
-          <section key="food-galleries" className="food-content-section"><h3>Images</h3><p>Gallery attachment order saves with Food. Gallery content is edited independently in Gallery management.</p><ContentImageCollectionManager attachedCollectionIds={formData.image_collection_ids || []} onAttachmentsChange={(ids) => change('image_collection_ids', ids)} disabled={submitting} />{fieldErrors.image_collection_ids && <span className="field-error-text">{fieldErrors.image_collection_ids}</span>}</section>,
+          <section key="food-galleries" className="food-content-section"><h3>Images</h3><p>Gallery attachment order saves with Food. Gallery content is edited independently in Gallery management.</p><ContentImageCollectionManager attachedCollectionIds={formData.image_collection_ids || []} onAttachmentsChange={(ids) => change('image_collection_ids', ids)} cardImageSelections={formData.card_image_selections} onCardImageSelectionsChange={(next) => change('card_image_selections', next)} disabled={submitting} />{fieldErrors.image_collection_ids && <span className="field-error-text">{fieldErrors.image_collection_ids}</span>}</section>,
         ]
       }
       case 'countries':
@@ -1064,6 +1076,8 @@ function EntityFormPage({ resourceKey, title }) {
             ownerType="Place"
             ownerId={id}
             attachedCollectionIds={formData.image_collection_ids || []}
+            cardImageSelections={formData.card_image_selections}
+            onCardImageSelectionsChange={(next) => setFormData((current) => ({ ...current, card_image_selections: next }))}
             onAttach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: [...(current.image_collection_ids || []), collection.id] }))}
             onDetach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: (current.image_collection_ids || []).filter((value) => String(value) !== String(collection.id)) }))}
           />,
@@ -1122,6 +1136,8 @@ function EntityFormPage({ resourceKey, title }) {
             ownerType="Route"
             ownerId={id}
             attachedCollectionIds={formData.image_collection_ids || []}
+            cardImageSelections={formData.card_image_selections}
+            onCardImageSelectionsChange={(next) => setFormData((current) => ({ ...current, card_image_selections: next }))}
             onAttach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: [...(current.image_collection_ids || []), collection.id] }))}
             onDetach={(collection) => setFormData((current) => ({ ...current, image_collection_ids: (current.image_collection_ids || []).filter((value) => String(value) !== String(collection.id)) }))}
           />,
@@ -1179,8 +1195,10 @@ function EntityFormPage({ resourceKey, title }) {
             key="story-image-collection-manager"
             attachedCollectionIds={formData.image_collection_ids || []}
             heroImageId={formData.hero_image_id}
+            cardImageSelections={formData.card_image_selections}
             onAttachmentsChange={(nextIds) => setFormData((current) => ({ ...current, image_collection_ids: nextIds }))}
             onHeroImageChange={(nextId) => setFormData((current) => ({ ...current, hero_image_id: nextId }))}
+            onCardImageSelectionsChange={(next) => setFormData((current) => ({ ...current, card_image_selections: next }))}
           />,
           isEdit && <FoodRelationshipManager key="story-food-manager" ownerId={id} field="story_ids" attachedIds={attachedFoodIds} onAttachedIdsChange={setAttachedFoodIds} disabled={submitting} />,
         ]

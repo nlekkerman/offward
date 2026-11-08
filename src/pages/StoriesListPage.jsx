@@ -6,6 +6,7 @@ import { getPublicStoriesPage } from '../services/storiesApi.js'
 import CountryFlag from '../shared/components/CountryFlag.jsx'
 import { findCountry } from '../shared/utils/country.js'
 import { collectionPreview, imagePreviewUrl } from '../features/management/imageCollectionUtils.js'
+import { selectedCardImageUrl } from '../shared/utils/cardImageSelections.js'
 import ListingPageHeader from '../shared/components/ListingPageHeader.jsx'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import { PUBLIC_PAGE_METADATA } from '../shared/constants/publicPageMetadata.js'
@@ -15,6 +16,11 @@ function getImageUrl(image) {
 }
 
 function getStoryPreviewUrl(story) {
+  const selectedUrl = selectedCardImageUrl(story, 'standard')
+  if (selectedUrl) {
+    return selectedUrl
+  }
+
   const heroUrl = getImageUrl(story.hero_image)
   if (heroUrl) {
     return heroUrl

@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { collectionPreview, firstCollectionPreview, imagePreviewUrl, imageUrl } from '../../features/management/imageCollectionUtils.js'
+import { selectedCardImageUrl } from '../utils/cardImageSelections.js'
 import CountryFlag from './CountryFlag.jsx'
 import LocationPinFallback from './LocationPinFallback.jsx'
 import { trackInteraction } from '../../services/analytics.js'
 
 function getPreview(entity, entityType) {
+  const selectedUrl = selectedCardImageUrl(entity, 'related')
+  if (selectedUrl) return selectedUrl
   if (entityType === 'Place') return firstCollectionPreview(entity?.image_collections)
   const firstCollection = Array.isArray(entity?.image_collections) ? entity.image_collections[0] : null
   return imageUrl(entity?.hero_image)

@@ -6,6 +6,7 @@ import { formatActivityLabel, formatCountryLabel } from '../home/latestContentFo
 import { isRenderablePlace } from '../map/mapGeometry.js'
 import LocationPinFallback from '../../shared/components/LocationPinFallback.jsx'
 import { getExplorePreview, getPlacePreview } from './exploreUtils.js'
+import { selectedCardImageUrl } from '../../shared/utils/cardImageSelections.js'
 
 export function ExploreCard({ item, mode, countries, selectedId, onSelect, compact = false, showCountry = true }) {
   const [failedPreview, setFailedPreview] = useState(null)
@@ -13,7 +14,7 @@ export function ExploreCard({ item, mode, countries, selectedId, onSelect, compa
   const title = route ? item.title : item.name
   const country = findCountry(countries, item.country_id || item.country)
   const countryLabel = showCountry && (country?.name || formatCountryLabel(item.country))
-  const preview = route ? getExplorePreview(item) : getPlacePreview(item)
+  const preview = selectedCardImageUrl(item, 'standard') || (route ? getExplorePreview(item) : getPlacePreview(item))
   const hasPreview = Boolean(preview) && preview !== failedPreview
   const mapped = route ? item.is_map_renderable === true : isRenderablePlace(item)
 

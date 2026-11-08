@@ -19,6 +19,7 @@ export const entityConfig = {
       image_collection_ids: [],
       ingredients: [],
       steps: [],
+      card_image_selections: {},
     },
   },
   countries: {
@@ -50,6 +51,7 @@ export const entityConfig = {
       status: 'active',
       video_ids: [],
       image_collection_ids: [],
+      card_image_selections: {},
     },
   },
   routes: {
@@ -67,6 +69,7 @@ export const entityConfig = {
       places: [],
       video_ids: [],
       image_collection_ids: [],
+      card_image_selections: {},
     },
   },
   stories: {
@@ -87,6 +90,7 @@ export const entityConfig = {
       video_ids: [],
       image_collection_ids: [],
       hero_image_id: null,
+      card_image_selections: {},
     },
   },
   videos: {

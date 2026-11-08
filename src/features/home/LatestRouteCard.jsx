@@ -3,6 +3,7 @@ import RouteMiniMap from '../map/components/RouteMiniMap.jsx'
 import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
 import { getExplorePreview } from '../explore/exploreUtils.js'
+import { selectedCardImageUrl } from '../../shared/utils/cardImageSelections.js'
 import { formatActivityLabel, formatCountryLabel, formatPublishedDate } from './latestContentFormatting.js'
 
 function LatestRouteCard({ route, countryRecords = [] }) {
@@ -10,7 +11,7 @@ function LatestRouteCard({ route, countryRecords = [] }) {
   const countryLabel = formatCountryLabel(route.country)
   const publishedLabel = formatPublishedDate(route.published_at)
   const country = findCountry(countryRecords, route.country)
-  const image = getExplorePreview(route)
+  const image = selectedCardImageUrl(route, 'homepage') || getExplorePreview(route)
 
   const cardContent = (
     <>

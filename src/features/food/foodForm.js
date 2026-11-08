@@ -62,6 +62,11 @@ export function buildFoodPayload(values) {
       payload[field] = [...new Set(values[field].map(String))]
     }
   })
+  // Manual card image selections (placement -> ImageAsset UUID or explicit null).
+  if (values.card_image_selections && typeof values.card_image_selections === 'object' && !Array.isArray(values.card_image_selections)
+    && Object.keys(values.card_image_selections).length) {
+    payload.card_image_selections = { ...values.card_image_selections }
+  }
   return payload
 }
 
