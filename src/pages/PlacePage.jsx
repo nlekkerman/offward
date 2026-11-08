@@ -692,7 +692,6 @@ function PlacePage() {
                       </button>
                     </p>
                   )}
-                </div>
               </div>
             </div>
             {directionsActive && hasManualAccessPath && placeJourneyPhase && (
