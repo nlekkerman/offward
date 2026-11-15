@@ -60,7 +60,7 @@ function ContactMessagesListPage() {
   }
 
   return (
-    <section className="management-page">
+    <section className="management-page management-list-page">
       <div className="management-page-header">
         <div>
           <p className="eyebrow">Management</p>
@@ -93,28 +93,29 @@ function ContactMessagesListPage() {
         <div className="management-empty">No contact messages found.</div>
       ) : (
         <div className="management-table-wrap">
-          <table className="management-table">
-            <thead>
-              <tr>
-                <th>sender name</th>
-                <th>sender email</th>
-                <th>subject</th>
-                <th>category</th>
-                <th>status</th>
-                <th>created at</th>
-                <th>Actions</th>
+          <table className="management-table" role="table">
+            <thead role="rowgroup">
+              <tr role="row">
+                <th scope="col" role="columnheader">sender name</th>
+                <th scope="col" role="columnheader">sender email</th>
+                <th scope="col" role="columnheader">subject</th>
+                <th scope="col" role="columnheader">category</th>
+                <th scope="col" role="columnheader">status</th>
+                <th scope="col" role="columnheader">created at</th>
+                <th scope="col" role="columnheader">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {messages.map((message) => (
-                <tr key={message.id}>
-                  <td>{normalizeDisplayValue(message.name)}</td>
-                  <td>{normalizeDisplayValue(message.email)}</td>
-                  <td>{normalizeDisplayValue(message.subject)}</td>
-                  <td>{normalizeDisplayValue(message.category)}</td>
-                  <td>{normalizeDisplayValue(message.status)}</td>
-                  <td>{formatManagementDate(message.created_at)}</td>
-                  <td>
+                <tr key={message.id} role="row">
+                  <td role="cell"><span className="management-cell-label" aria-hidden="true">Sender name</span>{normalizeDisplayValue(message.name)}</td>
+                  <td role="cell"><span className="management-cell-label" aria-hidden="true">Sender email</span>{normalizeDisplayValue(message.email)}</td>
+                  <td role="cell"><span className="management-cell-label" aria-hidden="true">Subject</span>{normalizeDisplayValue(message.subject)}</td>
+                  <td role="cell"><span className="management-cell-label" aria-hidden="true">Category</span>{normalizeDisplayValue(message.category)}</td>
+                  <td role="cell"><span className="management-cell-label" aria-hidden="true">Status</span>{normalizeDisplayValue(message.status)}</td>
+                  <td role="cell"><span className="management-cell-label" aria-hidden="true">Created at</span>{formatManagementDate(message.created_at)}</td>
+                  <td role="cell">
+                    <span className="management-cell-label" aria-hidden="true">Actions</span>
                     <Link to={`/manage/contact-messages/${message.id}`} className="secondary-button small-button">Open</Link>
                   </td>
                 </tr>

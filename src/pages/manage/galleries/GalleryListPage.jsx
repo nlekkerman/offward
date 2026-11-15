@@ -45,7 +45,7 @@ function GalleryListPage() {
   }
 
   return (
-    <section className="management-page">
+    <section className="management-page management-list-page">
       <div className="management-page-header">
         <div>
           <p className="eyebrow">Management</p>

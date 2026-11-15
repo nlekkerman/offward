@@ -106,7 +106,7 @@ function EntityListPage({ resourceKey, title }) {
   }
 
   return (
-    <section className={resourceKey === 'foods' ? 'management-page food-management-page' : 'management-page'}>
+    <section className={`management-page management-list-page${resourceKey === 'foods' ? ' food-management-page' : ''}`}>
       <div className="management-page-header">
         <div>
           <p className="eyebrow">Management</p>
@@ -127,24 +127,25 @@ function EntityListPage({ resourceKey, title }) {
         </div>
       ) : (
         <div className="management-table-wrap">
-          <table className="management-table">
-            <thead>
-              <tr>
+          <table className="management-table" role="table">
+            <thead role="rowgroup">
+              <tr role="row">
                 {tableHeaders.map((field) => (
-                  <th key={field}>{field.replace(/_/g, ' ')}</th>
+                  <th key={field} scope="col" role="columnheader">{field.replace(/_/g, ' ')}</th>
                 ))}
-                <th>Actions</th>
+                <th scope="col" role="columnheader">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {items.map((item) => (
-                <tr key={item.id}>
+                <tr key={item.id} role="row">
                   {tableHeaders.map((field) => {
                     const isCountryName = resourceKey === 'countries' && field === 'name'
                     const relatedCountry = field === 'country' ? findCountry(countryRecords, item.country || item.country_id) : null
 
                     return (
-                      <td key={`${item.id}-${field}`}>
+                      <td key={`${item.id}-${field}`} role="cell">
+                        <span className="management-cell-label" aria-hidden="true">{field.replace(/_/g, ' ')}</span>
                         {isCountryName
                           ? <CountryIdentity country={item} />
                           : field === 'country'
@@ -153,7 +154,8 @@ function EntityListPage({ resourceKey, title }) {
                       </td>
                     )
                   })}
-                  <td>
+                  <td role="cell">
+                    <span className="management-cell-label" aria-hidden="true">Actions</span>
                     <div className="table-actions">
                       <Link to={`/manage/${resourceKey}/${item.id}/edit`} className="secondary-button small-button">
                         Edit
