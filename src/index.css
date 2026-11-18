@@ -2146,6 +2146,27 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   color: #b8d9ad;
 }
 
+.route-connection-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.route-review-flag {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #b98a2c;
+  border-radius: 999px;
+  color: #e6c97a;
+  font: 700 0.7rem/1 sans-serif;
+}
+
+.route-connection-option .route-review-flag,
+.route-connection-option.is-selected .route-review-flag {
+  justify-self: start;
+  color: #e6c97a;
+}
+
 .route-connection-list {
   display: flex;
   gap: 0.4rem;
@@ -5121,7 +5142,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .story-detail-body {
   width: 100%;
   margin: 0 auto;
-  padding: 1.5rem 0;
+  padding: 1.5rem 24px;
   overflow-wrap: anywhere;
   border-radius: 0.65rem;
   color: #d8d1c3;
@@ -5493,7 +5514,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
     border-radius: 0;
   }
   .story-detail-content-page .story-detail-body {
-    padding: 1rem 0.5rem;
+    padding: 1rem 16px;
     border-radius: 0;
   }
   .story-detail-content-page .detail-hero .story-detail-header,

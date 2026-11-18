@@ -57,6 +57,8 @@ function SegmentList({
   const selected = connections.find((connection) => connection.id === selectedConnectionId)
   const startOrder = selected?.start?.order
   const endOrder = selected?.end?.order
+  // Review status is tracked separately from the renderability-based completion badge.
+  const reviewCount = connections.filter((connection) => connection.segment.needs_review === true).length
 
   return (
     <section className="route-map-panel route-connection-editor" aria-label="Connection editor">
@@ -65,9 +67,14 @@ function SegmentList({
           <p className="eyebrow">Connections</p>
           <h2>{connections.length ? `${connections.length} waypoint connections` : 'No connections yet'}</h2>
         </div>
-        <span className={routeComplete ? 'route-completion-state is-complete' : 'route-completion-state'}>
-          {routeComplete ? 'Complete' : 'Incomplete'}
-        </span>
+        <div className="route-connection-badges">
+          {reviewCount > 0 && (
+            <span className="route-review-flag">{reviewCount === 1 ? '1 needs review' : `${reviewCount} need review`}</span>
+          )}
+          <span className={routeComplete ? 'route-completion-state is-complete' : 'route-completion-state'}>
+            {routeComplete ? 'Complete' : 'Incomplete'}
+          </span>
+        </div>
       </div>
 
       {connections.length > 0 && (
@@ -85,6 +92,7 @@ function SegmentList({
               >
                 <span>{label}</span>
                 <small>{getConnectionState(connection.segment)}</small>
+                {connection.segment.needs_review === true && <small className="route-review-flag">Needs review</small>}
               </button>
             )
           })}
@@ -99,7 +107,13 @@ function SegmentList({
               {getConnectionState(selected.segment)} · {getConnectionMode(selected.segment)}
               {selected.segment.activity_type ? ` · ${formatActivityOption(selected.segment.activity_type)}` : ''}
             </span>
+            {selected.segment.needs_review === true && <span className="route-review-flag">Needs review</span>}
           </div>
+          {selected.segment.needs_review === true && !preview && !drawing && (
+            <span className="route-map-muted">
+              The accepted Route geometry changed after this connection was saved. To approve it, re-save its path: Calculate then Accept, or save a manual or straight path.
+            </span>
+          )}
           {!preview && !drawing && (
             <div className="route-connection-actions">
               <label className="route-connection-profile">
