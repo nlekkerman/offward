@@ -23,21 +23,26 @@ function imageUrlFrom(image, fields) {
   return candidates.map(getPublicImageUrl).find(Boolean) || null
 }
 
-function collectionImageUrl(collections, fields) {
+// Canonical album cover: the collection's selected preview image, never an arbitrary member image.
+function collectionCoverUrl(collections, fields) {
+  for (const collection of collections) {
+    const url = imageUrlFrom(collection?.preview_image, fields)
+      || imageUrlFrom(collection?.preview_image_url, fields)
+      || imageUrlFrom(collection, fields)
+    if (url) return url
+  }
+
+  return null
+}
+
+// Last-resort fallback when no collection exposes a cover image.
+function collectionFirstImageUrl(collections, fields) {
   for (const collection of collections) {
     const images = Array.isArray(collection?.images) ? collection.images : []
     for (const image of images) {
       const url = imageUrlFrom(image, fields)
       if (url) return url
     }
-  }
-
-  for (const collection of collections) {
-    const previewImage = collection?.preview_image
-    const url = imageUrlFrom(previewImage, fields)
-      || imageUrlFrom(collection?.preview_image_url, fields)
-      || imageUrlFrom(collection, fields)
-    if (url) return url
   }
 
   return null
@@ -53,6 +58,8 @@ export function getDetailHeroImage(content, entityType) {
   }
 
   const collections = Array.isArray(content.image_collections) ? content.image_collections : []
-  return collectionImageUrl(collections, FULL_IMAGE_FIELDS)
-    || collectionImageUrl(collections, THUMBNAIL_FIELDS)
+  return collectionCoverUrl(collections, FULL_IMAGE_FIELDS)
+    || collectionCoverUrl(collections, THUMBNAIL_FIELDS)
+    || collectionFirstImageUrl(collections, FULL_IMAGE_FIELDS)
+    || collectionFirstImageUrl(collections, THUMBNAIL_FIELDS)
 }

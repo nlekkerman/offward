@@ -679,7 +679,8 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   font-weight: 400;
 }
 
-.content-image-picker {
+.content-image-picker,
+.content-image-hero-picker {
   display: flex;
   gap: 0.85rem;
   overflow-x: auto;
@@ -688,7 +689,8 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   scrollbar-width: thin;
 }
 
-.content-image-picker-card {
+.content-image-picker-card,
+.content-image-hero-item {
   flex: 0 0 190px;
   display: flex;
   flex-direction: column;
@@ -701,7 +703,8 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   scroll-snap-align: start;
 }
 
-.content-image-picker-card.is-selected { border-color: #d8b47c; background: #21251e; }
+.content-image-picker-card.is-selected,
+.content-image-hero-item.is-selected { border-color: #d8b47c; background: #21251e; }
 .content-image-picker-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f3efe6; }
 .content-image-picker-card span { color: #aaa99e; font-size: 0.8rem; }
 .content-image-picker-preview,
@@ -1733,6 +1736,13 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   gap: 1.25rem;
 }
 
+/* Grid items and fieldsets default to min-width min-content, which lets wide
+   media pickers force page-level horizontal scrolling. */
+.management-form > *,
+.management-form fieldset {
+  min-width: 0;
+}
+
 .video-upload-section {
   display: grid;
   gap: 1rem;
@@ -1836,9 +1846,15 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 .management-form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+  padding: 0.85rem 0;
+  background: #121310;
+  border-top: 1px solid #2a2f2a;
 }
 
 .management-related-actions {
@@ -3468,7 +3484,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .detail-hero .place-detail-header,
 .detail-hero .story-detail-header,
 .detail-hero .food-detail-header {
-  max-width: 900px;
+  max-width: none;
   margin: 0;
 }
 
@@ -3476,7 +3492,6 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .detail-hero .place-detail-header h1,
 .detail-hero .story-detail-header h1,
 .detail-hero .food-detail-header h1 {
-  max-width: 20ch;
   margin: 0;
   color: #f3efe6;
   font-size: clamp(2.75rem, 5.5vw, 5.5rem);
@@ -3502,7 +3517,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .detail-hero .route-detail-summary,
 .detail-hero .story-detail-excerpt {
-  max-width: 62ch;
+  max-width: none;
   margin: 0;
   color: #f3efe6;
   font-size: clamp(1rem, 1.5vw, 1.15rem);
@@ -4741,7 +4756,6 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 .place-detail-header {
   display: grid;
   gap: 1rem;
-  max-width: 880px;
   margin-bottom: 0;
 }
 
@@ -5012,7 +5026,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 .story-detail-content-page .detail-hero .story-detail-header {
-  max-width: 760px;
+  max-width: none;
   margin: 0 auto;
   padding: 1.5rem;
   border-radius: 0.65rem;
@@ -5020,7 +5034,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 }
 
 .story-detail-content-page.has-cover-image .detail-hero .story-detail-header {
-  max-width: 900px;
+  max-width: none;
   margin: 0;
   padding: 0;
   border: 0;
