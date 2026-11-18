@@ -9,7 +9,6 @@ import EntityMediaSection from '../features/routes/components/EntityMediaSection
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
 import RoutePlacesAlongRoute from '../features/routes/components/RoutePlacesAlongRoute.jsx'
-import RouteHeroSlideshow from '../features/routes/components/RouteHeroSlideshow.jsx'
 import RelatedFood from '../features/food/RelatedFood.jsx'
 import { getRouteFoodIds, publicRelationshipIds } from '../features/food/publicFoodResolution.js'
 import { getAttachedMediaCount, normalizeMediaIds, orderedCollectionImages, orderedImageCollections, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
@@ -250,11 +249,6 @@ function RoutePage() {
     const id = String(gallery.id)
     return completeGalleryById[id] || galleryCacheRef.current.get(id) || { ...gallery, images: [] }
   }), [routeImageCollections, completeGalleryById])
-  const routeHeroImages = useMemo(
-    () => displayImageCollections.flatMap(orderedCollectionImages),
-    [displayImageCollections],
-  )
-
   useEffect(() => {
     let isCurrent = true
     const pendingGalleries = routeImageCollections.filter((gallery) => {
@@ -614,10 +608,6 @@ function RoutePage() {
         image={getContentSocialImage(route)}
       />
       <DetailHero>
-        <RouteHeroSlideshow
-          images={routeHeroImages}
-          onOpenImage={(index) => setLightbox({ gallery: { images: routeHeroImages }, index })}
-        />
         <header className="route-detail-header">
           <div>
             <p className="eyebrow">PUBLIC ROUTE</p>

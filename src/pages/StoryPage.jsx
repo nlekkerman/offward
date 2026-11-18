@@ -8,6 +8,7 @@ import DetailHero from '../shared/components/DetailHero.jsx'
 import PageMetadata from '../shared/components/PageMetadata.jsx'
 import ShareControl from '../shared/components/ShareControl.jsx'
 import { countryName, findCountry } from '../shared/utils/country.js'
+import { getDetailHeroImage } from '../shared/utils/detailHeroImage.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import CompactRelatedEntityCard from '../shared/components/CompactRelatedEntityCard.jsx'
 import { collectionCount } from '../features/management/imageCollectionUtils.js'
@@ -254,10 +255,11 @@ function StoryPage() {
   const publishedLabel = formatPublishedDate(story.published_at)
   const storyTitle = story.title || 'Story'
   const storyDescription = getContentDescription(story.excerpt, storyTitle, countryLabel || '')
+  const storyHeroImage = getDetailHeroImage(story, 'story')
   const storyPath = `/stories/${encodeURIComponent(storySlug)}`
   const storyUrl = getPublicUrl(storyPath)
   return (
-    <section className="story-detail-page story-detail-content-page">
+    <section className={`story-detail-page story-detail-content-page${storyHeroImage ? ' has-cover-image' : ''}`}>
       <PageMetadata
         title={storyTitle}
         description={storyDescription}
@@ -265,7 +267,12 @@ function StoryPage() {
         image={getContentSocialImage(story, { preferHero: true })}
         type="article"
       />
-      <DetailHero>
+      <DetailHero
+        className={`story-detail-cover-hero${storyHeroImage ? ' has-cover-image' : ''}`}
+        style={storyHeroImage ? {
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url("${storyHeroImage}")`,
+        } : undefined}
+      >
         <header className="story-detail-header">
           <p className="eyebrow">Story</p>
           <h1>{storyTitle}</h1>

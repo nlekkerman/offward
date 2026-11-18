@@ -24,6 +24,7 @@ import useUserLocation from '../shared/hooks/useUserLocation.js'
 import usePublicDetailPageView from '../shared/hooks/usePublicDetailPageView.js'
 import { trackInteraction } from '../services/analytics.js'
 import { countryName, findCountry } from '../shared/utils/country.js'
+import { getDetailHeroImage } from '../shared/utils/detailHeroImage.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import NotFoundPage from './NotFoundPage.jsx'
 
@@ -474,6 +475,7 @@ function PlacePage() {
   const countryLabel = countryName(country, formatCountrySlug(place.country))
   const lightboxImages = lightbox.gallery?.images || []
   const placeTitle = place.name || 'Place'
+  const placeHeroImage = getDetailHeroImage(place, 'place')
   const placeBodyParagraphs = typeof place.body === 'string'
     ? place.body.split(/\r?\n\s*\r?\n/).filter((paragraph) => paragraph.trim())
     : []
@@ -495,7 +497,7 @@ function PlacePage() {
   const startWalking = () => setPlaceJourneyPhase('walking-after-driving')
 
   return (
-    <section className="place-detail-page place-detail-content-page">
+    <section className={`place-detail-page place-detail-content-page${placeHeroImage ? ' has-cover-image' : ''}`}>
       <PageMetadata
         title={placeTitle}
         description={placeDescription}
@@ -503,20 +505,25 @@ function PlacePage() {
         image={getContentSocialImage(place)}
       />
       <Link className="route-detail-back" to="/explore?view=places">Back to Explore</Link>
+      <DetailHero
+        className={`place-detail-cover-hero${placeHeroImage ? ' has-cover-image' : ''}`}
+        style={placeHeroImage ? {
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url("${placeHeroImage}")`,
+        } : undefined}
+      >
+        <header className="place-detail-header">
+          <p className="eyebrow">PUBLIC PLACE</p>
+          <h1>{placeTitle}</h1>
+          <ShareControl type="place" title={placeTitle} url={placeUrl} description={typeof place.summary === 'string' && place.summary.trim() ? place.summary.trim() : undefined} />
+          <div className="route-detail-meta" aria-label="Place metadata">
+            <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
+            {place.visited_at && <span>Visited {place.visited_at}</span>}
+          </div>
+          {place.summary && <p className="route-detail-summary">{place.summary}</p>}
+        </header>
+      </DetailHero>
       <div className="place-detail-layout">
         <div className="place-detail-main-column">
-          <DetailHero>
-            <header className="place-detail-header">
-              <p className="eyebrow">PUBLIC PLACE</p>
-              <h1>{placeTitle}</h1>
-              <ShareControl type="place" title={placeTitle} url={placeUrl} description={typeof place.summary === 'string' && place.summary.trim() ? place.summary.trim() : undefined} />
-              <div className="route-detail-meta" aria-label="Place metadata">
-                <span className="country-identity-inline"><CountryFlag code={country?.code} decorative />{countryLabel}</span>
-                {place.visited_at && <span>Visited {place.visited_at}</span>}
-              </div>
-              {place.summary && <p className="route-detail-summary">{place.summary}</p>}
-            </header>
-          </DetailHero>
           {(placeIntroduction || remainingPlaceDescription) && (
             <article className="place-detail-copy">
               {placeIntroduction && <p className="place-detail-introduction">{placeIntroduction}</p>}

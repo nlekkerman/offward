@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-function RouteHeroSlideshow({ images, onOpenImage }) {
+function ImageSlideshow({ images, onOpenImage, className = '', label = 'Images' }) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const imageList = Array.isArray(images) ? images : []
 
@@ -11,7 +11,7 @@ function RouteHeroSlideshow({ images, onOpenImage }) {
   const activeIndex = selectedIndex % imageList.length
   const activeImage = imageList[activeIndex]
   const hasMultipleImages = imageList.length > 1
-  const activeImageUrl = activeImage.url || activeImage.thumbnail_url
+  const activeImageUrl = activeImage.url || activeImage.image_url || activeImage.image?.url || activeImage.image?.image_url || activeImage.thumbnail_url || ''
 
   const showImage = (index) => {
     setSelectedIndex(index)
@@ -26,30 +26,30 @@ function RouteHeroSlideshow({ images, onOpenImage }) {
   }
 
   return (
-    <section className="route-hero-slideshow" aria-label="Route photos" aria-roledescription="carousel">
+    <section className={`image-slideshow ${className}`.trim()} aria-label={label} aria-roledescription="carousel">
       <button
         type="button"
-        className="route-hero-slide-image"
+        className="image-slideshow-image"
         onClick={() => onOpenImage(activeIndex)}
         aria-label={`Open image ${activeIndex + 1} of ${imageList.length} in fullscreen`}
       >
-        <img src={activeImageUrl} alt={activeImage.caption || `Route image ${activeIndex + 1}`} />
+        <img src={activeImageUrl} alt={activeImage.alt_text || activeImage.caption || `Image ${activeIndex + 1}`} />
       </button>
 
       {hasMultipleImages && (
         <>
-          <button type="button" className="route-hero-slide-nav is-previous" onClick={showPrevious} aria-label="Previous route image">
+          <button type="button" className="image-slideshow-nav is-previous" onClick={showPrevious} aria-label="Previous image">
             ‹
           </button>
-          <button type="button" className="route-hero-slide-nav is-next" onClick={showNext} aria-label="Next route image">
+          <button type="button" className="image-slideshow-nav is-next" onClick={showNext} aria-label="Next image">
             ›
           </button>
-          <div className="route-hero-slide-indicators" role="group" aria-label="Choose route image">
+          <div className="image-slideshow-indicators" role="group" aria-label="Choose image">
             {imageList.map((image, index) => (
               <button
                 type="button"
                 key={image.id || image.image_id || index}
-                className={`route-hero-slide-indicator${index === activeIndex ? ' is-active' : ''}`}
+                className={`image-slideshow-indicator${index === activeIndex ? ' is-active' : ''}`}
                 onClick={() => showImage(index)}
                 aria-label={`Show image ${index + 1} of ${imageList.length}`}
                 aria-pressed={index === activeIndex}
@@ -62,4 +62,4 @@ function RouteHeroSlideshow({ images, onOpenImage }) {
   )
 }
 
-export default RouteHeroSlideshow
+export default ImageSlideshow
