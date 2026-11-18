@@ -5120,9 +5120,9 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .story-detail-body {
   width: 100%;
-  max-width: 760px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.5rem 0;
+  overflow-wrap: anywhere;
   border-radius: 0.65rem;
   color: #d8d1c3;
   font: 1.1rem/1.7 Georgia, serif;
@@ -5371,7 +5371,6 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 @media (max-width: 900px) {
   .story-detail-content-page .detail-hero .story-detail-header,
-  .story-detail-content-page .story-detail-body,
   .story-detail-content-page > .route-detail-back {
     max-width: 700px;
   }
@@ -5489,13 +5488,15 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .story-detail-content-page.has-cover-image .detail-hero .story-detail-header {
     max-width: 100%;
   }
-  .story-detail-content-page .detail-hero .story-detail-header,
-  .story-detail-content-page .story-detail-body {
+  .story-detail-content-page .detail-hero .story-detail-header {
     padding: 1rem 0;
     border-radius: 0;
   }
+  .story-detail-content-page .story-detail-body {
+    padding: 1rem 0.5rem;
+    border-radius: 0;
+  }
   .story-detail-content-page .detail-hero .story-detail-header,
-  .story-detail-content-page .story-detail-body,
   .story-detail-content-page > .route-detail-back {
     max-width: 100%;
   }
