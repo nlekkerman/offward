@@ -18,21 +18,31 @@ function getExpectedMapRevision(mapRevision) {
   return revision
 }
 
+async function getRawSegments(routeId) {
+  const { data } = await apiClient.get(routeMapPath(routeId, 'segments/'))
+  if (!Array.isArray(data)) {
+    throw new Error('Management segments response must be a bare array.')
+  }
+  return data
+}
+
 export const routeMapApi = {
   getWaypoints: async (routeId) => {
     const { data } = await apiClient.get(routeMapPath(routeId, 'waypoints/'))
-    return normalizeRouteMap(data)
+    return { ...normalizeRouteMap(data), rawResponse: data }
   },
   getCanonicalMap: async (routeId) => {
-    const [{ data: routeData }, waypoints, segments] = await Promise.all([
+    const [{ data: routeData }, waypoints, rawSegments] = await Promise.all([
       apiClient.get(routeMapPath(routeId)),
       routeMapApi.getWaypoints(routeId),
-      routeMapApi.getSegments(routeId),
+      getRawSegments(routeId),
     ])
     return {
       ...normalizeRouteMap({ ...routeData, ...waypoints }),
       acceptedGeometry: normalizeRouteMap(routeData).acceptedGeometry,
-      segments,
+      segments: normalizeSegments(rawSegments),
+      rawSegments,
+      waypointResponse: waypoints.rawResponse,
       isMapRenderable: routeData?.is_map_renderable === true,
       route: routeData,
     }
@@ -52,6 +62,7 @@ export const routeMapApi = {
       candidate: normalizedRoute.candidate,
       mapRevision: normalizedRoute.mapRevision,
       updatedAt: normalizedRoute.updatedAt,
+      waypointResponse: waypointData,
     }
   },
   createPlaceFromWaypoint: async (routeId, waypointId, payload) => {
@@ -62,11 +73,7 @@ export const routeMapApi = {
     return data
   },
   getSegments: async (routeId) => {
-    const { data } = await apiClient.get(routeMapPath(routeId, 'segments/'))
-    if (!Array.isArray(data)) {
-      throw new Error('Management segments response must be a bare array.')
-    }
-    return normalizeSegments(data)
+    return normalizeSegments(await getRawSegments(routeId))
   },
   updateSegments: async (routeId, segments) => {
     const { data } = await apiClient.put(routeMapPath(routeId, 'segments/'), {

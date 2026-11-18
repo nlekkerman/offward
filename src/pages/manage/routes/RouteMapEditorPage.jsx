@@ -5,6 +5,8 @@ import RouteGeometryLegend from '../../../features/routes/routeMap/components/Ro
 import SegmentList from '../../../features/routes/routeMap/components/SegmentList.jsx'
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
+import { parseGpxTrack } from '../../../features/routes/routeMap/gpxImport.js'
+import { createImportWaypoints, describeImportState, endpointsHaveWaypointPrecision, EXISTING_ROUTE_MESSAGE, getVerifiedImportMap, hasExistingImportContent, verifyCompletedImport, verifyImportWaypoints } from '../../../features/routes/routeMap/gpxImportWorkflow.js'
 import ContentVideoManager from '../../../features/video/ContentVideoManager.jsx'
 import { assembleRouteSegmentGeometry, buildManualSegmentGeometry, buildWaypointPayload, createEmptyWaypoint, deriveWaypointPairs, getPlaceCoordinates, getRouteMapStatus, normalizeRouteMap, normalizeWaypoints, reorderWaypoints, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
 import { managementApis } from '../../../services/management/index.js'
@@ -100,6 +102,9 @@ function RouteMapEditorPage() {
   const [notice, setNotice] = useState('')
   const [saving, setSaving] = useState(false)
   const [calculating, setCalculating] = useState(false)
+  const [gpxPreview, setGpxPreview] = useState(null)
+  const [readingGpx, setReadingGpx] = useState(false)
+  const importInProgress = useRef(false)
 
   useEffect(() => {
     let active = true
@@ -108,6 +113,7 @@ function RouteMapEditorPage() {
       try {
         setLoading(true)
         setError('')
+        setGpxPreview(null)
         const [routeData, routeMapData, placesData] = await Promise.all([
           managementApis.routes.getById(routeId),
           routeMapApi.getCanonicalMap(routeId),
@@ -182,6 +188,13 @@ function RouteMapEditorPage() {
   const reviewGeometry = assembleRouteSegmentGeometry(waypoints, segments)
   const hasUnknownReviewStatus = segments.some((segment) => typeof segment.needs_review !== 'boolean')
   const hasValidRevision = isValidMapRevision(mapRevision)
+  const importBlockedByEdit = hasUnsavedChanges || connectionPreview || manualDrawing || waypointMovePreview || addMode || calculating || quickEditSaving
+  const routeGeometryUnknown = !route || !Object.prototype.hasOwnProperty.call(route, 'geometry')
+  const routeHasContent = waypoints.length > 0 || segments.length > 0 || route?.geometry != null
+    || route?.accepted_geometry != null || route?.acceptedGeometry != null
+  const importUnavailable = routeHasContent || routeGeometryUnknown
+  const gpxPrecisionValid = gpxPreview ? endpointsHaveWaypointPrecision(gpxPreview.geometry) : false
+  const gpxWaypoints = useMemo(() => gpxPreview ? createImportWaypoints(gpxPreview.geometry) : [], [gpxPreview])
   const reviewDisabledReason = hasUnsavedChanges
     ? 'Save waypoint changes before reviewing the Route.'
     : hasUnknownReviewStatus
@@ -281,6 +294,84 @@ function RouteMapEditorPage() {
       setError(getErrorMessage(refreshErr, 'Unable to refresh the route after a revision conflict.'))
     }
     return true
+  }
+
+  const selectGpxFile = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setGpxPreview(null)
+    setError('')
+    setNotice('')
+    if (!file.name.toLowerCase().endsWith('.gpx')) {
+      setError('Select a .gpx file containing one recorded track.')
+      return
+    }
+    try {
+      setReadingGpx(true)
+      const parsed = parseGpxTrack(await file.text())
+      setGpxPreview({ ...parsed, name: file.name })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to read the GPX file.')
+    } finally {
+      setReadingGpx(false)
+    }
+  }
+
+  const saveGpxImport = async () => {
+    if (!gpxPreview || !gpxPrecisionValid || importUnavailable || importBlockedByEdit || saving || importInProgress.current) return
+    importInProgress.current = true
+    let writeStarted = false
+    try {
+      setSaving(true)
+      setError('')
+      setNotice('')
+      const before = await getVerifiedImportMap(routeId)
+      await refreshCanonicalMap(before)
+      if (hasExistingImportContent(before)) throw new Error(EXISTING_ROUTE_MESSAGE)
+      if (!window.confirm('Import this GPX track? Start and finish waypoints and a manual connection will be saved.')) return
+
+      writeStarted = true
+      const result = await routeMapApi.updateWaypoints(routeId, gpxWaypoints, normalizeRouteMap(before).mapRevision)
+      const created = await getVerifiedImportMap(routeId)
+      await refreshCanonicalMap(created)
+      const expected = verifyImportWaypoints(result.waypointResponse, created, gpxPreview.geometry)
+      await routeMapApi.updateSegment(routeId, expected.segment.id, {
+        action: 'save_manual',
+        geometry: gpxPreview.geometry,
+        expected_map_revision: expected.revision,
+      })
+      const completed = await getVerifiedImportMap(routeId)
+      await refreshCanonicalMap(completed)
+      verifyCompletedImport(completed, gpxPreview.geometry, expected)
+      setGpxPreview(null)
+      setActivePanel('connections')
+      setNotice('GPX imported. The manual connection and route geometry were verified.')
+    } catch (err) {
+      const reason = err?.response?.status === 409
+        ? 'The route changed during import (revision conflict). No write was retried.'
+        : err?.response ? 'A GPX import request failed. No write was retried.'
+          : err instanceof Error ? err.message : 'GPX import failed.'
+      if (writeStarted || err?.response?.status === 409) {
+        try {
+          const current = await getVerifiedImportMap(routeId)
+          await refreshCanonicalMap(current)
+          setError(`${reason} ${describeImportState(current)} No saved content was removed or restored.`)
+        } catch {
+          try {
+            await refreshCanonicalMap()
+            setError(`${reason} The route was refreshed, but a consistent state could not be verified. Waypoints or geometry may have been saved; review the route before continuing. No saved content was removed or restored.`)
+          } catch {
+            setError(`${reason} The current route could not be refreshed and verified. Waypoints or geometry may have been saved; refresh and review before continuing. No saved content was removed or restored.`)
+          }
+        }
+      } else {
+        setError(reason)
+      }
+    } finally {
+      importInProgress.current = false
+      setSaving(false)
+    }
   }
 
   const changeWaypoints = (updater) => {
@@ -901,16 +992,37 @@ function RouteMapEditorPage() {
       {addMode && <div className="management-empty route-map-notice" role="status">Map click mode is active. Click the map to add the next waypoint.</div>}
 
       <div className="route-map-toolbar" role="toolbar" aria-label="Route map editor tools">
-        <button type="button" className={activePanel === 'waypoints' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('waypoints')} aria-expanded={activePanel === 'waypoints'}>
+        <button type="button" className={activePanel === 'waypoints' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('waypoints')} disabled={Boolean(gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-expanded={activePanel === 'waypoints'}>
           Waypoints <span>{waypoints.length}</span>
         </button>
-        <button type="button" className={activePanel === 'videos' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('videos')} aria-expanded={activePanel === 'videos'}>
+        <button type="button" className={activePanel === 'videos' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('videos')} disabled={Boolean(gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-expanded={activePanel === 'videos'}>
           + Add video
         </button>
-        <button type="button" className={activePanel === 'connections' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('connections')} aria-expanded={activePanel === 'connections'}>Connections <span>{connections.length}</span></button>
+        <button type="button" className={activePanel === 'connections' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('connections')} disabled={Boolean(gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-expanded={activePanel === 'connections'}>Connections <span>{connections.length}</span></button>
+        <button type="button" className={activePanel === 'gpx' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => setActivePanel('gpx')} disabled={Boolean(importBlockedByEdit || saving || readingGpx)} aria-expanded={activePanel === 'gpx'}>Import GPX</button>
         <span className="route-map-context-indicator" role="status">{editingContextLabel}</span>
-        {activePanel && <button type="button" className="route-map-close-tool" onClick={() => setActivePanel('')} aria-label="Close editor panel">Close panel</button>}
+        {activePanel && <button type="button" className="route-map-close-tool" onClick={() => setActivePanel('')} disabled={Boolean(gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-label="Close editor panel">Close panel</button>}
       </div>
+
+      {activePanel === 'gpx' && (
+        <section className="route-map-editor-panel route-map-panel-stack">
+          <div className="route-map-panel-header"><div><p className="eyebrow">Import GPX</p><h2>Preview recorded track</h2></div></div>
+          <p>Choose a GPX file with one track and one continuous track segment. Longitude and latitude are imported without simplification; elevation and other GPX data are not imported.</p>
+          {routeHasContent && <p role="status">{EXISTING_ROUTE_MESSAGE}</p>}
+          {routeGeometryUnknown && !routeHasContent && <p role="status">Canonical route geometry is unavailable. Refresh the editor before importing.</p>}
+          <label>GPX file <input type="file" accept=".gpx,application/gpx+xml" onChange={selectGpxFile} disabled={saving || readingGpx} /></label>
+          {gpxPreview && (
+            <>
+              <p>{gpxPreview.name}: {gpxPreview.rawPointCount} coordinates. Start and finish are marked on the map.</p>
+              {!gpxPrecisionValid && <p role="alert">The start or finish has more than six decimal places. Waypoint storage would change the endpoint; import is blocked. No coordinates will be rounded automatically.</p>}
+              <div className="route-map-actions">
+                <button type="button" className="primary-button" onClick={saveGpxImport} disabled={saving || readingGpx || importUnavailable || !gpxPrecisionValid}>{saving ? 'Importing...' : 'Save GPX import'}</button>
+                <button type="button" className="secondary-button" onClick={() => { setGpxPreview(null); setActivePanel(''); setError(''); setNotice('GPX preview cancelled. No additional changes were saved.') }} disabled={saving || readingGpx}>Cancel preview</button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
 
       {activePanel === 'waypoints' && (
         <section className="route-map-editor-panel route-map-panel-stack">
@@ -1019,15 +1131,16 @@ function RouteMapEditorPage() {
           places={places}
           connections={connections}
           candidateGeometry={connectionPreview?.mode === 'calculated' ? connectionPreview.geometry : null}
-          previewGeometry={connectionPreview && connectionPreview.mode !== 'calculated' ? connectionPreview.geometry : null}
+          previewGeometry={gpxPreview?.geometry || (connectionPreview && connectionPreview.mode !== 'calculated' ? connectionPreview.geometry : null)}
+          previewWaypoints={gpxWaypoints}
           selectedSegmentId={selectedConnectionId}
           selectedWaypointId={selectedWaypointId}
           addMode={addMode}
-          onSegmentSelect={selectConnection}
-          onWaypointSelect={selectWaypoint}
+          onSegmentSelect={activePanel === 'gpx' ? undefined : selectConnection}
+          onWaypointSelect={activePanel === 'gpx' ? () => {} : selectWaypoint}
           manualDrawing={manualDrawing && drawingConnection ? { startWaypoint: drawingConnection.start, endWaypoint: drawingConnection.end, points: manualDrawing.points } : null}
           waypointMovePreview={waypointMovePreview}
-          canDragWaypoints={!hasUnsavedChanges && !saving && !connectionPreview && !manualDrawing && !waypointMovePreview}
+          canDragWaypoints={activePanel !== 'gpx' && !hasUnsavedChanges && !saving && !connectionPreview && !manualDrawing && !waypointMovePreview}
           onWaypointDragStart={() => { setConnectionPreview(null); setManualDrawing(null) }}
           onWaypointDragEnd={finishWaypointDrag}
           onMapAddWaypoint={addWaypointFromMap}

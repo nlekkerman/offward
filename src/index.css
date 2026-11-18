@@ -1976,6 +1976,10 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   display: none;
 }
 
+.route-authoring-map .route-marker-zoom-hidden .route-gpx-preview-marker .route-waypoint-name {
+  display: inline-block;
+}
+
 .route-authoring-waypoint-marker {
   cursor: grab;
 }

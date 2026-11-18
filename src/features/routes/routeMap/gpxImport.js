@@ -18,40 +18,6 @@ function isValidCoordinate(coordinate) {
     && latitude <= 90
 }
 
-function coordinatesMeet(first, second) {
-  return Math.abs(first[0] - second[0]) <= 1e-7
-    && Math.abs(first[1] - second[1]) <= 1e-7
-}
-
-function getTrackSegments(geometry) {
-  if (geometry?.type === 'LineString') return [geometry.coordinates]
-  if (geometry?.type === 'MultiLineString') return geometry.coordinates
-  throw new Error('The GPX track must produce a LineString geometry.')
-}
-
-function mergeTrackSegments(segments) {
-  const merged = []
-
-  for (const segment of segments) {
-    if (!Array.isArray(segment) || segment.length < 2 || !segment.every(isValidCoordinate)) {
-      throw new Error('The GPX track contains invalid coordinates or a segment with fewer than 2 points.')
-    }
-
-    const coordinates = segment.map(([longitude, latitude]) => [longitude, latitude])
-    if (!merged.length) {
-      merged.push(...coordinates)
-      continue
-    }
-
-    if (!coordinatesMeet(merged[merged.length - 1], coordinates[0])) {
-      throw new Error('This GPX track has separated segments that cannot be safely merged into one line.')
-    }
-    merged.push(...coordinates.slice(1))
-  }
-
-  return merged
-}
-
 export function parseGpxTrack(xmlText) {
   const document = new DOMParser().parseFromString(xmlText, 'application/xml')
   const root = document.documentElement
@@ -68,31 +34,44 @@ export function parseGpxTrack(xmlText) {
     throw new Error('No recorded track was found in this GPX file.')
   }
 
+  const trackSegments = Array.from(tracks[0].getElementsByTagName('*'))
+    .filter((element) => element.localName?.toLowerCase() === 'trkseg')
+  if (trackSegments.length !== 1) {
+    throw new Error('The GPX must contain exactly one continuous track segment; multiple segments are not supported.')
+  }
   const trackPoints = Array.from(tracks[0].getElementsByTagName('*'))
     .filter((element) => element.localName?.toLowerCase() === 'trkpt')
-  for (const point of trackPoints) {
+  const segmentPoints = Array.from(trackSegments[0].getElementsByTagName('*'))
+    .filter((element) => element.localName?.toLowerCase() === 'trkpt')
+  if (trackPoints.length !== segmentPoints.length || trackPoints.length < 2) {
+    throw new Error('The GPX track must contain at least 2 coordinates in one track segment.')
+  }
+  const coordinates = trackPoints.map((point) => {
     const longitudeText = point.getAttribute('lon')
     const latitudeText = point.getAttribute('lat')
     const coordinate = [Number(longitudeText), Number(latitudeText)]
     if (!longitudeText?.trim() || !latitudeText?.trim() || !isValidCoordinate(coordinate)) {
       throw new Error('The GPX track contains an invalid longitude or latitude.')
     }
-  }
+    return coordinate
+  })
 
   const trackFeatures = gpx(document).features.filter((feature) => feature.properties?._gpxType === 'trk')
   if (trackFeatures.length !== 1) {
     throw new Error('The GPX must contain exactly one recorded track with usable geometry.')
   }
 
-  const segments = getTrackSegments(trackFeatures[0].geometry)
-  const rawPointCount = segments.reduce((count, segment) => count + (Array.isArray(segment) ? segment.length : 0), 0)
-  if (rawPointCount < 2) {
-    throw new Error('The GPX track must contain at least 2 coordinates.')
+  const converted = trackFeatures[0].geometry
+  if (converted?.type !== 'LineString' || !Array.isArray(converted.coordinates)
+    || converted.coordinates.length !== coordinates.length
+    || converted.coordinates.some((point, index) => !isValidCoordinate(point)
+      || point[0] !== coordinates[index][0] || point[1] !== coordinates[index][1])) {
+    throw new Error('The GPX track could not be converted without changing its coordinates.')
   }
 
   return {
-    geometry: { type: 'LineString', coordinates: mergeTrackSegments(segments) },
-    rawPointCount,
+    geometry: { type: 'LineString', coordinates },
+    rawPointCount: coordinates.length,
   }
 }
 

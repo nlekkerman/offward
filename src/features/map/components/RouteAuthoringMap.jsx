@@ -41,22 +41,24 @@ function getMapBounds({ waypoints, candidateGeometry, previewGeometry, segments 
   return points
 }
 
-function AuthoringViewport({ waypoints, candidateGeometry, previewGeometry, segments }) {
+function AuthoringViewport({ waypoints, candidateGeometry, previewGeometry, previewWaypoints, segments }) {
   const map = useMap()
   const signatureRef = useRef('')
 
   useEffect(() => {
-    const signature = JSON.stringify({ waypoints, candidateGeometry, previewGeometry, segments })
+    const signature = JSON.stringify({ waypoints, candidateGeometry, previewGeometry, previewWaypoints, segments })
     if (signatureRef.current === signature) {
       return
     }
 
     signatureRef.current = signature
-    const bounds = getMapBounds({ waypoints, candidateGeometry, previewGeometry, segments })
+    const bounds = previewWaypoints.length
+      ? getMapBounds({ waypoints: previewWaypoints, candidateGeometry: null, previewGeometry, segments: [] })
+      : getMapBounds({ waypoints, candidateGeometry, previewGeometry, segments })
     if (bounds) {
       map.fitBounds(bounds, { padding: [44, 44], maxZoom: 14, animate: false })
     }
-  }, [candidateGeometry, map, previewGeometry, segments, waypoints])
+  }, [candidateGeometry, map, previewGeometry, previewWaypoints, segments, waypoints])
 
   return null
 }
@@ -173,7 +175,7 @@ const SELECTED_SEGMENT_STYLE = {
   lineJoin: 'round',
 }
 
-function RouteAuthoringMapContent({ waypoints, places = [], candidateGeometry, previewGeometry, connections = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, waypointMovePreview, canDragWaypoints, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint, onWaypointDragStart, onWaypointDragEnd }) {
+function RouteAuthoringMapContent({ waypoints, places = [], candidateGeometry, previewGeometry, previewWaypoints = [], connections = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, waypointMovePreview, canDragWaypoints, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint, onWaypointDragStart, onWaypointDragEnd }) {
   const validWaypoints = useMemo(() => waypoints.map((waypoint) => ({ waypoint, latLng: toLatLng(waypoint) })).filter((item) => item.latLng), [waypoints])
   const candidate = normalizeGeometry(candidateGeometry)
   const preview = normalizeGeometry(previewGeometry)
@@ -207,7 +209,10 @@ function RouteAuthoringMapContent({ waypoints, places = [], candidateGeometry, p
           )
         })}
         {candidate && <GeoJSON key={`candidate-${JSON.stringify(candidate.coordinates)}`} data={{ type: 'Feature', geometry: candidate, properties: {} }} style={CANDIDATE_STYLE} />}
-        {preview && <GeoJSON key={`connection-preview-${JSON.stringify(preview.coordinates)}`} data={{ type: 'Feature', geometry: preview, properties: {} }} style={PREVIEW_STYLE} />}
+        {preview && <GeoJSON key={`connection-preview-${JSON.stringify(preview.coordinates)}`} data={{ type: 'Feature', geometry: preview, properties: {} }} style={previewWaypoints.length ? { ...PREVIEW_STYLE, smoothFactor: 0 } : PREVIEW_STYLE} />}
+        {previewWaypoints.map((waypoint) => (
+          <Marker key={waypoint.id} position={toLatLng(waypoint)} icon={createWaypointMarkerIcon({ order: waypoint.order, displayName: waypoint.name, selected: false, extraClassNames: ['route-authoring-waypoint-marker', 'route-gpx-preview-marker'] })} title={waypoint.name} interactive={false} />
+        ))}
         {drawingManually && <Polyline positions={manualDrawingPositions} pathOptions={{ color: '#f0d39c', opacity: 1, weight: 6, dashArray: '10 7' }} interactive={false} />}
         {validWaypoints.map(({ waypoint, latLng }) => {
           const selected = waypoint.id === selectedWaypointId
@@ -225,7 +230,7 @@ function RouteAuthoringMapContent({ waypoints, places = [], candidateGeometry, p
             />
           )
         })}
-        <AuthoringViewport waypoints={waypoints} candidateGeometry={candidate} previewGeometry={preview} segments={connections.map(({ segment }) => segment)} />
+        <AuthoringViewport waypoints={waypoints} candidateGeometry={candidate} previewGeometry={preview} previewWaypoints={previewWaypoints} segments={connections.map(({ segment }) => segment)} />
         <MapClickHandler addMode={addMode} drawingManually={drawingManually} onMapAddWaypoint={onMapAddWaypoint} onManualDrawPoint={onManualDrawPoint} />
       </MapContainer>
     </div>
