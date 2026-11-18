@@ -63,34 +63,57 @@ export function createImportWaypoints(geometry) {
     createEmptyWaypoint(index + 1, { name: index === 0 ? 'Start' : 'Finish', longitude, latitude }))
 }
 
-function verifiedWaypoints(response, geometry) {
+function diagnosticValue(value) {
+  if (value === undefined) return 'missing'
+  return JSON.stringify(value) ?? String(value)
+}
+
+function verifiedWaypoints(response, geometry, source) {
   const raw = rawWaypoints(response)
-  if (raw.length !== 2 || raw.some((waypoint) => !waypoint?.id)
-    || String(raw[0].id) === String(raw[1].id)) {
-    throw new Error('The stored start and finish waypoint IDs could not be verified.')
+  if (raw.length !== 2) {
+    throw new Error(`${source} waypoint count mismatch: expected 2, actual ${raw.length}.`)
+  }
+  const missingId = raw.findIndex((waypoint) => !waypoint?.id)
+  if (missingId !== -1) {
+    throw new Error(`${source} waypoint at response index ${missingId} has no ID: ${diagnosticValue(raw[missingId]?.id)}.`)
+  }
+  if (String(raw[0].id) === String(raw[1].id)) {
+    throw new Error(`${source} waypoint IDs are not distinct: ${diagnosticValue(raw[0].id)} and ${diagnosticValue(raw[1].id)}.`)
   }
   const waypoints = normalizeWaypoints(raw)
   const coordinates = geometry.coordinates
   const endpoints = [coordinates[0], coordinates[coordinates.length - 1]]
-  if (waypoints.some((waypoint, index) => waypoint.longitude === '' || waypoint.latitude === ''
+  const mismatch = waypoints.findIndex((waypoint, index) => waypoint.longitude === '' || waypoint.latitude === ''
     || Number(waypoint.longitude) !== endpoints[index][0]
-    || Number(waypoint.latitude) !== endpoints[index][1])) {
-    throw new Error('Stored waypoint coordinates do not exactly match the import endpoints. The track was not saved.')
+    || Number(waypoint.latitude) !== endpoints[index][1])
+  if (mismatch !== -1) {
+    const waypoint = waypoints[mismatch]
+    throw new Error(`${source} waypoint ${mismatch === 0 ? 'start' : 'finish'} coordinates mismatch: expected ${diagnosticValue(endpoints[mismatch])}, actual longitude ${diagnosticValue(waypoint.longitude)}, latitude ${diagnosticValue(waypoint.latitude)}.`)
   }
   return waypoints
 }
 
-function matchingGeometry(actual, expected) {
+function geometryMismatch(actual, expected) {
   const geometry = actual?.type === 'Feature' ? actual.geometry : actual
-  return geometry?.type === 'LineString' && Array.isArray(geometry.coordinates)
-    && geometry.coordinates.length === expected.coordinates.length
-    && geometry.coordinates.every((point, index) => Array.isArray(point) && point.length === 2
-      && point[0] === expected.coordinates[index][0] && point[1] === expected.coordinates[index][1])
+  const coordinates = geometry?.coordinates
+  const actualCount = Array.isArray(coordinates) ? coordinates.length : null
+  const expectedCount = expected.coordinates.length
+  let firstDifference = Array.isArray(coordinates)
+    ? coordinates.findIndex((point, index) => index >= expectedCount || !Array.isArray(point) || point.length !== 2
+      || point[0] !== expected.coordinates[index][0] || point[1] !== expected.coordinates[index][1])
+    : 0
+  if (firstDifference === -1 && actualCount !== expectedCount) firstDifference = actualCount
+  if (geometry?.type === 'LineString' && actualCount === expectedCount && firstDifference === -1) return ''
+
+  const difference = firstDifference === -1
+    ? 'no coordinate difference found'
+    : `first differing coordinate at index ${firstDifference}: expected ${diagnosticValue(expected.coordinates[firstDifference])}, actual ${diagnosticValue(coordinates?.[firstDifference])}`
+  return `geometry type expected "LineString", actual ${diagnosticValue(geometry?.type)}; coordinate counts expected ${expectedCount}, actual ${actualCount === null ? 'unavailable' : actualCount}; ${difference}`
 }
 
 export function verifyImportWaypoints(response, map, geometry) {
-  const returned = verifiedWaypoints(response, geometry)
-  const stored = verifiedWaypoints(map.waypointResponse, geometry)
+  const returned = verifiedWaypoints(response, geometry, 'Returned')
+  const stored = verifiedWaypoints(map.waypointResponse, geometry, 'Stored')
   if (stored.some((waypoint, index) => String(waypoint.id) !== String(returned[index].id))) {
     throw new Error('The stored waypoint IDs changed. The track was not saved.')
   }
@@ -115,16 +138,42 @@ export function verifyImportWaypoints(response, map, geometry) {
 }
 
 export function verifyCompletedImport(map, geometry, expected) {
-  const waypoints = verifiedWaypoints(map.waypointResponse, geometry)
+  const waypoints = verifiedWaypoints(map.waypointResponse, geometry, 'Stored')
   const segment = map.segments[0]
-  if (waypoints.some((waypoint, index) => String(waypoint.id) !== String(expected.waypoints[index].id))
-    || map.rawSegments.length !== 1 || map.segments.length !== 1
-    || String(segment?.id) !== String(expected.segment.id)
-    || String(segment?.start_waypoint_id) !== String(waypoints[0].id)
-    || String(segment?.end_waypoint_id) !== String(waypoints[1].id)
-    || segment?.mode !== 'manual' || !matchingGeometry(segment.geometry, geometry)
-    || map.route.is_map_renderable !== true || !matchingGeometry(map.route.geometry, geometry)) {
-    throw new Error('The import was submitted, but the canonical manual connection and current route geometry could not be verified exactly.')
+  const rawSegment = map.rawSegments.length === 1 ? map.rawSegments[0]
+    : map.rawSegments.find((item) => item?.id && String(item.id) === String(segment?.id))
+  const failures = []
+  waypoints.forEach((waypoint, index) => {
+    if (String(waypoint.id) !== String(expected.waypoints[index].id)) {
+      failures.push(`Waypoint ${index} ID mismatch: expected ${diagnosticValue(expected.waypoints[index].id)}, actual ${diagnosticValue(waypoint.id)}.`)
+    }
+  })
+  if (map.rawSegments.length !== 1) failures.push(`Raw segment count mismatch: expected 1, actual ${map.rawSegments.length}.`)
+  if (map.segments.length !== 1) failures.push(`Normalized segment count mismatch: expected 1, actual ${map.segments.length}.`)
+  if (String(segment?.id) !== String(expected.segment.id)) {
+    failures.push(`Segment ID mismatch: expected ${diagnosticValue(expected.segment.id)}, normalized ${diagnosticValue(segment?.id)}, raw ${diagnosticValue(rawSegment?.id)}.`)
+  }
+  if (String(segment?.start_waypoint_id) !== String(waypoints[0].id)) {
+    failures.push(`Segment start waypoint ID mismatch: expected ${diagnosticValue(waypoints[0].id)}, actual ${diagnosticValue(segment?.start_waypoint_id)}.`)
+  }
+  if (String(segment?.end_waypoint_id) !== String(waypoints[1].id)) {
+    failures.push(`Segment end waypoint ID mismatch: expected ${diagnosticValue(waypoints[1].id)}, actual ${diagnosticValue(segment?.end_waypoint_id)}.`)
+  }
+  if (segment?.mode !== 'manual') {
+    failures.push(`Segment mode mismatch: expected "manual", actual ${diagnosticValue(segment?.mode)} (raw mode ${diagnosticValue(rawSegment?.mode)}, connection_mode ${diagnosticValue(rawSegment?.connection_mode)}, resolution_mode ${diagnosticValue(rawSegment?.resolution_mode)}, resolution ${diagnosticValue(rawSegment?.resolution)}).`)
+  }
+  const segmentGeometryMismatch = geometryMismatch(segment?.geometry, geometry)
+  if (segmentGeometryMismatch) {
+    const rawGeometryMismatch = geometryMismatch(rawSegment?.geometry, geometry)
+    failures.push(`Segment ${segment?.geometry == null ? `geometry was unavailable after normalization; raw ${rawGeometryMismatch || 'geometry matches'}` : segmentGeometryMismatch}.`)
+  }
+  if (map.route.is_map_renderable !== true) {
+    failures.push(`Route is_map_renderable mismatch: expected true, actual ${diagnosticValue(map.route.is_map_renderable)}.`)
+  }
+  const routeGeometryMismatch = geometryMismatch(map.route.geometry, geometry)
+  if (routeGeometryMismatch) failures.push(`Route ${routeGeometryMismatch}.`)
+  if (failures.length) {
+    throw new Error(`The import was submitted, but verification failed: ${failures.join(' ')}`)
   }
 }
 
