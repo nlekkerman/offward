@@ -11,6 +11,7 @@ import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
 import RoutePlacesAlongRoute from '../features/routes/components/RoutePlacesAlongRoute.jsx'
 import RelatedFood from '../features/food/RelatedFood.jsx'
 import { getRouteFoodIds, publicRelationshipIds } from '../features/food/publicFoodResolution.js'
+import { getRouteActivityLabels } from '../features/home/latestContentFormatting.js'
 import { getAttachedMediaCount, normalizeMediaIds, orderedCollectionImages, orderedImageCollections, resolveAttachedVideos, resolveImageCollections } from '../features/routes/components/routeMediaUtils.js'
 import RouteSections from '../features/routes/components/RouteSections.jsx'
 import { getCountries } from '../services/countriesApi.js'
@@ -55,12 +56,9 @@ function useHoverCapability() {
   return supportsHover
 }
 
-function formatActivity(value) {
-  if (!value || typeof value !== 'string') {
-    return 'Route'
-  }
-
-  return value.replace(/[_-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+function formatActivity(route) {
+  const labels = getRouteActivityLabels(route)
+  return labels.length ? labels.join(' · ') : 'Route'
 }
 
 function formatDirectionsDuration(durationSeconds) {
@@ -560,7 +558,7 @@ function RoutePage() {
     ? countryNames.get(countryValue) || countryValue
     : countryName(countryValue, countryValue?.slug || countryValue?.code || '')
   const countryLabel = countryName(country, countryFallback) || 'Country pending'
-  const activityLabel = formatActivity(route?.activity_type)
+  const activityLabel = formatActivity(route)
   const routeTitle = route?.title || 'Route'
   const directionsActive = navigationState !== 'idle'
   const selectedWalkingPath = directionsActive &&

@@ -1,6 +1,6 @@
 import { formatActivityLabel } from '../home/latestContentFormatting.js'
 
-const ACTIVITIES = ['motorcycle', 'hiking', 'car', 'boat', 'cycling', 'walking']
+const ACTIVITIES = ['walking', 'driving', 'cycling', 'hiking', 'motorcycle', 'boat', 'car']
 
 export default function ExploreFilters({ mode, countries, countriesStatus, country, activity, onChange, onRetry }) {
   return (

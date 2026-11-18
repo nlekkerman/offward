@@ -4,10 +4,10 @@ import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
 import { getExplorePreview } from '../explore/exploreUtils.js'
 import { selectedCardImageUrl } from '../../shared/utils/cardImageSelections.js'
-import { formatActivityLabel, formatCountryLabel, formatPublishedDate } from './latestContentFormatting.js'
+import { formatCountryLabel, formatPublishedDate, getRouteActivityLabels } from './latestContentFormatting.js'
 
 function LatestRouteCard({ route, countryRecords = [] }) {
-  const activityLabel = formatActivityLabel(route.activity_type)
+  const activityLabel = getRouteActivityLabels(route).join(' · ') || null
   const countryLabel = formatCountryLabel(route.country)
   const publishedLabel = formatPublishedDate(route.published_at)
   const country = findCountry(countryRecords, route.country)

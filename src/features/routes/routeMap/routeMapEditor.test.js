@@ -294,6 +294,7 @@ test('waypoint collection PUT sends current revision at top level and returns re
           coordinates: { lat: 51, lng: -1 },
           name: '',
           label: '',
+          description: '',
           place_id: null,
           media_ids: [],
           image_collection_ids: [],

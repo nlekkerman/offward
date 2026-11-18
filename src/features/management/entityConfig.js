@@ -57,7 +57,7 @@ export const entityConfig = {
   routes: {
     label: 'Route',
     singular: 'route',
-    listFields: ['title', 'country', 'activity_type', 'status'],
+    listFields: ['title', 'country', 'activity_type', 'activity_types', 'status'],
     defaultValues: {
       country: '',
       title: '',
@@ -65,7 +65,6 @@ export const entityConfig = {
       summary: '',
       activity_type: 'motorcycle',
       status: 'active',
-      path: '',
       places: [],
       video_ids: [],
       image_collection_ids: [],

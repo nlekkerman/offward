@@ -139,6 +139,8 @@ function EntityFormPage({ resourceKey, title }) {
   const [videoUploadStatus, setVideoUploadStatus] = useState('idle')
   const [foodLoadedId, setFoodLoadedId] = useState(null)
   const [attachedFoodIds, setAttachedFoodIds] = useState([])
+  // Read-only Route activities derived from annotated Segments; never submitted back.
+  const [routeActivityTypes, setRouteActivityTypes] = useState([])
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [foodMediaBusy, setFoodMediaBusy] = useState(false)
 
@@ -208,6 +210,7 @@ function EntityFormPage({ resourceKey, title }) {
           if (!active) return
           setFormData(getInitialValues(resourceKey, item))
           if (resourceKey === 'foods') setFoodLoadedId(id)
+          if (resourceKey === 'routes') setRouteActivityTypes(Array.isArray(item.activity_types) ? item.activity_types.filter(Boolean) : [])
           if (['routes', 'places', 'stories'].includes(resourceKey)) setAttachedFoodIds(normalizeIdArray(item.food_ids))
           if (resourceKey === 'videos') {
             setVideoAttachments(item)
@@ -220,6 +223,7 @@ function EntityFormPage({ resourceKey, title }) {
         } else {
           setFormData(config.defaultValues)
           setAttachedFoodIds([])
+          setRouteActivityTypes([])
           if (resourceKey === 'videos') {
             setVideoAttachments({})
             setVideoLocationIntent('omit')
@@ -495,13 +499,6 @@ function EntityFormPage({ resourceKey, title }) {
           position: Number(item.position || index + 1),
         }))
       payload.places = places
-      if (payload.path && typeof payload.path === 'string' && payload.path.trim()) {
-        try {
-          payload.path = JSON.parse(payload.path)
-        } catch {
-          // Keep the raw path value if the backend expects a string fallback.
-        }
-      }
     }
 
     if (resourceKey === 'stories') {
@@ -1089,9 +1086,20 @@ function EntityFormPage({ resourceKey, title }) {
           renderField('title'),
           renderField('slug'),
           renderField('summary', 'textarea'),
+          <div key="route-derived-activities" className="form-field">
+            <label>Segment activities (derived)</label>
+            <p className="route-map-muted">
+              {routeActivityTypes.length
+                ? routeActivityTypes.join(', ')
+                : isEdit
+                  ? 'No annotated Segment activities yet. The legacy activity below is used instead.'
+                  : 'Derived after Segments are annotated in the route map editor.'}
+            </p>
+            <p className="route-map-muted">Derived from Segment activities in the route map editor; not editable here.</p>
+          </div>,
           renderField('activity_type', 'select'),
+          <p key="route-legacy-activity-note" className="route-map-muted">Legacy activity — compatibility fallback shown only for Routes without annotated Segment activities.</p>,
           renderField('status', 'select'),
-          renderField('path', 'textarea'),
           <div key="route-stops" className="form-field">
             <label>Ordered stops</label>
             <div className="route-stops-list">

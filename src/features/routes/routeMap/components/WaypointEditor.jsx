@@ -53,6 +53,11 @@ function WaypointEditor({ waypoint, places, onChange, onSave, onCancel }) {
           <input id="waypoint-label" name="label" value={waypoint.label} onChange={handleChange} className="form-input" />
         </div>
 
+        <div className="form-field route-map-wide-field">
+          <label htmlFor="waypoint-description">Description</label>
+          <textarea id="waypoint-description" name="description" value={waypoint.description || ''} onChange={handleChange} className="form-input" rows="4" placeholder="Optional description shown with this Waypoint on the public route map." />
+        </div>
+
         <div className="form-field">
           <label htmlFor="waypoint-type">Type</label>
           <select id="waypoint-type" name="type" value={waypoint.type} onChange={handleChange} className={fieldErrors.type ? 'form-input field-error' : 'form-input'} disabled={typeLocked}>

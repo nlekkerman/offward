@@ -22,6 +22,15 @@ export function formatActivityLabel(value) {
   return value.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
+// All route activities: derived segment activity_types, falling back to the legacy scalar.
+export function getRouteActivityLabels(route) {
+  const derived = Array.isArray(route?.activity_types)
+    ? route.activity_types.filter((value) => typeof value === 'string' && value)
+    : []
+  const values = derived.length ? derived : [route?.activity_type]
+  return [...new Set(values.map(formatActivityLabel).filter(Boolean))]
+}
+
 export function formatPublishedDate(value) {
   if (!value) {
     return null

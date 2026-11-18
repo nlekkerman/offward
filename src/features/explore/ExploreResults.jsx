@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import CountryFlag from '../../shared/components/CountryFlag.jsx'
 import { findCountry } from '../../shared/utils/country.js'
-import { formatActivityLabel, formatCountryLabel } from '../home/latestContentFormatting.js'
+import { formatCountryLabel, getRouteActivityLabels } from '../home/latestContentFormatting.js'
 import { isRenderablePlace } from '../map/mapGeometry.js'
 import LocationPinFallback from '../../shared/components/LocationPinFallback.jsx'
 import { getExplorePreview, getPlacePreview } from './exploreUtils.js'
@@ -14,6 +14,7 @@ export function ExploreCard({ item, mode, countries, selectedId, onSelect, compa
   const title = route ? item.title : item.name
   const country = findCountry(countries, item.country_id || item.country)
   const countryLabel = showCountry && (country?.name || formatCountryLabel(item.country))
+  const activityLabel = route ? getRouteActivityLabels(item).join(' · ') : ''
   const preview = selectedCardImageUrl(item, 'standard') || (route ? getExplorePreview(item) : getPlacePreview(item))
   const hasPreview = Boolean(preview) && preview !== failedPreview
   const mapped = route ? item.is_map_renderable === true : isRenderablePlace(item)
@@ -33,7 +34,7 @@ export function ExploreCard({ item, mode, countries, selectedId, onSelect, compa
           <h3>{title}</h3>
           <div className="explore-discovery-card-meta">
             {countryLabel && <span className="country-identity-inline"><CountryFlag code={country?.code} decorative /><span>{countryLabel}</span></span>}
-            {route && item.activity_type && <span>{formatActivityLabel(item.activity_type)}</span>}
+            {route && activityLabel && <span>{activityLabel}</span>}
           </div>
           {item.summary && <p className="explore-discovery-summary">{item.summary}</p>}
           <span className="explore-discovery-card-detail">Explore {route ? 'route' : 'place'} <span aria-hidden="true">&rarr;</span></span>

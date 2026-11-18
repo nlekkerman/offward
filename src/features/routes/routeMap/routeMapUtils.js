@@ -1,5 +1,7 @@
 export const WAYPOINT_TYPES = ['start', 'via', 'stop', 'finish']
 export const INTERMEDIATE_WAYPOINT_TYPES = ['via', 'stop']
+// Semantic Segment activity annotation; independent from the routing candidate profile.
+export const SEGMENT_ACTIVITY_TYPES = ['walking', 'driving', 'cycling', 'hiking', 'motorcycle', 'boat']
 
 function createDraftSegmentId(order) {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -22,6 +24,7 @@ export function createEmptyWaypoint(order = 1, values = {}) {
     type: order === 1 ? 'start' : 'finish',
     name: values.name || '',
     label: values.label || '',
+    description: values.description || '',
     place_name: values.place_name || '',
     place_id: values.place_id || '',
     latitude: values.latitude === undefined || values.latitude === null ? '' : String(values.latitude),
@@ -56,6 +59,7 @@ export function normalizeWaypoint(waypoint = {}, index = 0) {
     type: WAYPOINT_TYPES.includes(waypoint.type) ? waypoint.type : index === 0 ? 'start' : 'via',
     name: typeof waypoint.name === 'string' ? waypoint.name : '',
     label: waypoint.label || place?.name || '',
+    description: typeof waypoint.description === 'string' ? waypoint.description : '',
     place_name: place?.name || place?.title || '',
     place_id: waypoint.place_id || waypoint.placeId || place?.id || '',
     latitude: latitude === null || latitude === undefined ? '' : String(latitude),
@@ -239,8 +243,8 @@ export function normalizeCandidate(data = {}) {
   } : null
 }
 
-// media_ids is always sent explicitly so unrelated Waypoint edits preserve current attachments
-// and an explicit detach-all is distinguishable from omission.
+// media_ids and description are always sent explicitly so unrelated Waypoint edits preserve
+// current values and an explicit clear is distinguishable from omission.
 export function buildWaypointPayload(waypoints) {
   return waypoints.map((waypoint, index) => ({
     ...(String(waypoint.id).startsWith('new-') ? {} : { id: waypoint.id }),
@@ -252,6 +256,7 @@ export function buildWaypointPayload(waypoints) {
     },
     name: waypoint.name || '',
     label: waypoint.label || '',
+    description: waypoint.description || '',
     place_id: waypoint.place_id || null,
     media_ids: Array.isArray(waypoint.media_ids) ? [...waypoint.media_ids] : [],
     image_collection_ids: Array.isArray(waypoint.image_collection_ids) ? [...waypoint.image_collection_ids] : [],
@@ -271,6 +276,7 @@ export function normalizeSegment(segment = {}, index = 0) {
     end_waypoint_id: segment.end_waypoint_id || segment.endWaypointId || '',
     needs_review: segment.needs_review === true,
     mode: segment.mode || segment.connection_mode || segment.resolution_mode || segment.resolution || '',
+    activity_type: typeof segment.activity_type === 'string' ? segment.activity_type : '',
     story_ids: Array.isArray(segment.story_ids) ? [...segment.story_ids] : [],
     media_ids: Array.isArray(segment.media_ids) ? [...segment.media_ids] : [],
     image_collection_ids: Array.isArray(segment.image_collection_ids) ? [...segment.image_collection_ids] : [],
@@ -299,6 +305,7 @@ export function createEmptySegment(order, startWaypointId = '', endWaypointId = 
     start_waypoint_id: startWaypointId,
     end_waypoint_id: endWaypointId,
     needs_review: false,
+    activity_type: '',
     story_ids: [],
     media_ids: [],
     image_collection_ids: [],
@@ -449,6 +456,8 @@ export function buildSegmentPayload(segments) {
     geometry: segment.geometry,
     start_waypoint_id: segment.start_waypoint_id,
     end_waypoint_id: segment.end_waypoint_id,
+    // Sent explicitly so unrelated bulk Segment updates preserve the annotated activity.
+    activity_type: segment.activity_type || '',
     story_ids: [...segment.story_ids],
     media_ids: [...segment.media_ids],
     image_collection_ids: [...(segment.image_collection_ids || [])],

@@ -52,6 +52,12 @@ function getSummaryValue(item, fieldName, countryRecords = []) {
   return normalizeDisplayValue(value)
 }
 
+function listFieldLabel(field) {
+  if (field === 'activity_type') return 'legacy activity'
+  if (field === 'activity_types') return 'segment activities'
+  return field.replace(/_/g, ' ')
+}
+
 function CountryIdentity({ country, fallback }) {
   const name = country?.name || country?.title || fallback || '—'
 
@@ -131,7 +137,7 @@ function EntityListPage({ resourceKey, title }) {
             <thead role="rowgroup">
               <tr role="row">
                 {tableHeaders.map((field) => (
-                  <th key={field} scope="col" role="columnheader">{field.replace(/_/g, ' ')}</th>
+                  <th key={field} scope="col" role="columnheader">{listFieldLabel(field)}</th>
                 ))}
                 <th scope="col" role="columnheader">Actions</th>
               </tr>
@@ -145,7 +151,7 @@ function EntityListPage({ resourceKey, title }) {
 
                     return (
                       <td key={`${item.id}-${field}`} role="cell">
-                        <span className="management-cell-label" aria-hidden="true">{field.replace(/_/g, ' ')}</span>
+                        <span className="management-cell-label" aria-hidden="true">{listFieldLabel(field)}</span>
                         {isCountryName
                           ? <CountryIdentity country={item} />
                           : field === 'country'

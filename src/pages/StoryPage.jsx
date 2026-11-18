@@ -12,7 +12,7 @@ import { getDetailHeroImage } from '../shared/utils/detailHeroImage.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import CompactRelatedEntityCard from '../shared/components/CompactRelatedEntityCard.jsx'
 import { collectionCount } from '../features/management/imageCollectionUtils.js'
-import { formatActivityLabel } from '../features/home/latestContentFormatting.js'
+import { getRouteActivityLabels } from '../features/home/latestContentFormatting.js'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicPlaces } from '../services/placesApi.js'
 import { getPublicRoutes } from '../services/routesApi.js'
@@ -430,7 +430,7 @@ function StoryPage() {
                   href={`/routes/${encodeURIComponent(route.slug)}`}
                   country={relatedCountry}
                   countryLabel={relatedCountryName}
-                  activityLabel={formatActivityLabel(route.activity_type)}
+                  activityLabel={getRouteActivityLabels(route).join(' · ') || null}
                 />
               )
             })}

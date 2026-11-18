@@ -1,8 +1,14 @@
+import { SEGMENT_ACTIVITY_TYPES } from '../routeMapUtils.js'
+
 function getConnectionState(segment) {
   if (!segment.geometry) return 'Unresolved'
   if (segment.mode === 'manual') return 'Resolved manually'
   if (segment.mode === 'straight') return 'Resolved straight'
   return 'Resolved calculated'
+}
+
+function formatActivityOption(value) {
+  return value.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
 function getConnectionMode(segment) {
@@ -35,6 +41,7 @@ function SegmentList({
   waypointMovePreview,
   onSelect,
   onProfileChange,
+  onActivityChange,
   onCalculate,
   onStartManual,
   onUndoManualPoint,
@@ -88,8 +95,28 @@ function SegmentList({
         <div className="route-connection-controls">
           <div className="route-connection-summary">
             <strong>Waypoint {startOrder} → Waypoint {endOrder}</strong>
-            <span>{getConnectionState(selected.segment)} · {getConnectionMode(selected.segment)}</span>
+            <span>
+              {getConnectionState(selected.segment)} · {getConnectionMode(selected.segment)}
+              {selected.segment.activity_type ? ` · ${formatActivityOption(selected.segment.activity_type)}` : ''}
+            </span>
           </div>
+          {!preview && !drawing && (
+            <div className="route-connection-actions">
+              <label className="route-connection-profile">
+                <span>Activity</span>
+                <select
+                  value={selected.segment.activity_type || ''}
+                  onChange={(event) => onActivityChange(event.target.value)}
+                  disabled={editingDisabled || calculating || saving}
+                  aria-label="Segment activity"
+                >
+                  <option value="">Not specified</option>
+                  {SEGMENT_ACTIVITY_TYPES.map((value) => <option key={value} value={value}>{formatActivityOption(value)}</option>)}
+                </select>
+              </label>
+              <span className="route-map-muted">Semantic activity shown publicly; independent from the routing profile below.</span>
+            </div>
+          )}
           {!preview && !drawing && (
             <div className="route-connection-actions">
               <label className="route-connection-profile">

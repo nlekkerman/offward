@@ -538,6 +538,29 @@ function RouteMapEditorPage() {
     }
   }
 
+  const saveConnectionActivity = async (activityType) => {
+    if (!selectedConnection || editingDisabled) return
+    try {
+      setSaving(true)
+      setError('')
+      setNotice('')
+      // Activity-only PATCH: no geometry change and no candidate recalculation.
+      const result = await routeMapApi.updateSegment(routeId, selectedConnection.id, {
+        expected_map_revision: mapRevision,
+        activity_type: activityType,
+      })
+      if (result.mapRevision !== undefined && result.mapRevision !== null) setMapRevision(result.mapRevision)
+      setSegments((current) => current.map((segment) => String(segment.id) === String(selectedConnection.id)
+        ? { ...segment, activity_type: result.segment?.activity_type ?? activityType }
+        : segment))
+      setNotice('Connection activity saved.')
+    } catch (err) {
+      if (!(await refreshAfterRevisionConflict(err))) setError(getErrorMessage(err, 'Unable to save this connection activity.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const saveWaypointMove = async () => {
     if (!waypointMovePreview || hasUnsavedChanges) return
     const nextWaypoints = waypoints.map((waypoint) => waypoint.id === waypointMovePreview.id
@@ -847,6 +870,7 @@ function RouteMapEditorPage() {
           waypointMovePreview={waypointMovePreview}
           onSelect={selectConnection}
           onProfileChange={setRoutingProfile}
+          onActivityChange={saveConnectionActivity}
           onCalculate={() => calculateConnectionCandidate()}
           onStartManual={startManualConnectionDrawing}
           onUndoManualPoint={undoManualPoint}
