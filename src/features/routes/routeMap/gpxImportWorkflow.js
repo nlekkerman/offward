@@ -1,5 +1,6 @@
 import { managementApis } from '../../../services/management/index.js'
 import { routeMapApi } from '../../../services/management/routeMapApi.js'
+import { isRenderableRoute } from '../../map/mapGeometry.js'
 import { createEmptyWaypoint, normalizeRouteMap, normalizeWaypoints } from './routeMapUtils.js'
 
 export const EXISTING_ROUTE_MESSAGE = 'This route already has map content. GPX replacement or extension is not supported.'
@@ -167,8 +168,11 @@ export function verifyCompletedImport(map, geometry, expected) {
     const rawGeometryMismatch = geometryMismatch(rawSegment?.geometry, geometry)
     failures.push(`Segment ${segment?.geometry == null ? `geometry was unavailable after normalization; raw ${rawGeometryMismatch || 'geometry matches'}` : segmentGeometryMismatch}.`)
   }
-  if (map.route.is_map_renderable !== true) {
-    failures.push(`Route is_map_renderable mismatch: expected true, actual ${diagnosticValue(map.route.is_map_renderable)}.`)
+  if (map.route.geometry_is_current !== true) {
+    failures.push(`Route geometry_is_current mismatch: expected true, actual ${diagnosticValue(map.route.geometry_is_current)}.`)
+  }
+  if (!isRenderableRoute(map.route)) {
+    failures.push('Route geometry is not a renderable LineString with valid coordinates.')
   }
   const routeGeometryMismatch = geometryMismatch(map.route.geometry, geometry)
   if (routeGeometryMismatch) failures.push(`Route ${routeGeometryMismatch}.`)
