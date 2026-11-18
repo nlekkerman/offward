@@ -44,10 +44,17 @@ export function hasExistingImportContent(map) {
     || map.route.acceptedGeometry != null
 }
 
-export function endpointsHaveWaypointPrecision(geometry) {
+export function getWaypointPrecisionEndpoints(geometry) {
   const coordinates = geometry.coordinates
   return [coordinates[0], coordinates[coordinates.length - 1]]
-    .every((point) => point.every((value) => Number(value.toFixed(6)) === value))
+    .map((point) => point.map((value) => Number(value.toFixed(6))))
+}
+
+export function endpointsHaveWaypointPrecision(geometry) {
+  const coordinates = geometry.coordinates
+  const endpoints = [coordinates[0], coordinates[coordinates.length - 1]]
+  return getWaypointPrecisionEndpoints(geometry)
+    .every((point, index) => point.every((value, axis) => value === endpoints[index][axis]))
 }
 
 export function createImportWaypoints(geometry) {
@@ -68,7 +75,7 @@ function verifiedWaypoints(response, geometry) {
   if (waypoints.some((waypoint, index) => waypoint.longitude === '' || waypoint.latitude === ''
     || Number(waypoint.longitude) !== endpoints[index][0]
     || Number(waypoint.latitude) !== endpoints[index][1])) {
-    throw new Error('Stored waypoint coordinates do not exactly match the GPX endpoints. The track was not saved.')
+    throw new Error('Stored waypoint coordinates do not exactly match the import endpoints. The track was not saved.')
   }
   return waypoints
 }

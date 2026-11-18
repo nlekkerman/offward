@@ -6,7 +6,7 @@ import SegmentList from '../../../features/routes/routeMap/components/SegmentLis
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
 import { parseGpxTrack } from '../../../features/routes/routeMap/gpxImport.js'
-import { createImportWaypoints, describeImportState, endpointsHaveWaypointPrecision, EXISTING_ROUTE_MESSAGE, getVerifiedImportMap, hasExistingImportContent, verifyCompletedImport, verifyImportWaypoints } from '../../../features/routes/routeMap/gpxImportWorkflow.js'
+import { createImportWaypoints, describeImportState, endpointsHaveWaypointPrecision, EXISTING_ROUTE_MESSAGE, getVerifiedImportMap, getWaypointPrecisionEndpoints, hasExistingImportContent, verifyCompletedImport, verifyImportWaypoints } from '../../../features/routes/routeMap/gpxImportWorkflow.js'
 import ContentVideoManager from '../../../features/video/ContentVideoManager.jsx'
 import { assembleRouteSegmentGeometry, buildManualSegmentGeometry, buildWaypointPayload, createEmptyWaypoint, deriveWaypointPairs, getPlaceCoordinates, getRouteMapStatus, normalizeRouteMap, normalizeWaypoints, reorderWaypoints, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
 import { managementApis } from '../../../services/management/index.js'
@@ -104,6 +104,7 @@ function RouteMapEditorPage() {
   const [calculating, setCalculating] = useState(false)
   const [gpxPreview, setGpxPreview] = useState(null)
   const [readingGpx, setReadingGpx] = useState(false)
+  const [endpointAdjustmentConfirmed, setEndpointAdjustmentConfirmed] = useState(false)
   const importInProgress = useRef(false)
 
   useEffect(() => {
@@ -114,6 +115,7 @@ function RouteMapEditorPage() {
         setLoading(true)
         setError('')
         setGpxPreview(null)
+        setEndpointAdjustmentConfirmed(false)
         const [routeData, routeMapData, placesData] = await Promise.all([
           managementApis.routes.getById(routeId),
           routeMapApi.getCanonicalMap(routeId),
@@ -194,6 +196,7 @@ function RouteMapEditorPage() {
     || route?.accepted_geometry != null || route?.acceptedGeometry != null
   const importUnavailable = routeHasContent || routeGeometryUnknown
   const gpxPrecisionValid = gpxPreview ? endpointsHaveWaypointPrecision(gpxPreview.geometry) : false
+  const proposedEndpoints = gpxPreview ? getWaypointPrecisionEndpoints(gpxPreview.geometry) : null
   const gpxWaypoints = useMemo(() => gpxPreview ? createImportWaypoints(gpxPreview.geometry) : [], [gpxPreview])
   const reviewDisabledReason = hasUnsavedChanges
     ? 'Save waypoint changes before reviewing the Route.'
@@ -301,6 +304,7 @@ function RouteMapEditorPage() {
     event.target.value = ''
     if (!file) return
     setGpxPreview(null)
+    setEndpointAdjustmentConfirmed(false)
     setError('')
     setNotice('')
     if (!file.name.toLowerCase().endsWith('.gpx')) {
@@ -319,7 +323,7 @@ function RouteMapEditorPage() {
   }
 
   const saveGpxImport = async () => {
-    if (!gpxPreview || !gpxPrecisionValid || importUnavailable || importBlockedByEdit || saving || importInProgress.current) return
+    if (!gpxPreview || (!gpxPrecisionValid && !endpointAdjustmentConfirmed) || importUnavailable || importBlockedByEdit || saving || importInProgress.current) return
     importInProgress.current = true
     let writeStarted = false
     try {
@@ -329,24 +333,36 @@ function RouteMapEditorPage() {
       const before = await getVerifiedImportMap(routeId)
       await refreshCanonicalMap(before)
       if (hasExistingImportContent(before)) throw new Error(EXISTING_ROUTE_MESSAGE)
-      if (!window.confirm('Import this GPX track? Start and finish waypoints and a manual connection will be saved.')) return
+      const confirmation = gpxPrecisionValid
+        ? 'Import this GPX track? Start and finish waypoints and a manual connection will be saved.'
+        : 'Import this GPX track with the proposed six-decimal endpoint adjustments? Only the first and last coordinates will change; all intermediate coordinates will be preserved.'
+      if (!window.confirm(confirmation)) return
+
+      const importGeometry = gpxPrecisionValid ? gpxPreview.geometry : {
+        type: 'LineString',
+        coordinates: gpxPreview.geometry.coordinates.map((point, index, coordinates) =>
+          index === 0 ? proposedEndpoints[0] : index === coordinates.length - 1 ? proposedEndpoints[1] : point),
+      }
 
       writeStarted = true
-      const result = await routeMapApi.updateWaypoints(routeId, gpxWaypoints, normalizeRouteMap(before).mapRevision)
+      const result = await routeMapApi.updateWaypoints(routeId, createImportWaypoints(importGeometry), normalizeRouteMap(before).mapRevision)
       const created = await getVerifiedImportMap(routeId)
       await refreshCanonicalMap(created)
-      const expected = verifyImportWaypoints(result.waypointResponse, created, gpxPreview.geometry)
+      const expected = verifyImportWaypoints(result.waypointResponse, created, importGeometry)
       await routeMapApi.updateSegment(routeId, expected.segment.id, {
         action: 'save_manual',
-        geometry: gpxPreview.geometry,
+        geometry: importGeometry,
         expected_map_revision: expected.revision,
       })
       const completed = await getVerifiedImportMap(routeId)
       await refreshCanonicalMap(completed)
-      verifyCompletedImport(completed, gpxPreview.geometry, expected)
+      verifyCompletedImport(completed, importGeometry, expected)
       setGpxPreview(null)
+      setEndpointAdjustmentConfirmed(false)
       setActivePanel('connections')
-      setNotice('GPX imported. The manual connection and route geometry were verified.')
+      setNotice(gpxPrecisionValid
+        ? 'GPX imported. The manual connection and route geometry were verified.'
+        : 'GPX imported and verified. Only endpoint precision was adjusted; all intermediate coordinates were preserved.')
     } catch (err) {
       const reason = err?.response?.status === 409
         ? 'The route changed during import (revision conflict). No write was retried.'
@@ -1014,10 +1030,23 @@ function RouteMapEditorPage() {
           {gpxPreview && (
             <>
               <p>{gpxPreview.name}: {gpxPreview.rawPointCount} coordinates. Start and finish are marked on the map.</p>
-              {!gpxPrecisionValid && <p role="alert">The start or finish has more than six decimal places. Waypoint storage would change the endpoint; import is blocked. No coordinates will be rounded automatically.</p>}
+              {!gpxPrecisionValid && (
+                <div>
+                  <p>The start or finish cannot be stored exactly at six-decimal waypoint precision. The map shows the original track. Only the first and last coordinates will be adjusted; every intermediate coordinate will remain unchanged.</p>
+                  {['Start', 'Finish'].map((label, index) => {
+                    const original = index === 0 ? gpxPreview.geometry.coordinates[0] : gpxPreview.geometry.coordinates[gpxPreview.geometry.coordinates.length - 1]
+                    const proposed = proposedEndpoints[index]
+                    return <p key={label}>{label}: original longitude {original[0]}, latitude {original[1]}; proposed longitude {proposed[0].toFixed(6)}, latitude {proposed[1].toFixed(6)}.</p>
+                  })}
+                  <label>
+                    <input type="checkbox" checked={endpointAdjustmentConfirmed} onChange={(event) => setEndpointAdjustmentConfirmed(event.target.checked)} disabled={saving} />
+                    I confirm the proposed endpoint precision adjustments.
+                  </label>
+                </div>
+              )}
               <div className="route-map-actions">
-                <button type="button" className="primary-button" onClick={saveGpxImport} disabled={saving || readingGpx || importUnavailable || !gpxPrecisionValid}>{saving ? 'Importing...' : 'Save GPX import'}</button>
-                <button type="button" className="secondary-button" onClick={() => { setGpxPreview(null); setActivePanel(''); setError(''); setNotice('GPX preview cancelled. No additional changes were saved.') }} disabled={saving || readingGpx}>Cancel preview</button>
+                <button type="button" className="primary-button" onClick={saveGpxImport} disabled={saving || readingGpx || importUnavailable || (!gpxPrecisionValid && !endpointAdjustmentConfirmed)}>{saving ? 'Importing...' : 'Save GPX import'}</button>
+                <button type="button" className="secondary-button" onClick={() => { setGpxPreview(null); setEndpointAdjustmentConfirmed(false); setActivePanel(''); setError(''); setNotice('GPX preview cancelled. No additional changes were saved.') }} disabled={saving || readingGpx}>Cancel preview</button>
               </div>
             </>
           )}
