@@ -279,7 +279,6 @@ function StoryPage() {
           {story.excerpt && <p className="story-detail-excerpt">{story.excerpt}</p>}
         </header>
       </DetailHero>
-      <Link className="route-detail-back" to="/explore?view=stories">Back to Explore</Link>
 
       {story.body && (
         <div className="story-detail-body">
@@ -432,6 +431,7 @@ function StoryPage() {
         </section>
       )}
       <RelatedFood foodIds={story.food_ids} />
+      <Link className="route-detail-back" to="/explore?view=stories">Back to Explore</Link>
     </section>
   )
 }
