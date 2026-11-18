@@ -7,7 +7,7 @@ function routeMapPath(routeId, suffix = '') {
 
 function getExpectedMapRevision(mapRevision) {
   if (mapRevision === undefined || mapRevision === null || mapRevision === '') {
-    throw new Error('A current Route map revision is required to save waypoints.')
+    throw new Error('A current Route map revision is required.')
   }
 
   const revision = Number(mapRevision)
@@ -89,6 +89,13 @@ export const routeMapApi = {
       candidate: normalizeCandidate(data),
       mapRevision: data?.map_revision,
     }
+  },
+  acceptGeometry: async (routeId, candidateGeometry, mapRevision) => {
+    const { data } = await apiClient.post(routeMapPath(routeId, 'accept-geometry/'), {
+      expected_map_revision: getExpectedMapRevision(mapRevision),
+      candidate_geometry: candidateGeometry,
+    })
+    return data
   },
   updateSegment: async (routeId, segmentId, payload) => {
     const { data } = await apiClient.patch(routeMapPath(routeId, `segments/${segmentId}/`), payload)

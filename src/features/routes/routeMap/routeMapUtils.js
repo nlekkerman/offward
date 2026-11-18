@@ -274,7 +274,7 @@ export function normalizeSegment(segment = {}, index = 0) {
     geometry: normalizeGeometry(segment.geometry),
     start_waypoint_id: segment.start_waypoint_id || segment.startWaypointId || '',
     end_waypoint_id: segment.end_waypoint_id || segment.endWaypointId || '',
-    needs_review: segment.needs_review === true,
+    needs_review: typeof segment.needs_review === 'boolean' ? segment.needs_review : null,
     mode: segment.mode || segment.connection_mode || segment.resolution_mode || segment.resolution || '',
     activity_type: typeof segment.activity_type === 'string' ? segment.activity_type : '',
     story_ids: Array.isArray(segment.story_ids) ? [...segment.story_ids] : [],
@@ -326,6 +326,44 @@ export function deriveWaypointPairs(waypoints) {
       end_waypoint_id: endWaypoint.id,
     }
   })
+}
+
+export function assembleRouteSegmentGeometry(waypoints, segments) {
+  const validation = validateWaypoints(waypoints)
+  if (!validation.valid) return { geometry: null, message: validation.message }
+
+  const orderedWaypoints = [...waypoints].sort((a, b) => a.order - b.order)
+  const orderedSegments = [...segments].sort((a, b) => a.order - b.order)
+  if (orderedSegments.length !== orderedWaypoints.length - 1) {
+    return { geometry: null, message: 'Every consecutive waypoint pair must have exactly one saved connection.' }
+  }
+
+  const coordinates = []
+  for (let index = 0; index < orderedSegments.length; index += 1) {
+    const segment = orderedSegments[index]
+    const start = orderedWaypoints[index]
+    const end = orderedWaypoints[index + 1]
+    const geometry = segment.geometry
+    if (!segment.id || String(segment.id).startsWith('new-')
+      || segment.start_waypoint_id !== start.id || segment.end_waypoint_id !== end.id
+      || !isValidLineString(geometry)
+      || !geometry.coordinates.every((point) => typeof point[0] === 'number' && typeof point[1] === 'number')) {
+      return { geometry: null, message: `Connection ${index + 1} is unresolved or does not match its waypoint pair.` }
+    }
+
+    const first = geometry.coordinates[0]
+    const last = geometry.coordinates[geometry.coordinates.length - 1]
+    if (first[0] !== Number(start.longitude) || first[1] !== Number(start.latitude)
+      || last[0] !== Number(end.longitude) || last[1] !== Number(end.latitude)) {
+      return { geometry: null, message: `Connection ${index + 1} does not meet its waypoint coordinates exactly.` }
+    }
+
+    for (const point of index === 0 ? geometry.coordinates : geometry.coordinates.slice(1)) {
+      coordinates.push(point)
+    }
+  }
+
+  return { geometry: { type: 'LineString', coordinates }, message: '' }
 }
 
 export function deriveSegmentGeometry(acceptedGeometry, startWaypoint, endWaypoint) {

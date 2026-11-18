@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import RouteAuthoringMap from '../../../features/map/components/RouteAuthoringMap.jsx'
 import RouteGeometryLegend from '../../../features/routes/routeMap/components/RouteGeometryLegend.jsx'
@@ -6,7 +6,7 @@ import SegmentList from '../../../features/routes/routeMap/components/SegmentLis
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
 import ContentVideoManager from '../../../features/video/ContentVideoManager.jsx'
-import { buildManualSegmentGeometry, buildWaypointPayload, createEmptyWaypoint, deriveWaypointPairs, getPlaceCoordinates, getRouteMapStatus, normalizeRouteMap, normalizeWaypoints, reorderWaypoints, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
+import { assembleRouteSegmentGeometry, buildManualSegmentGeometry, buildWaypointPayload, createEmptyWaypoint, deriveWaypointPairs, getPlaceCoordinates, getRouteMapStatus, normalizeRouteMap, normalizeWaypoints, reorderWaypoints, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
 import { managementApis } from '../../../services/management/index.js'
 import { routeMapApi } from '../../../services/management/routeMapApi.js'
 
@@ -27,6 +27,11 @@ function getRouteMapRevision(route, waypointMap) {
     .find((revision) => revision !== undefined && revision !== null && revision !== '') ?? ''
 }
 
+function isValidMapRevision(revision) {
+  return revision !== '' && revision !== null && revision !== undefined
+    && Number.isSafeInteger(Number(revision)) && Number(revision) >= 0
+}
+
 function getCandidateExpiry(candidate) {
   const expiry = new Date(candidate.expiresAt).getTime()
   return Number.isFinite(expiry) ? expiry : Date.now() + 15 * 60 * 1000
@@ -34,6 +39,23 @@ function getCandidateExpiry(candidate) {
 
 function getWaypointSignature(waypoints) {
   return JSON.stringify(buildWaypointPayload(waypoints))
+}
+
+function getReviewSnapshot(waypoints, segments, revision) {
+  return JSON.stringify({
+    revision: Number(revision),
+    waypoints: waypoints.map(({ id, order, latitude, longitude }) => ({ id, order, latitude, longitude })),
+    segments: segments.map(({ id, order, start_waypoint_id, end_waypoint_id, geometry, needs_review }) => ({
+      id, order, start_waypoint_id, end_waypoint_id, geometry, needs_review,
+    })),
+  })
+}
+
+function reviewStateChanged(current, initial) {
+  return current.snapshot !== initial.snapshot
+    || current.waypointSignature !== initial.waypointSignature
+    || current.hasUnsavedChanges || current.connectionPreview || current.manualDrawing
+    || current.waypointMovePreview || current.addMode || current.calculating || current.quickEditSaving
 }
 
 function getPlaceCreateErrors(err) {
@@ -156,6 +178,36 @@ function RouteMapEditorPage() {
     }
   }), [segments, savedWaypoints, waypointPairs])
   const routeMapStatus = getRouteMapStatus(route, connections)
+  const reviewCount = segments.filter((segment) => segment.needs_review === true).length
+  const reviewGeometry = assembleRouteSegmentGeometry(waypoints, segments)
+  const hasUnknownReviewStatus = segments.some((segment) => typeof segment.needs_review !== 'boolean')
+  const hasValidRevision = isValidMapRevision(mapRevision)
+  const reviewDisabledReason = hasUnsavedChanges
+    ? 'Save waypoint changes before reviewing the Route.'
+    : hasUnknownReviewStatus
+      ? 'Segment review status is unavailable. Refresh the Route before accepting it.'
+      : !reviewGeometry.geometry
+        ? reviewGeometry.message
+        : !hasValidRevision
+          ? 'The current Route map revision is unavailable.'
+          : connectionPreview || manualDrawing || waypointMovePreview || addMode
+            ? 'Finish or cancel the current map edit before reviewing the Route.'
+            : ''
+  const reviewDisabled = Boolean(reviewDisabledReason || saving || calculating || quickEditSaving)
+  const reviewState = useRef(null)
+  useEffect(() => {
+    reviewState.current = {
+      snapshot: getReviewSnapshot(waypoints, segments, mapRevision),
+      waypointSignature: getWaypointSignature(waypoints),
+      hasUnsavedChanges,
+      connectionPreview,
+      manualDrawing,
+      waypointMovePreview,
+      addMode,
+      calculating,
+      quickEditSaving,
+    }
+  }, [waypoints, segments, mapRevision, hasUnsavedChanges, connectionPreview, manualDrawing, waypointMovePreview, addMode, calculating, quickEditSaving])
   const selectedConnection = useMemo(() => connections.find((connection) => connection.id === selectedConnectionId), [connections, selectedConnectionId])
   const drawingConnection = useMemo(() => connections.find((connection) => connection.id === manualDrawing?.connectionId), [connections, manualDrawing?.connectionId])
   const editingDisabled = hasUnsavedChanges
@@ -198,8 +250,8 @@ function RouteMapEditorPage() {
     setNotice('Waypoint move preview. Save or cancel to continue.')
   }
 
-  const refreshCanonicalMap = async () => {
-    const canonicalMap = await routeMapApi.getCanonicalMap(routeId)
+  const refreshCanonicalMap = async (map) => {
+    const canonicalMap = map || await routeMapApi.getCanonicalMap(routeId)
     const normalizedMap = normalizeRouteMap(canonicalMap)
     setRoute((current) => ({ ...(current || {}), ...canonicalMap.route }))
     setWaypoints(normalizedMap.waypoints)
@@ -220,11 +272,11 @@ function RouteMapEditorPage() {
     return canonicalMap
   }
 
-  const refreshAfterRevisionConflict = async (err) => {
+  const refreshAfterRevisionConflict = async (err, message) => {
     if (err?.response?.status !== 409) return false
     try {
       await refreshCanonicalMap()
-      setError(getErrorMessage(err, 'The route changed. The latest map is shown.'))
+      setError(message || getErrorMessage(err, 'The route changed. The latest map is shown.'))
     } catch (refreshErr) {
       setError(getErrorMessage(refreshErr, 'Unable to refresh the route after a revision conflict.'))
     }
@@ -561,6 +613,78 @@ function RouteMapEditorPage() {
     }
   }
 
+  const reviewAndAcceptRoute = async () => {
+    if (reviewDisabled || reviewCount === 0) return
+    const initialState = reviewState.current
+    let accepted = false
+    try {
+      setSaving(true)
+      setError('')
+      setNotice('')
+      const before = await managementApis.routes.getById(routeId)
+      const freshMap = await routeMapApi.getCanonicalMap(routeId)
+      const freshWaypoints = normalizeRouteMap(freshMap).waypoints
+      const freshRevision = normalizeRouteMap(freshMap).mapRevision
+      const after = await managementApis.routes.getById(routeId)
+      const currentState = reviewState.current
+      if (reviewStateChanged(currentState, initialState)) {
+        setError('The editor changed while the Route was being refreshed. Review it again before accepting.')
+        return
+      }
+
+      const beforeRevision = getRouteMapRevision(before)
+      const afterRevision = getRouteMapRevision(after)
+      if (![beforeRevision, freshRevision, afterRevision].every(isValidMapRevision)) {
+        setError('The current Route map revision could not be verified. Refresh before accepting.')
+        return
+      }
+      if (Number(beforeRevision) !== Number(freshRevision) || Number(freshRevision) !== Number(afterRevision)) {
+        await refreshCanonicalMap()
+        setError('The Route changed while it was being refreshed. Review the refreshed connections before accepting.')
+        return
+      }
+      if (getReviewSnapshot(freshWaypoints, freshMap.segments, freshRevision) !== initialState.snapshot) {
+        await refreshCanonicalMap(freshMap)
+        setError('The Route changed. Review the refreshed connections before accepting.')
+        return
+      }
+      const assembled = assembleRouteSegmentGeometry(freshWaypoints, freshMap.segments)
+      if (!assembled.geometry || freshMap.segments.some((segment) => typeof segment.needs_review !== 'boolean')
+        || !freshMap.segments.some((segment) => segment.needs_review === true)) {
+        setError(assembled.message || 'The current segment review status cannot be accepted. Refresh and review the Route.')
+        return
+      }
+      if (!window.confirm(`Accept the Route and clear review status for ${reviewCount} connection${reviewCount === 1 ? '' : 's'}? Segment paths will be preserved.`)) return
+
+      await routeMapApi.acceptGeometry(routeId, assembled.geometry, freshRevision)
+      accepted = true
+      const refreshed = await routeMapApi.getCanonicalMap(routeId)
+      const latestState = reviewState.current
+      if (reviewStateChanged(latestState, initialState)) {
+        setError('Route acceptance was submitted, but the editor changed during the request. Save or discard your edits and refresh to confirm the review flags.')
+        return
+      }
+      await refreshCanonicalMap(refreshed)
+      const expectedIds = new Set(freshMap.segments.map((segment) => segment.id))
+      if (refreshed.segments.length !== expectedIds.size
+        || refreshed.segments.some((segment) => !expectedIds.has(segment.id) || segment.needs_review !== false)) {
+        setError('Route acceptance was submitted, but the refreshed segment review flags could not all be confirmed cleared. Review the current Route.')
+        return
+      }
+      setNotice('Route accepted. All segment review flags are cleared.')
+    } catch (err) {
+      if (accepted) {
+        setError('Route acceptance was submitted, but the Route could not be refreshed to confirm the review flags. Refresh the editor.')
+      } else if (err?.response?.status === 409 && reviewStateChanged(reviewState.current, initialState)) {
+        setError('The Route changed and was not accepted. Save or discard your edits and refresh before reviewing again.')
+      } else if (!(await refreshAfterRevisionConflict(err, 'The Route changed. Review the refreshed connections before accepting.'))) {
+        setError(getErrorMessage(err, 'Unable to accept the Route. No review status has been confirmed.'))
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const saveWaypointMove = async () => {
     if (!waypointMovePreview || hasUnsavedChanges) return
     const nextWaypoints = waypoints.map((waypoint) => waypoint.id === waypointMovePreview.id
@@ -860,6 +984,9 @@ function RouteMapEditorPage() {
         <SegmentList
           connections={connections}
           routeComplete={routeMapStatus.isComplete}
+          reviewCount={reviewCount}
+          reviewDisabled={reviewDisabled}
+          reviewDisabledReason={reviewDisabledReason}
           selectedConnectionId={selectedConnectionId}
           profile={routingProfile}
           editingDisabled={editingDisabled}
@@ -882,6 +1009,7 @@ function RouteMapEditorPage() {
           onRecalculate={() => calculateConnectionCandidate(selectedConnection?.id, connectionPreview?.profile || routingProfile)}
           onSaveWaypointMove={saveWaypointMove}
           onCancelWaypointMove={() => { setWaypointMovePreview(null); setNotice('Waypoint movement cancelled.') }}
+          onReviewRoute={reviewAndAcceptRoute}
         />
       )}
 

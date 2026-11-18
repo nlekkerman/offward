@@ -31,6 +31,9 @@ function formatPreviewMetrics(preview) {
 function SegmentList({
   connections,
   routeComplete,
+  reviewCount,
+  reviewDisabled,
+  reviewDisabledReason,
   selectedConnectionId,
   profile,
   editingDisabled,
@@ -53,13 +56,11 @@ function SegmentList({
   onRecalculate,
   onSaveWaypointMove,
   onCancelWaypointMove,
+  onReviewRoute,
 }) {
   const selected = connections.find((connection) => connection.id === selectedConnectionId)
   const startOrder = selected?.start?.order
   const endOrder = selected?.end?.order
-  // Review status is tracked separately from the renderability-based completion badge.
-  const reviewCount = connections.filter((connection) => connection.segment.needs_review === true).length
-
   return (
     <section className="route-map-panel route-connection-editor" aria-label="Connection editor">
       <div className="route-map-panel-header">
@@ -76,6 +77,15 @@ function SegmentList({
           </span>
         </div>
       </div>
+
+      {reviewCount > 0 && (
+        <div className="route-connection-actions">
+          <button type="button" className="primary-button small-button" onClick={onReviewRoute} disabled={reviewDisabled}>
+            {saving ? 'Working…' : 'Review & Accept Route'}
+          </button>
+          {reviewDisabledReason && <span className="route-map-muted">{reviewDisabledReason}</span>}
+        </div>
+      )}
 
       {connections.length > 0 && (
         <div className="route-connection-list" role="listbox" aria-label="Select a waypoint connection">
@@ -111,7 +121,7 @@ function SegmentList({
           </div>
           {selected.segment.needs_review === true && !preview && !drawing && (
             <span className="route-map-muted">
-              The accepted Route geometry changed after this connection was saved. To approve it, re-save its path: Calculate then Accept, or save a manual or straight path.
+              Review the connections, then accept the complete Route to clear pending reviews without changing their paths.
             </span>
           )}
           {!preview && !drawing && (
