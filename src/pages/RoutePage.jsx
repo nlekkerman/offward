@@ -104,25 +104,15 @@ function getMapEntityDetailPath(routeSlug, detail) {
   return null
 }
 
-function RouteTrackingLocation({ enabled, position, permissionContainer, showPermissionControl, onPermissionPending, ...layerProps }) {
-  const { heading, permission, requestCompass } = useRouteHeading(enabled, position)
-  const showPermission = enabled && permission !== 'not-required' && permission !== 'granted'
-
-  const enableCompass = async () => {
-    onPermissionPending(true)
-    try {
-      await requestCompass()
-    } finally {
-      onPermissionPending(false)
-    }
-  }
+function RouteTrackingLocation({ enabled, position, heading, permission, permissionPending, permissionContainer, showPermissionControl, onEnableCompass, ...layerProps }) {
+  const showPermission = enabled && !permissionPending && permission !== 'not-required' && permission !== 'granted'
 
   return (
     <>
       <RouteUserLocationLayer position={position} heading={heading} markerPane="route-user-marker" {...layerProps} />
       {showPermission && permissionContainer && createPortal(
         <div>
-          {showPermissionControl && <button type="button" className="route-directions-mode" onClick={enableCompass}>
+          {showPermissionControl && <button type="button" className="route-directions-mode" onClick={onEnableCompass}>
             Enable compass
           </button>}
           {(permission === 'denied' || permission === 'error') && (
@@ -235,6 +225,7 @@ function RoutePage() {
   const [locationCenterRequest, setLocationCenterRequest] = useState(0)
   const [compassPermissionContainer, setCompassPermissionContainer] = useState(null)
   const [compassPermissionPending, setCompassPermissionPending] = useState(false)
+  const compassPermissionPendingRef = useRef(false)
   const [navigationMenuOpen, setNavigationMenuOpen] = useState(true)
   const [navigationInteraction, setNavigationInteraction] = useState(false)
   const [navigationKeyboardFocus, setNavigationKeyboardFocus] = useState(false)
@@ -265,6 +256,7 @@ function RoutePage() {
     stop: stopLocation,
     locate: locateLocation,
   } = useUserLocation(handleLocationUpdate)
+  const { heading, permission: compassPermission, requestCompass } = useRouteHeading(locationActive, userPosition)
   const directionsSessionActive = navigationState !== 'idle'
   const compactNavigationWaypoints = !directionsSessionActive && independentTracking && isMobileDevice()
   const { containerRef: fullscreenRef, fullscreen, enterFullscreen, exitFullscreen, permissionPending: fullscreenPending } =
@@ -573,6 +565,17 @@ function RoutePage() {
   const locateCurrentPosition = () => {
     locateLocation(() => setLocationCenterRequest((current) => current + 1))
   }
+  const enableCompass = async () => {
+    if (compassPermissionPendingRef.current) return
+    compassPermissionPendingRef.current = true
+    setCompassPermissionPending(true)
+    try {
+      await requestCompass()
+    } finally {
+      compassPermissionPendingRef.current = false
+      setCompassPermissionPending(false)
+    }
+  }
   const startFollowing = (countActivation = true) => {
     if (isMobileDevice()) clearHoveredWaypoint()
     if (countActivation) trackInteraction('track', 'route', route?.id)
@@ -794,7 +797,9 @@ function RoutePage() {
                   type="button"
                   className={`public-map-action public-map-action-directions${directionsActive ? ' is-active' : ''}`}
                   onClick={directionsActive ? stopDirections : () => {
-                    if (!independentTracking) enterFullscreen()
+                    const needsCompassPermission = compassPermission === 'prompt' || compassPermissionPendingRef.current
+                    if (compassPermission === 'prompt') enableCompass()
+                    if (!independentTracking) enterFullscreen(!needsCompassPermission)
                     startDirections()
                   }}
                   aria-describedby={directionsStatus ? 'route-directions-feedback' : undefined}
@@ -819,7 +824,9 @@ function RoutePage() {
                   type="button"
                   className={`public-map-action public-map-action-track${independentTracking ? ' is-active' : ''}`}
                   onClick={independentTracking ? stopFollowing : () => {
-                    if (!directionsActive) enterFullscreen()
+                    const needsCompassPermission = compassPermission === 'prompt' || compassPermissionPendingRef.current
+                    if (compassPermission === 'prompt') enableCompass()
+                    if (!directionsActive) enterFullscreen(!needsCompassPermission)
                     startFollowing()
                   }}
                   aria-label={independentTracking ? 'Stop continuous location tracking' : 'Start continuous location tracking'}
@@ -959,9 +966,12 @@ function RoutePage() {
                 <RouteTrackingLocation
                   enabled={locationActive}
                   position={userPosition}
+                  heading={heading}
+                  permission={compassPermission}
+                  permissionPending={compassPermissionPending}
                   permissionContainer={compassPermissionContainer}
                   showPermissionControl={!directionsActive || navigationMenuOpen}
-                  onPermissionPending={setCompassPermissionPending}
+                  onEnableCompass={enableCompass}
                   followEnabled={locationFollowing && Boolean(userPosition)}
                   recenterRequest={recenterRequest}
                   centerRequest={locationCenterRequest}

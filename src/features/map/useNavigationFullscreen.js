@@ -47,14 +47,14 @@ function useNavigationFullscreen(navigationActive) {
     }
   }, [])
 
-  const enterFullscreen = useCallback(() => {
+  const enterFullscreen = useCallback((allowNative = true) => {
     const container = containerRef.current
     if (!container || activeRef.current || !isMobileDevice()) return
 
     const generation = ++generationRef.current
     activeRef.current = true
     setFullscreen(true)
-    if (!container.requestFullscreen || document.fullscreenElement) return
+    if (!allowNative || !container.requestFullscreen || document.fullscreenElement) return
 
     let request
     setPermissionPending(true)
