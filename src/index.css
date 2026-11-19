@@ -5048,6 +5048,10 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   margin-left: 0;
 }
 
+.place-navigation-controls {
+  display: contents;
+}
+
 .place-map-controls .public-map-action-bar {
   display: flex;
   width: 100%;
@@ -5822,5 +5826,153 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
   .app-shell-public .app-header.mobile-menu-open nav {
     pointer-events: auto;
+  }
+}
+
+html.offward-navigation-fullscreen {
+  overflow: hidden;
+}
+
+.offward-navigation-fullscreen .app-shell-public > main {
+  position: relative;
+  z-index: 100;
+}
+
+.app-shell-public .route-map-section.is-navigation-fullscreen,
+.app-shell-public .place-detail-map-section.is-navigation-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #191b17;
+}
+
+.is-navigation-fullscreen > .route-map-heading,
+.is-navigation-fullscreen > .place-navigation-controls {
+  position: absolute;
+  top: max(0.5rem, env(safe-area-inset-top));
+  left: max(0.5rem, env(safe-area-inset-left));
+  z-index: 1100;
+  display: grid;
+  gap: 0.35rem;
+  width: min(20rem, 42%);
+  max-height: calc(100% - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)));
+  margin: 0;
+  padding: 0.35rem;
+  overflow: auto;
+  border-radius: 0.5rem;
+  background: rgba(18, 21, 16, 0.94);
+}
+
+.is-navigation-fullscreen > .route-map-heading > h2,
+.place-detail-map-section.is-navigation-fullscreen > .route-map-heading,
+.is-navigation-fullscreen > .route-map-message {
+  display: none;
+}
+
+.is-navigation-fullscreen .public-map-controls {
+  justify-items: start;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  gap: 0.25rem;
+}
+
+.is-navigation-fullscreen .public-map-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 0.25rem;
+}
+
+.is-navigation-fullscreen .public-map-action,
+.is-navigation-fullscreen .public-map-recenter,
+.is-navigation-fullscreen .route-directions-mode {
+  min-height: 44px;
+  padding: 0.3rem 0.4rem;
+  font: 600 0.72rem/1.2 sans-serif;
+}
+
+.is-navigation-fullscreen .public-map-action {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.is-navigation-fullscreen .public-map-secondary-controls {
+  justify-content: flex-start;
+  gap: 0.25rem;
+}
+
+.is-navigation-fullscreen .route-directions-feedback {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.is-navigation-fullscreen .place-directions-summary {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.4rem;
+}
+
+.is-navigation-fullscreen .place-directions-summary-description {
+  display: block;
+  overflow: visible;
+}
+
+.is-navigation-fullscreen > .route-arrival-panel {
+  position: absolute;
+  z-index: 1100;
+  width: min(20rem, 42%);
+  min-width: 0;
+  margin: 0;
+  overflow: auto;
+}
+
+.has-fullscreen-arrival > .route-map-heading {
+  max-height: 42%;
+}
+
+.is-navigation-fullscreen > .route-arrival-panel {
+  left: max(0.5rem, env(safe-area-inset-left));
+  bottom: max(0.5rem, env(safe-area-inset-bottom));
+  max-height: calc(58% - 1.5rem - env(safe-area-inset-bottom));
+}
+
+.navigation-fullscreen-exit {
+  position: absolute;
+  top: max(0.5rem, env(safe-area-inset-top));
+  right: max(0.5rem, env(safe-area-inset-right));
+  z-index: 1200;
+  min-height: 44px;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #d8b47c;
+  border-radius: 0.4rem;
+  background: #171b18;
+  color: #f2ece4;
+  font: 700 0.76rem/1.2 sans-serif;
+  cursor: pointer;
+}
+
+.navigation-fullscreen-exit:focus-visible {
+  outline: 2px solid #d8b47c;
+  outline-offset: 2px;
+}
+
+@media (orientation: portrait) {
+  .is-navigation-fullscreen > .route-map-heading,
+  .is-navigation-fullscreen > .place-navigation-controls,
+  .is-navigation-fullscreen > .route-arrival-panel {
+    width: min(20rem, 55%);
   }
 }

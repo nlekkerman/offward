@@ -8,6 +8,7 @@ import MapView from '../features/map/components/MapView.jsx'
 import PlaceDirectionsLayer from '../features/map/components/PlaceDirectionsLayer.jsx'
 import RouteDirectionsLayer from '../features/map/components/RouteDirectionsLayer.jsx'
 import RouteUserLocationLayer from '../features/map/components/RouteUserLocationLayer.jsx'
+import useNavigationFullscreen from '../features/map/useNavigationFullscreen.js'
 import { isRenderablePlace, isRenderableRoute, isValidLatitude, isValidLongitude } from '../features/map/mapGeometry.js'
 import { getCountries } from '../services/countriesApi.js'
 import { getPublicImageCollection } from '../services/imageCollectionsApi.js'
@@ -153,6 +154,8 @@ function PlacePage() {
   const [directionsOrigin, setDirectionsOrigin] = useState(null)
   const [initialMarkerDistanceKm, setInitialMarkerDistanceKm] = useState(null)
   const [independentTracking, setIndependentTracking] = useState(false)
+  const { containerRef: fullscreenRef, fullscreen, enterFullscreen, exitFullscreen } =
+    useNavigationFullscreen(directionsActive || independentTracking)
   const [accessPathVisible, setAccessPathVisible] = useState(false)
   const [locationFollowing, setLocationFollowing] = useState(false)
   const [recenterRequest, setRecenterRequest] = useState(0)
@@ -539,13 +542,15 @@ function PlacePage() {
             loadingGalleryIds={galleryLoadingIds}
             galleryErrorByCollectionId={galleryErrorByCollectionId}
           />
-          <section className="place-detail-map-section" aria-labelledby="place-map-title">
+          <section ref={fullscreenRef} className={`place-detail-map-section${fullscreen ? ' is-navigation-fullscreen' : ''}`} aria-labelledby="place-map-title">
+            {fullscreen && <button type="button" className="navigation-fullscreen-exit" onClick={exitFullscreen}>Exit fullscreen</button>}
             <div className="route-map-heading">
               <div><p className="eyebrow">MAP</p><h2 id="place-map-title">Place location</h2></div>
             </div>
             {hasCoordinates ? (
               <MapView
                 className="place-detail-map"
+                fullscreenNavigation={fullscreen}
                 showBasemapSwitcher
                 places={[place]}
                 selectedPlaceId={place.id}
@@ -599,12 +604,16 @@ function PlacePage() {
             ) : (
               <p className="route-map-message" role="status">Map location is unavailable for this Place.</p>
             )}
+            <div className="place-navigation-controls">
             <div className="public-map-controls place-map-controls">
               <div className="public-map-action-bar" role="group" aria-label="Map actions">
                 <button
                   type="button"
                   className={`public-map-action public-map-action-directions${directionsActive ? ' is-active' : ''}`}
-                  onClick={directionsActive ? stopDirections : startDirections}
+                  onClick={directionsActive ? stopDirections : () => {
+                    if (!independentTracking) enterFullscreen()
+                    startDirections()
+                  }}
                   disabled={!directionsActive && !directionsAvailable}
                   aria-describedby={directionsStatus || !directionsAvailable || locationError ? 'place-directions-feedback' : undefined}
                   aria-label={directionsActive ? 'Directions are active. Stop directions to the Place' : 'Start directions to the Place'}
@@ -627,7 +636,10 @@ function PlacePage() {
                 <button
                   type="button"
                   className={`public-map-action public-map-action-track${independentTracking ? ' is-active' : ''}`}
-                  onClick={independentTracking ? stopFollowing : startFollowing}
+                  onClick={independentTracking ? stopFollowing : () => {
+                    if (!directionsActive && hasCoordinates) enterFullscreen()
+                    startFollowing()
+                  }}
                   aria-label={independentTracking ? 'Stop continuous location tracking' : 'Start continuous location tracking'}
                   aria-pressed={independentTracking}
                 >
@@ -754,6 +766,7 @@ function PlacePage() {
                 )}
               </section>
             )}
+            </div>
           </section>
         </div>
       </div>

@@ -14,6 +14,7 @@ import '../map.css'
 
 const BASEMAP_STORAGE_KEY = 'offward-public-basemap'
 const DEFAULT_BASEMAP_ID = 'standard'
+const EMPTY_ITEMS = []
 
 function getStoredBasemapId() {
   try {
@@ -31,12 +32,12 @@ function MapViewContent({
   showBasemapSwitcher = false,
   initialCenter = [50.0, 10.0],
   initialZoom = 4,
-  routes = [],
-  waypoints = [],
+  routes = EMPTY_ITEMS,
+  waypoints = EMPTY_ITEMS,
   waypointMediaCountById = new Map(),
   selectedRouteId = null,
   selectedWaypointId = null,
-  places = [],
+  places = EMPTY_ITEMS,
   selectedPlaceId = null,
   directionsPlaceId = null,
   showPlaceLabel = false,
@@ -47,7 +48,7 @@ function MapViewContent({
   onWaypointVisibilityChange,
   onPlaceSelect,
   routeLineStyle,
-  segments = [],
+  segments = EMPTY_ITEMS,
   selectedSegmentId = null,
   onSegmentSelect,
   routeFocusRequest = 0,
@@ -55,6 +56,7 @@ function MapViewContent({
   followEnabled = false,
   mapChildren = null,
   mapOverlay = null,
+  fullscreenNavigation,
 }) {
   const [basemapId, setBasemapId] = useState(() => (
     showBasemapSwitcher ? getStoredBasemapId() : DEFAULT_BASEMAP_ID
@@ -150,7 +152,7 @@ function MapViewContent({
         />
         {mapChildren}
         <WaypointMarkerZoomController onVisibilityChange={onWaypointVisibilityChange} />
-        <MapResizeController />
+        <MapResizeController fullscreenNavigation={fullscreenNavigation} />
         <RouteLayer
           routes={validRoutes}
           selectedRouteId={selectedRouteId}

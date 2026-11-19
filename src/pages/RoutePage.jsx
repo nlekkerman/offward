@@ -7,6 +7,7 @@ import RouteUserLocationLayer from '../features/map/components/RouteUserLocation
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import { createRouteArrivalDetector } from '../features/map/routeProximity.js'
 import useRouteHeading from '../features/map/useRouteHeading.js'
+import useNavigationFullscreen from '../features/map/useNavigationFullscreen.js'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
@@ -43,6 +44,7 @@ const ROUTE_DETAIL_LINE_STYLE = {
 
 const WAYPOINT_HOVER_QUERY = '(hover: hover) and (pointer: fine)'
 const HOVER_CLOSE_DELAY_MS = 300
+const EMPTY_MAP_ROUTES = []
 
 function useHoverCapability() {
   const [supportsHover, setSupportsHover] = useState(false)
@@ -184,6 +186,8 @@ function RoutePage() {
     locate: locateLocation,
   } = useUserLocation(handleLocationUpdate)
   const directionsSessionActive = navigationState !== 'idle'
+  const { containerRef: fullscreenRef, fullscreen, enterFullscreen, exitFullscreen } =
+    useNavigationFullscreen(directionsSessionActive || independentTracking)
 
   useEffect(() => {
     if (!independentTracking && !directionsSessionActive && locationActive) {
@@ -654,7 +658,8 @@ function RoutePage() {
       <Link className="route-detail-back" to="/explore">Back to Explore</Link>
 
       <div className="route-detail-content-grid">
-        <section className="route-map-section" aria-labelledby="route-map-title">
+        <section ref={fullscreenRef} className={`route-map-section${fullscreen ? ' is-navigation-fullscreen' : ''}${fullscreen && navigationState === 'arrived' ? ' has-fullscreen-arrival' : ''}`} aria-labelledby="route-map-title">
+          {fullscreen && <button type="button" className="navigation-fullscreen-exit" onClick={exitFullscreen}>Exit fullscreen</button>}
           <div className="route-map-heading">
             <h2 id="route-map-title">Route Map</h2>
             <div className="public-map-controls">
@@ -662,7 +667,10 @@ function RoutePage() {
                 <button
                   type="button"
                   className={`public-map-action public-map-action-directions${directionsActive ? ' is-active' : ''}`}
-                  onClick={directionsActive ? stopDirections : startDirections}
+                  onClick={directionsActive ? stopDirections : () => {
+                    if (!independentTracking) enterFullscreen()
+                    startDirections()
+                  }}
                   aria-describedby={directionsStatus ? 'route-directions-feedback' : undefined}
                   aria-label={directionsActive ? 'Directions are active. Stop directions' : 'Start directions to the Route'}
                   aria-pressed={directionsActive}
@@ -684,7 +692,10 @@ function RoutePage() {
                 <button
                   type="button"
                   className={`public-map-action public-map-action-track${independentTracking ? ' is-active' : ''}`}
-                  onClick={independentTracking ? stopFollowing : startFollowing}
+                  onClick={independentTracking ? stopFollowing : () => {
+                    if (!directionsActive) enterFullscreen()
+                    startFollowing()
+                  }}
                   aria-label={independentTracking ? 'Stop continuous location tracking' : 'Start continuous location tracking'}
                   aria-pressed={independentTracking}
                 >
@@ -792,8 +803,9 @@ function RoutePage() {
           {hasMalformedGeometry && <p className="route-map-message" role="status">The published map path could not be displayed.</p>}
           <MapView
             className="route-detail-map"
+            fullscreenNavigation={fullscreen}
             showBasemapSwitcher
-            routes={mapRoute ? [mapRoute] : []}
+            routes={mapRoute ? [mapRoute] : EMPTY_MAP_ROUTES}
             waypoints={waypoints}
             waypointMediaCountById={waypointMediaCountById}
             selectedWaypointId={selectedWaypointId}

@@ -22,6 +22,31 @@
   z-index: 1;
 }
 
+.route-map-section.is-navigation-fullscreen .offward-map-container,
+.place-detail-map-section.is-navigation-fullscreen .offward-map-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.is-navigation-fullscreen .route-map-sections-control {
+  top: calc(4rem + env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+}
+
+.is-navigation-fullscreen .route-map-detail-overlay {
+  left: auto;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: 1.8rem;
+  width: min(320px, 45%);
+  max-height: 50%;
+}
+
 .map-basemap-control {
   position: absolute;
   bottom: 0.75rem;
@@ -700,4 +725,30 @@
   font-size: 0.9rem;
   padding: 2rem;
   text-align: center;
+}
+
+.is-navigation-fullscreen .map-basemap-control {
+  right: max(0.5rem, env(safe-area-inset-right));
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  left: auto;
+  justify-items: end;
+}
+
+.is-navigation-fullscreen .map-basemap-control .map-basemap-options,
+.is-navigation-fullscreen .map-basemap-error {
+  max-width: 35vw;
+}
+
+.is-navigation-fullscreen .route-map-sections-control {
+  top: calc(3.75rem + env(safe-area-inset-top));
+  right: max(0.5rem, env(safe-area-inset-right));
+  width: min(11rem, 35%);
+}
+
+.is-navigation-fullscreen .route-map-sections-trigger {
+  min-height: 44px;
+}
+
+.is-navigation-fullscreen .route-map-sections-list {
+  max-height: max(44px, calc(100dvh - 15.5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
 }
