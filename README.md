@@ -9,17 +9,17 @@ it to fetch public detail records. No additional API URL is required.
 
 ## Route directions
 
-Public walking Route access directions use Offward's
+Public walking and driving Route access directions use Offward's
 `POST /api/offward/routes/{slug}/access-directions/` endpoint. The backend
-selects a routable point on the saved Route geometry and returns approach
-geometry; when it cannot establish nearest walking access, it may return
-directions to the official start as an explicit fallback.
-
-Driving directions and the **Go to Start** action use
-`POST /api/offward/routes/{slug}/directions/`, which targets the official start
-waypoint. The browser sends only the visitor's current coordinates and the
-requested profile. Routing-provider credentials and provider responses remain
-server-side; the browser does not need a routing-provider API key.
+returns a provider approach ending at `access.snapped_coordinates` and a sampled
+Route entry at `access.coordinates`. Walking can include up to two alternatives.
+The blue marker shows the provider destination. If `access.arrival_connection`
+is absent or reports `unverified_gap`, a diamond marks the intended entry and a
+warning is shown; no connection between them is assumed or drawn. A `coincident`
+status does not establish that access is safe or legal. Arrival confirmation
+continues to use fresh, accurate GPS readings against saved Route geometry, not
+the provider destination. The browser sends only the visitor's coordinates and
+requested profile; provider credentials remain server-side.
 
 ## Management gallery images
 

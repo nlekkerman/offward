@@ -108,7 +108,7 @@ function RouteTrackingLocation({ enabled, position, permissionContainer, ...laye
 
   return (
     <>
-      <RouteUserLocationLayer position={position} heading={heading} {...layerProps} />
+      <RouteUserLocationLayer position={position} heading={heading} markerPane="route-user-marker" {...layerProps} />
       {showPermission && permissionContainer && createPortal(
         <div>
           <button type="button" className="route-directions-mode" onClick={requestCompass}>
@@ -171,7 +171,6 @@ function RoutePage() {
       if (arrived) {
         arrivalActionTakenRef.current = false
         setNavigationState('arrived')
-        setDirectionsStatus(null)
       }
     }
   }, [directionsMode, navigationState, route])
@@ -600,6 +599,11 @@ function RoutePage() {
   ) ?? -1
   const selectedWalkingPathName = selectedWalkingPath?.name ||
     (selectedAlternativeId ? `Alternative ${selectedAlternativeIndex + 1}` : 'Recommended')
+  const selectedAccess = directionsStatus?.status === 'ready'
+    ? selectedAlternativeId
+      ? directionsStatus.alternatives?.find((alternative) => alternative.id === selectedAlternativeId)?.access
+      : directionsStatus.recommended?.access
+    : null
   const routeDescription = getContentDescription(route?.summary, routeTitle, route?.country ? countryLabel : '')
   const routePath = `/routes/${encodeURIComponent(routeSlug)}`
   const routeUrl = getPublicUrl(routePath)
@@ -687,13 +691,7 @@ function RoutePage() {
                   {independentTracking ? 'Stop Track' : 'Track'}
                 </button>
               </div>
-              {userPosition && (
-                <button type="button" className="public-map-recenter" onClick={recenterOnLocation}>
-                  Recenter
-                </button>
-              )}
               <div className="public-map-secondary-controls">
-                <div ref={setCompassPermissionContainer} />
                 {directionsActive && (
                   <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
                     <button
@@ -714,6 +712,12 @@ function RoutePage() {
                     </button>
                   </div>
                 )}
+                {userPosition && (
+                  <button type="button" className="public-map-recenter" onClick={recenterOnLocation}>
+                    Recenter
+                  </button>
+                )}
+                <div ref={setCompassPermissionContainer} />
                 {directionsActive && !locationError && directionsStatus?.status === 'locating' && (
                   <p className="route-directions-feedback" id="route-directions-feedback" role="status">Waiting for your location...</p>
                 )}
@@ -738,6 +742,11 @@ function RoutePage() {
                         </>
                       )}
                     </p>
+                    {selectedAccess && selectedAccess.arrival_connection?.status !== 'coincident' && (
+                      <p className="route-directions-warning">
+                        Connection unverified. Blue: destination; diamond: intended Route entry.
+                      </p>
+                    )}
                   </div>
                 )}
                 {directionsStatus?.status === 'error' && (

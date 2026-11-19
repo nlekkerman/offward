@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import L from 'leaflet'
-import { Circle, Marker, useMap } from 'react-leaflet'
+import { Circle, Marker, Pane, useMap } from 'react-leaflet'
 
 const ACCURACY_CIRCLE_STYLE = {
   color: '#d8b47c',
@@ -10,9 +10,8 @@ const ACCURACY_CIRCLE_STYLE = {
   fillOpacity: 0.12,
 }
 
-function RouteUserLocationLayer({ position, heading = null, followEnabled, recenterRequest, centerRequest = 0, onManualMovement }) {
+function RouteUserLocationLayer({ position, heading = null, followEnabled, recenterRequest, centerRequest = 0, onManualMovement, markerPane }) {
   const map = useMap()
-  const markerRef = useRef(null)
   const followRef = useRef(followEnabled)
   const previousCenterRequestRef = useRef(centerRequest)
   useEffect(() => {
@@ -70,16 +69,11 @@ function RouteUserLocationLayer({ position, heading = null, followEnabled, recen
   const userLocationIcon = useMemo(() => L.divIcon({
     className: 'offward-user-location-icon',
     html: `<span class="offward-user-location-marker" style="display:flex;height:32px">${hasHeading
-      ? '<span class="offward-user-location-arrow" style="display:inline-flex;width:28px;height:32px;align-items:center;justify-content:center;flex-shrink:0"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M14 2 24 24 14 19 4 24Z" fill="#d8b47c" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></span>'
+      ? `<span class="offward-user-location-arrow" style="display:inline-flex;width:28px;height:32px;align-items:center;justify-content:center;flex-shrink:0;transform:rotate(${heading}deg)"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M14 2 24 24 14 19 4 24Z" fill="#d8b47c" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></span>`
       : '<span style="display:inline-flex;width:28px;height:32px;align-items:center;justify-content:center;flex-shrink:0"><span class="offward-user-location-dot"></span></span>'}<span class="offward-user-location-label">You are here</span></span>`,
     iconSize: [108, 32],
     iconAnchor: [14, 16],
-  }), [hasHeading])
-
-  useEffect(() => {
-    const arrow = markerRef.current?.getElement()?.querySelector('.offward-user-location-arrow')
-    if (arrow && hasHeading) arrow.style.transform = `rotate(${heading}deg)`
-  }, [hasHeading, heading, position])
+  }), [hasHeading, heading])
 
   const latitude = position?.latitude
   const longitude = position?.longitude
@@ -89,21 +83,25 @@ function RouteUserLocationLayer({ position, heading = null, followEnabled, recen
 
   const accuracy = position.accuracy
   const hasAccuracy = typeof accuracy === 'number' && Number.isFinite(accuracy) && accuracy > 0
+  const marker = (
+    <Marker
+      position={markerPosition}
+      icon={userLocationIcon}
+      title="You are here"
+      alt="Your current location"
+      keyboard={false}
+      zIndexOffset={1000}
+    />
+  )
 
   return (
     <>
       {hasAccuracy && (
         <Circle center={markerPosition} radius={accuracy} pathOptions={ACCURACY_CIRCLE_STYLE} />
       )}
-      <Marker
-        ref={markerRef}
-        position={markerPosition}
-        icon={userLocationIcon}
-        title="You are here"
-        alt="Your current location"
-        keyboard={false}
-        zIndexOffset={1000}
-      />
+      {markerPane
+        ? <Pane name={markerPane} style={{ zIndex: 640, pointerEvents: 'none' }}>{marker}</Pane>
+        : marker}
     </>
   )
 }

@@ -205,14 +205,23 @@ function isValidLatLng(coordinates) {
 }
 
 function isValidRouteAccess(access) {
+  const connection = access?.arrival_connection
+  const validConnection = connection === undefined ||
+    (connection && typeof connection === 'object' && !Array.isArray(connection) &&
+      (connection.status === 'coincident' || connection.status === 'unverified_gap') &&
+      isValidDirectionsDistance(connection.coincidence_tolerance_meters) &&
+      (connection.status === 'coincident') ===
+        (access.destination_displacement_meters <= connection.coincidence_tolerance_meters))
   return access &&
     typeof access === 'object' &&
+    !Array.isArray(access) &&
     access.type === 'route_geometry' &&
     isValidLatLng(access.coordinates) &&
     typeof access.selection === 'string' &&
     access.selection.length > 0 &&
     isValidLatLng(access.snapped_coordinates) &&
-    isValidDirectionsDistance(access.destination_displacement_meters)
+    isValidDirectionsDistance(access.destination_displacement_meters) &&
+    validConnection
 }
 
 function isValidRouteApproach(approach) {
@@ -224,6 +233,12 @@ function isValidRouteApproach(approach) {
       isValidDirectionsDistance(approach.duration_seconds))
 }
 
+function hasMatchingRouteEndpoint(access, approach) {
+  const endpoint = approach.geometry.coordinates[approach.geometry.coordinates.length - 1]
+  return endpoint[0] === access.snapped_coordinates.lng &&
+    endpoint[1] === access.snapped_coordinates.lat
+}
+
 function isValidRouteAlternative(alternative) {
   return alternative &&
     typeof alternative === 'object' &&
@@ -233,7 +248,8 @@ function isValidRouteAlternative(alternative) {
     alternative.access?.selection === 'distinct_routable_sample' &&
     alternative.access?.type === 'route_geometry' &&
     isValidRouteAccess(alternative.access) &&
-    isValidRouteApproach(alternative.approach)
+    isValidRouteApproach(alternative.approach) &&
+    hasMatchingRouteEndpoint(alternative.access, alternative.approach)
 }
 
 function validateRouteAccessDirectionsResponse(data, routeId, profile) {
@@ -262,6 +278,7 @@ function validateRouteAccessDirectionsResponse(data, routeId, profile) {
     !isValidRouteAccess(data.access) ||
     data.access.selection !== 'closest_feasible_sample' ||
     !isValidRouteApproach(data.approach) ||
+    !hasMatchingRouteEndpoint(data.access, data.approach) ||
     !validAlternatives ||
     !validFallback ||
     !Number.isInteger(data.evaluated_candidates) ||

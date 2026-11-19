@@ -4341,8 +4341,27 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   color: #f1aaa7;
 }
 
+.route-directions-feedback .route-directions-warning {
+  color: #f0cf91;
+}
+
 .route-directions-feedback p {
   margin: 0;
+}
+
+.route-public-detail-page .public-map-secondary-controls {
+  gap: 0.25rem 0.4rem;
+}
+
+.route-public-detail-page .public-map-recenter,
+.route-public-detail-page .public-map-secondary-controls .route-directions-mode {
+  min-height: 44px;
+  padding: 0.3rem 0.55rem;
+  font: 600 0.75rem/1.2 sans-serif;
+}
+
+.route-public-detail-page .route-directions-feedback {
+  line-height: 1.3;
 }
 
 .route-arrival-panel {
@@ -5660,6 +5679,10 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .entity-detail-media .route-map-video-copy,
   .entity-detail-media .route-map-gallery-copy { min-height: 78px; padding: 0.8rem 0.9rem; }
   .route-detail-map { height: min(50svh, 400px); min-height: 320px; }
+  .route-public-detail-page .route-map-section { gap: 0.45rem; padding: 0.7rem; }
+  .route-public-detail-page .public-map-controls { gap: 0.2rem; }
+  .route-public-detail-page .public-map-recenter { margin-left: auto; }
+  .route-public-detail-page .route-detail-map { height: max(320px, 55svh); }
   .place-detail-page { padding: 2rem 1.25rem 3rem; }
   .place-detail-content-page { padding-top: 0; }
   .place-detail-content-page.has-cover-image > .place-detail-cover-hero {

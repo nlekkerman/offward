@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
-import { Marker, Polyline, useMap } from 'react-leaflet'
+import { Marker, Pane, Polyline, useMap } from 'react-leaflet'
 import { getRouteAccessDirections, getRouteDirections, getStraightLineDistanceKm, MAX_LOCAL_DIRECTIONS_KM } from '../../../services/routeDirectionsApi.js'
 
 const NAVIGATION_PATH_STYLE = {
@@ -17,6 +17,12 @@ const ROUTE_ACCESS_MARKER_ICON = L.divIcon({
   html: '<span class="route-access-marker-dot"></span>',
   iconSize: [24, 24],
   iconAnchor: [12, 12],
+})
+const ROUTE_ENTRY_MARKER_ICON = L.divIcon({
+  className: 'route-access-marker-icon',
+  html: '<span class="route-entry-marker-diamond"></span>',
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
 })
 
 function NavigationPathPaneController() {
@@ -193,6 +199,7 @@ function RouteDirectionsLayer({
             durationSeconds: recommendedApproach.duration_seconds,
             name: pathOptions[0].name,
             color: pathOptions[0].color,
+            access: pathOptions[0].access,
           },
           alternatives: pathOptions.slice(1),
           destination,
@@ -319,15 +326,26 @@ function RouteDirectionsLayer({
               interactive={false}
             />
           )}
-      {selectedAccess?.coordinates && (
-        <Marker
-          position={[selectedAccess.coordinates.lat, selectedAccess.coordinates.lng]}
-          icon={ROUTE_ACCESS_MARKER_ICON}
-          title="Selected Route access point"
-          alt="Selected Route access point"
-          keyboard={false}
-          zIndexOffset={800}
-        />
+      {selectedAccess && (
+        <Pane name="route-navigation-markers" style={{ zIndex: 620, pointerEvents: 'none' }}>
+          {selectedAccess.arrival_connection?.status !== 'coincident' && (
+            <Marker
+              position={[selectedAccess.coordinates.lat, selectedAccess.coordinates.lng]}
+              icon={ROUTE_ENTRY_MARKER_ICON}
+              title="Intended Route entry"
+              alt="Intended Route entry"
+              interactive={false}
+            />
+          )}
+          <Marker
+            position={[selectedAccess.snapped_coordinates.lat, selectedAccess.snapped_coordinates.lng]}
+            icon={ROUTE_ACCESS_MARKER_ICON}
+            title="Navigation destination"
+            alt="Navigation destination"
+            interactive={false}
+            zIndexOffset={1000}
+          />
+        </Pane>
       )}
     </>
   )

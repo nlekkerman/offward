@@ -515,8 +515,18 @@
   height: 20px;
   border: 3px solid #f3efe6;
   border-radius: 50%;
-  background: #147d85;
-  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.8), 0 0 0 3px #147d85;
+  background: #287fd0;
+  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.8), 0 0 0 2px #287fd0;
+}
+
+.route-entry-marker-diamond {
+  display: block;
+  width: 29px;
+  height: 29px;
+  border: 3px solid #f3efe6;
+  background: rgba(25, 27, 23, 0.7);
+  box-shadow: 0 0 0 2px #d28a22, 0 1px 7px rgba(0, 0, 0, 0.8);
+  transform: rotate(45deg);
 }
 
 .offward-user-location-icon {
