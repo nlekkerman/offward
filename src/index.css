@@ -5527,6 +5527,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   }
 
   .place-gallery-preview-heading,
+  .place-gallery-preview .entity-media-collection-title,
   .place-gallery-empty,
   .place-gallery-more,
   .place-gallery-other-collections,

@@ -8,7 +8,6 @@ import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import { createRouteArrivalDetector } from '../features/map/routeProximity.js'
 import useRouteHeading from '../features/map/useRouteHeading.js'
 import useNavigationFullscreen, { isMobileDevice } from '../features/map/useNavigationFullscreen.js'
-import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
 import RoutePlacesAlongRoute from '../features/routes/components/RoutePlacesAlongRoute.jsx'
@@ -33,6 +32,7 @@ import { countryName, findCountry } from '../shared/utils/country.js'
 import { getContentDescription, getContentSocialImage, getPublicUrl } from '../shared/utils/publicUrls.js'
 import VideoPlayerDialog from '../features/video/VideoPlayerDialog.jsx'
 import NotFoundPage from './NotFoundPage.jsx'
+import { PlaceGalleryPreview } from './PlacePage.jsx'
 
 const ROUTE_DETAIL_LINE_STYLE = {
   color: '#4F8A3C',
@@ -1006,15 +1006,18 @@ function RoutePage() {
         <aside className="route-detail-side-content" aria-label="Route details">
           {route.summary && <p className="route-detail-summary">{route.summary}</p>}
           {routeImageCollections.length > 0 && (
-            <EntityMediaSection
+            <PlaceGalleryPreview
               galleries={displayImageCollections}
               onOpenGallery={openGallery}
               loadingGalleryId={galleryLoadingId}
               loadingGalleryIds={galleryLoadingIds}
               galleryErrorByCollectionId={galleryErrorByCollectionId}
-              showAllImages
-              sectionLabel="Images"
-              showImageGroupLabel={false}
+              label="Route photos"
+              showCollectionTitles
+              onViewAll={() => setLightbox({
+                gallery: { images: displayImageCollections.flatMap(orderedCollectionImages) },
+                index: 0,
+              })}
             />
           )}
           {routeVideos.length > 0 && (

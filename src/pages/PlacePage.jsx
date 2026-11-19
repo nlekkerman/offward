@@ -55,7 +55,7 @@ function formatWalkingDistance(distanceMeters) {
   return `${distanceMeters} m`
 }
 
-function PlaceGalleryPreview({ galleries, onOpenGallery, loadingGalleryId, loadingGalleryIds, galleryErrorByCollectionId }) {
+export function PlaceGalleryPreview({ galleries, onOpenGallery, loadingGalleryId, loadingGalleryIds, galleryErrorByCollectionId, label = 'Place photos', showCollectionTitles = false, onViewAll }) {
   const imageEntries = galleries.flatMap((gallery) => (
     orderedCollectionImages(gallery).map((image, index) => ({ gallery, image, index }))
   ))
@@ -72,11 +72,14 @@ function PlaceGalleryPreview({ galleries, onOpenGallery, loadingGalleryId, loadi
   const errorMessage = (gallery) => galleryErrorByCollectionId?.[String(gallery.id || '')]
 
   return (
-    <section className="place-gallery-preview" aria-label="Place photos">
+    <section className="place-gallery-preview" aria-label={label}>
       <div className="place-gallery-preview-heading">
         <h2>Photos</h2>
         <span>{imageEntries.length} {imageEntries.length === 1 ? 'photo' : 'photos'}</span>
       </div>
+      {showCollectionTitles && galleries.length === 1 && firstGallery.title && (
+        <h3 className="entity-media-collection-title">{firstGallery.title}</h3>
+      )}
       {previewImages.length > 0 ? (
         <div className={`place-gallery-image-grid${previewImages.length === 1 ? ' is-single' : ''}${previewImages.length === 2 ? ' is-double' : ''}`}>
           {previewImages.map(({ gallery, image, index }, previewIndex) => (
@@ -100,16 +103,16 @@ function PlaceGalleryPreview({ galleries, onOpenGallery, loadingGalleryId, loadi
         <button
           type="button"
           className="place-gallery-more"
-          onClick={() => onOpenGallery(firstGalleryWithImages)}
-          disabled={isLoading(firstGalleryWithImages)}
+          onClick={onViewAll || (() => onOpenGallery(firstGalleryWithImages))}
+          disabled={onViewAll ? galleries.some(isLoading) : isLoading(firstGalleryWithImages)}
         >
           View all photos
         </button>
       )}
-      {galleries.length > 1 && (
+      {(galleries.length > 1 || (showCollectionTitles && errorMessage(firstGallery))) && (
         <div className="place-gallery-other-collections" aria-label="Other photo galleries">
           {galleries.map((gallery, index) => {
-            if (index === 0) return null
+            if (index === 0 && !showCollectionTitles) return null
             const count = orderedCollectionImages(gallery).length
             return (
               <button
