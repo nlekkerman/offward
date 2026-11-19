@@ -77,7 +77,6 @@ function RouteDirectionsLayer({
   mode,
   destination = 'start',
   selectedAlternativeId = null,
-  onPathSelect,
   onStatusChange,
   requestDirections,
 }) {
@@ -239,13 +238,15 @@ function RouteDirectionsLayer({
           id: null,
           geometry: currentNavigationResult.recommendedApproach.geometry,
           color: ROUTE_WALKING_PATH_COLORS[0],
+          dashArray: null,
         },
         ...currentNavigationResult.alternatives.map((alternative, index) => ({
           id: alternative.id,
           geometry: alternative.approach.geometry,
           color: ROUTE_WALKING_PATH_COLORS[index + 1],
+          dashArray: index === 0 ? '9 7' : '2 6',
         })),
-      ]
+      ].filter((path) => path.id === selectedAlternativeId)
     : currentNavigationResult
       ? [{ id: null, geometry: currentNavigationResult.recommendedApproach.geometry, color: NAVIGATION_PATH_STYLE.color }]
       : []
@@ -270,42 +271,16 @@ function RouteDirectionsLayer({
         position={position}
         navigationPositionSets={navigationPositionSets}
       />
-      {isWalkingAccess && navigationPaths.map((path) => {
-        const selectPath = () => onPathSelect?.(path.id)
-        const eventHandlers = { click: selectPath }
-
-        return (
-          <Polyline
-            key={`${path.id || 'recommended'}-hit-area`}
-            positions={path.geometry.coordinates.map(
-              ([longitude, latitude]) => [latitude, longitude],
-            )}
-            pathOptions={{
-              color: path.color,
-              weight: 24,
-              opacity: 0.01,
-              dashArray: null,
-              bubblingMouseEvents: false,
-            }}
-            pane={NAVIGATION_PATH_PANE}
-            eventHandlers={eventHandlers}
-          />
-        )
-      })}
       {isWalkingAccess
         ? navigationPaths.map((path, index) => {
-            const isSelected = path.id === selectedAlternativeId
-            const isRecommended = path.id === null
             const positions = navigationPositionSets[index]
-            const dashArray = isRecommended ? null : index === 1 ? '9 7' : '2 6'
             const pathOptions = {
               color: path.color,
-              weight: isSelected ? 9 : isRecommended ? 7 : 6,
-              opacity: isSelected ? 1 : isRecommended ? 0.88 : 0.68,
-              dashArray,
+              weight: 9,
+              opacity: 1,
+              dashArray: path.dashArray,
               lineCap: 'round',
               lineJoin: 'round',
-              bubblingMouseEvents: false,
             }
 
             return (
@@ -314,7 +289,7 @@ function RouteDirectionsLayer({
                 positions={positions}
                 pathOptions={pathOptions}
                 pane={NAVIGATION_PATH_PANE}
-                eventHandlers={{ click: () => onPathSelect?.(path.id) }}
+                interactive={false}
               />
             )
           })

@@ -4316,6 +4316,18 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   gap: 0.35rem;
 }
 
+.route-directions-alternatives {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.route-directions-mode.route-directions-alternative[aria-pressed="true"] {
+  background: #d8b47c;
+  color: #191b17;
+  font-weight: 700;
+}
+
 .route-directions-mode {
   min-height: 42px;
   padding: 0.45rem 0.7rem;

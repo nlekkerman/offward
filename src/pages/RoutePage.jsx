@@ -597,8 +597,9 @@ function RoutePage() {
   const selectedAlternativeIndex = directionsStatus?.alternatives?.findIndex(
     (alternative) => alternative.id === selectedAlternativeId,
   ) ?? -1
-  const selectedWalkingPathName = selectedWalkingPath?.name ||
-    (selectedAlternativeId ? `Alternative ${selectedAlternativeIndex + 1}` : 'Recommended')
+  const selectedWalkingPathName = selectedAlternativeId
+    ? `Directions ${selectedAlternativeIndex + 2} · ${selectedWalkingPath?.name}`
+    : 'Directions 1 · Recommended'
   const selectedAccess = directionsStatus?.status === 'ready'
     ? selectedAlternativeId
       ? directionsStatus.alternatives?.find((alternative) => alternative.id === selectedAlternativeId)?.access
@@ -712,6 +713,23 @@ function RoutePage() {
                     </button>
                   </div>
                 )}
+                {directionsActive && directionsMode === 'walking' &&
+                  directionsStatus?.status === 'ready' && directionsStatus.alternatives.length > 0 && (
+                  <div className="route-directions-alternatives" role="group" aria-label="Walking directions">
+                    {[{ id: null, name: 'Recommended' }, ...directionsStatus.alternatives].map((option, index) => (
+                      <button
+                        key={option.id || 'recommended'}
+                        type="button"
+                        className="route-directions-mode route-directions-alternative"
+                        aria-label={`Directions ${index + 1}: ${option.name}`}
+                        aria-pressed={option.id === selectedAlternativeId}
+                        onClick={() => handleWalkingPathSelect(option.id)}
+                      >
+                        Directions {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {userPosition && (
                   <button type="button" className="public-map-recenter" onClick={recenterOnLocation}>
                     Recenter
@@ -802,7 +820,6 @@ function RoutePage() {
                   mode={directionsMode}
                   destination="access"
                   selectedAlternativeId={selectedAlternativeId}
-                  onPathSelect={handleWalkingPathSelect}
                   onStatusChange={handleDirectionsStatusChange}
                 />
                 <RouteTrackingLocation
