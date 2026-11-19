@@ -3379,7 +3379,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   padding: 2.5rem 2rem 4.5rem;
 }
 
-.route-public-detail-page { padding: 0 0 4.5rem; }
+.route-public-detail-page { padding: 0 1rem 4.5rem; }
 
 .route-detail-page .eyebrow { letter-spacing: 0; }
 
@@ -4791,7 +4791,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .place-detail-content-page {
   max-width: none;
-  padding: 0 0 5rem;
+  padding: 0 1rem 5rem;
 }
 
 .place-detail-content-page > .entity-detail-media,
@@ -5064,7 +5064,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   padding: 3.5rem 2rem 5rem;
 }
 
-.story-detail-content-page { padding: 0 0 5rem; }
+.story-detail-content-page { padding: 0 1rem 5rem; }
 
 .story-detail-content-page.has-cover-image .detail-hero-content {
   display: flex;
@@ -5329,7 +5329,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
 
 .story-detail-media-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
   gap: 1.25rem;
 }
 
@@ -5662,7 +5662,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .explore-field { min-width: 0; width: 100%; }
   .explore-map { height: 52svh; min-height: 360px; }
   .route-detail-page { padding: 1.5rem 1.25rem 3rem; }
-  .route-public-detail-page { padding: 0 0 3rem; }
+  .route-public-detail-page { padding: 0 1rem 3rem; }
   .detail-hero-content { padding: 6rem 1.25rem 1.5rem; }
   .route-detail-context { margin-bottom: 1.35rem; }
   .route-detail-context-card { align-items: flex-start; min-height: 0; padding: 0.9rem 1rem; }
@@ -5700,7 +5700,7 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   .route-public-detail-page .public-map-recenter { margin-left: auto; }
   .route-public-detail-page .route-detail-map { height: max(320px, 55svh); }
   .place-detail-page { padding: 2rem 1.25rem 3rem; }
-  .place-detail-content-page { padding: 0 0 3rem; }
+  .place-detail-content-page { padding: 0 1rem 3rem; }
   .route-public-detail-page .route-detail-back,
   .place-detail-content-page .route-detail-back,
   .story-detail-content-page .route-detail-back,

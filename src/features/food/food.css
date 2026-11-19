@@ -200,7 +200,7 @@
 
 .food-page.food-detail-page {
   max-width: none;
-  padding: 0 0 80px;
+  padding: 0 1rem 80px;
 }
 
 .food-detail-page > .food-body,
@@ -292,7 +292,7 @@
   .food-page {
     padding: 28px 18px 56px;
   }
-  .food-page.food-detail-page { padding: 0 0 56px; }
+  .food-page.food-detail-page { padding: 0 1rem 56px; }
   .food-detail-page > .food-body,
   .food-detail-page > .food-recipe-meta,
   .food-detail-page > .food-recipe,
