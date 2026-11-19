@@ -3827,6 +3827,10 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   border-top: 1px solid #30362f;
 }
 
+.route-detail-page > .entity-detail-media.route-map-detail-media {
+  padding-inline: 1rem;
+}
+
 .route-public-detail-page .entity-detail-media.route-map-detail-media {
   box-sizing: border-box;
   min-width: 0;
