@@ -22,6 +22,7 @@ function useNavigationFullscreen(navigationActive) {
   const generationRef = useRef(0)
   const mountedRef = useRef(false)
   const [fullscreen, setFullscreen] = useState(false)
+  const [permissionPending, setPermissionPending] = useState(false)
 
   const exitFullscreen = useCallback(() => {
     const container = containerRef.current
@@ -29,7 +30,10 @@ function useNavigationFullscreen(navigationActive) {
     activeRef.current = false
     nativeRef.current = false
     unlockOrientation()
-    if (mountedRef.current) setFullscreen(false)
+    if (mountedRef.current) {
+      setFullscreen(false)
+      setPermissionPending(false)
+    }
 
     if (container && document.fullscreenElement === container) {
       document.exitFullscreen().catch((error) => {
@@ -53,9 +57,11 @@ function useNavigationFullscreen(navigationActive) {
     if (!container.requestFullscreen || document.fullscreenElement) return
 
     let request
+    setPermissionPending(true)
     try {
       request = container.requestFullscreen()
     } catch (error) {
+      setPermissionPending(false)
       console.warn('Native fullscreen is unavailable; using the viewport layout.', error)
       return
     }
@@ -84,6 +90,8 @@ function useNavigationFullscreen(navigationActive) {
       if (generation === generationRef.current && activeRef.current) {
         console.warn('Native fullscreen was rejected; using the viewport layout.', error)
       }
+    }).finally(() => {
+      if (mountedRef.current && generation === generationRef.current) setPermissionPending(false)
     })
   }, [])
 
@@ -98,6 +106,7 @@ function useNavigationFullscreen(navigationActive) {
         activeRef.current = false
         unlockOrientation()
         setFullscreen(false)
+        setPermissionPending(false)
       }
     }
     document.addEventListener('fullscreenchange', handleFullscreenChange)
@@ -118,7 +127,7 @@ function useNavigationFullscreen(navigationActive) {
     return () => document.documentElement.classList.remove('offward-navigation-fullscreen')
   }, [fullscreen])
 
-  return { containerRef, fullscreen, enterFullscreen, exitFullscreen }
+  return { containerRef, fullscreen, enterFullscreen, exitFullscreen, permissionPending }
 }
 
 export default useNavigationFullscreen

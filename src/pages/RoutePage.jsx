@@ -104,18 +104,27 @@ function getMapEntityDetailPath(routeSlug, detail) {
   return null
 }
 
-function RouteTrackingLocation({ enabled, position, permissionContainer, ...layerProps }) {
+function RouteTrackingLocation({ enabled, position, permissionContainer, showPermissionControl, onPermissionPending, ...layerProps }) {
   const { heading, permission, requestCompass } = useRouteHeading(enabled, position)
   const showPermission = enabled && permission !== 'not-required' && permission !== 'granted'
+
+  const enableCompass = async () => {
+    onPermissionPending(true)
+    try {
+      await requestCompass()
+    } finally {
+      onPermissionPending(false)
+    }
+  }
 
   return (
     <>
       <RouteUserLocationLayer position={position} heading={heading} markerPane="route-user-marker" {...layerProps} />
       {showPermission && permissionContainer && createPortal(
         <div>
-          <button type="button" className="route-directions-mode" onClick={requestCompass}>
+          {showPermissionControl && <button type="button" className="route-directions-mode" onClick={enableCompass}>
             Enable compass
-          </button>
+          </button>}
           {(permission === 'denied' || permission === 'error') && (
             <p className="route-directions-feedback" role="status">
               Compass access is unavailable. Location tracking continues without it.
@@ -125,6 +134,72 @@ function RouteTrackingLocation({ enabled, position, permissionContainer, ...laye
         permissionContainer,
       )}
     </>
+  )
+}
+
+function RouteArrivalDialog({ mapSectionRef, unverifiedAccess, onStart, onCancel }) {
+  const dialogRef = useRef(null)
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    const mapSection = mapSectionRef.current
+    const previousFocus = document.activeElement
+    const positionDialog = () => {
+      const map = mapSection?.querySelector('.offward-map-container')
+      if (!map) return
+      const rect = map.getBoundingClientRect()
+      const width = dialog.offsetWidth
+      const height = dialog.offsetHeight
+      dialog.style.left = `${Math.max(width / 2, Math.min(window.innerWidth - width / 2, (rect.left + rect.right) / 2))}px`
+      dialog.style.top = `${Math.max(height / 2, Math.min(window.innerHeight - height / 2, (rect.top + rect.bottom) / 2))}px`
+    }
+    dialog.showModal()
+    positionDialog()
+    dialog.querySelector('button')?.focus()
+    window.addEventListener('resize', positionDialog)
+    window.addEventListener('scroll', positionDialog, true)
+    return () => {
+      window.removeEventListener('resize', positionDialog)
+      window.removeEventListener('scroll', positionDialog, true)
+      dialog.close()
+      if (previousFocus?.isConnected && !previousFocus.disabled) previousFocus.focus()
+      else mapSection?.querySelector('.public-map-action-directions')?.focus()
+    }
+  }, [mapSectionRef])
+
+  const containFocus = (event) => {
+    if (event.key !== 'Tab') return
+    const buttons = dialogRef.current.querySelectorAll('button')
+    if (event.shiftKey && document.activeElement === buttons[0]) {
+      event.preventDefault()
+      buttons[buttons.length - 1].focus()
+    } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) {
+      event.preventDefault()
+      buttons[0].focus()
+    }
+  }
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="route-arrival-dialog"
+      aria-labelledby="route-arrival-title"
+      aria-describedby={unverifiedAccess ? 'route-arrival-description route-arrival-warning' : 'route-arrival-description'}
+      onCancel={(event) => event.preventDefault()}
+      onKeyDown={containFocus}
+    >
+      <h3 id="route-arrival-title">{unverifiedAccess ? "You're near the Route!" : "You've reached the Route!"}</h3>
+      <p id="route-arrival-description">Would you like to start exploring?</p>
+      {unverifiedAccess && (
+        <p id="route-arrival-warning" className="route-arrival-warning">
+          Look for a safe pedestrian access point before joining the Route.
+        </p>
+      )}
+      <div className="route-arrival-actions">
+        <button type="button" className="route-arrival-action is-primary" onClick={onStart}>Start Tracking</button>
+        <button type="button" className="route-arrival-action" onClick={onCancel}>Cancel</button>
+      </div>
+    </dialog>
   )
 }
 
@@ -159,6 +234,11 @@ function RoutePage() {
   const [recenterRequest, setRecenterRequest] = useState(0)
   const [locationCenterRequest, setLocationCenterRequest] = useState(0)
   const [compassPermissionContainer, setCompassPermissionContainer] = useState(null)
+  const [compassPermissionPending, setCompassPermissionPending] = useState(false)
+  const [navigationMenuOpen, setNavigationMenuOpen] = useState(true)
+  const [navigationInteraction, setNavigationInteraction] = useState(false)
+  const [navigationKeyboardFocus, setNavigationKeyboardFocus] = useState(false)
+  const [navigationActivity, setNavigationActivity] = useState(0)
   const arrivalDetectorRef = useRef(createRouteArrivalDetector())
   const arrivalActionTakenRef = useRef(false)
   const hoverCloseTimerRef = useRef(null)
@@ -186,9 +266,31 @@ function RoutePage() {
     locate: locateLocation,
   } = useUserLocation(handleLocationUpdate)
   const directionsSessionActive = navigationState !== 'idle'
-  const compactNavigationWaypoints = (directionsSessionActive || independentTracking) && isMobileDevice()
-  const { containerRef: fullscreenRef, fullscreen, enterFullscreen, exitFullscreen } =
+  const compactNavigationWaypoints = !directionsSessionActive && independentTracking && isMobileDevice()
+  const { containerRef: fullscreenRef, fullscreen, enterFullscreen, exitFullscreen, permissionPending: fullscreenPending } =
     useNavigationFullscreen(directionsSessionActive || independentTracking)
+
+  useEffect(() => {
+    if (!directionsSessionActive || !navigationMenuOpen || navigationInteraction ||
+        navigationKeyboardFocus || locationLoading || compassPermissionPending || fullscreenPending || navigationState === 'arrived') return undefined
+    const timer = window.setTimeout(() => setNavigationMenuOpen(false), 5000)
+    return () => window.clearTimeout(timer)
+  }, [directionsSessionActive, navigationMenuOpen, navigationInteraction,
+    navigationKeyboardFocus, locationLoading, compassPermissionPending, fullscreenPending, navigationState, navigationActivity])
+
+  useEffect(() => {
+    if (!navigationInteraction) return undefined
+    const finishInteraction = () => {
+      setNavigationInteraction(false)
+      setNavigationActivity((current) => current + 1)
+    }
+    window.addEventListener('pointerup', finishInteraction)
+    window.addEventListener('pointercancel', finishInteraction)
+    return () => {
+      window.removeEventListener('pointerup', finishInteraction)
+      window.removeEventListener('pointercancel', finishInteraction)
+    }
+  }, [navigationInteraction])
 
   useEffect(() => {
     if (!independentTracking && !directionsSessionActive && locationActive) {
@@ -487,6 +589,9 @@ function RoutePage() {
     if (countActivation) trackInteraction('directions', 'route', route?.id)
     arrivalDetectorRef.current.reset()
     arrivalActionTakenRef.current = false
+    setDirectionsMode('walking')
+    setNavigationMenuOpen(true)
+    setNavigationActivity((current) => current + 1)
     setSelectedAlternativeId(null)
     setDirectionsRequestId((current) => current + 1)
     if (!locationActive) startLocation()
@@ -514,6 +619,11 @@ function RoutePage() {
     if (!independentTracking) trackInteraction('track', 'route', route?.id)
     if (!locationActive) startLocation()
   }
+  const cancelArrival = () => {
+    if (navigationState !== 'arrived' || arrivalActionTakenRef.current) return
+    arrivalActionTakenRef.current = true
+    setNavigationState('approaching')
+  }
   const recenterOnLocation = () => {
     if (!userPosition) return
     setLocationFollowing(true)
@@ -521,7 +631,7 @@ function RoutePage() {
   }
   const retryLocation = () => {
     if (directionsSessionActive) {
-      arrivalDetectorRef.current.reset()
+      if (!arrivalActionTakenRef.current) arrivalDetectorRef.current.reset()
       setSelectedAlternativeId(null)
       setDirectionsRequestId((current) => current + 1)
       setDirectionsStatus({ status: 'locating' })
@@ -535,8 +645,7 @@ function RoutePage() {
   }
   const retryDirections = () => {
     if (!directionsSessionActive) return
-    arrivalDetectorRef.current.reset()
-    arrivalActionTakenRef.current = false
+    if (!arrivalActionTakenRef.current) arrivalDetectorRef.current.reset()
     setSelectedAlternativeId(null)
     setDirectionsRequestId((current) => current + 1)
     setDirectionsStatus(userPosition ? { status: 'routing' } : { status: 'locating' })
@@ -569,8 +678,7 @@ function RoutePage() {
   }
   const handleTravelModeChange = (mode) => {
     if (mode === directionsMode) return
-    arrivalDetectorRef.current.reset()
-    arrivalActionTakenRef.current = false
+    if (!arrivalActionTakenRef.current) arrivalDetectorRef.current.reset()
     setSelectedAlternativeId(null)
     setDirectionsMode(mode)
     if (directionsSessionActive) {
@@ -601,12 +709,6 @@ function RoutePage() {
       ? directionsStatus.alternatives?.find((alternative) => alternative.id === selectedAlternativeId)
       : directionsStatus.recommended
     : null
-  const selectedAlternativeIndex = directionsStatus?.alternatives?.findIndex(
-    (alternative) => alternative.id === selectedAlternativeId,
-  ) ?? -1
-  const selectedWalkingPathName = selectedAlternativeId
-    ? `Directions ${selectedAlternativeIndex + 2} · ${selectedWalkingPath?.name}`
-    : 'Directions 1 · Recommended'
   const selectedAccess = directionsStatus?.status === 'ready'
     ? selectedAlternativeId
       ? directionsStatus.alternatives?.find((alternative) => alternative.id === selectedAlternativeId)?.access
@@ -661,11 +763,32 @@ function RoutePage() {
       <Link className="route-detail-back" to="/explore">Back to Explore</Link>
 
       <div className="route-detail-content-grid">
-        <section ref={fullscreenRef} className={`route-map-section${compactNavigationWaypoints ? ' has-compact-navigation-waypoints' : ''}${fullscreen ? ' is-navigation-fullscreen' : ''}${fullscreen && navigationState === 'arrived' ? ' has-fullscreen-arrival' : ''}`} aria-labelledby="route-map-title">
-          {fullscreen && <button type="button" className="navigation-fullscreen-exit" onClick={exitFullscreen}>Exit fullscreen</button>}
-          <div className="route-map-heading">
+        <section ref={fullscreenRef} className={`route-map-section${compactNavigationWaypoints ? ' has-compact-navigation-waypoints' : ''}${fullscreen ? ' is-navigation-fullscreen' : ''}${directionsActive ? ' is-route-directions' : ''}`} aria-labelledby="route-map-title">
+          {fullscreen && <button type="button" className="navigation-fullscreen-exit" onClick={() => {
+            setNavigationActivity((current) => current + 1)
+            exitFullscreen()
+          }}>Exit fullscreen</button>}
+          <div
+            className="route-map-heading"
+            onPointerDownCapture={() => { setNavigationInteraction(true); setNavigationActivity((current) => current + 1) }}
+            onPointerUpCapture={() => setNavigationInteraction(false)}
+            onPointerCancelCapture={() => setNavigationInteraction(false)}
+            onPointerMoveCapture={(event) => { if (event.pointerType === 'mouse') setNavigationActivity((current) => current + 1) }}
+            onKeyDownCapture={() => { setNavigationKeyboardFocus(true); setNavigationActivity((current) => current + 1) }}
+            onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setNavigationKeyboardFocus(false) }}
+          >
             <h2 id="route-map-title">Route Map</h2>
             <div className="public-map-controls">
+              {directionsActive && (
+                <button
+                  type="button"
+                  className="route-navigation-menu"
+                  aria-label={navigationMenuOpen ? 'Collapse navigation controls' : 'Expand navigation controls'}
+                  aria-expanded={navigationMenuOpen}
+                  onClick={() => setNavigationMenuOpen((open) => !open)}
+                ><span aria-hidden="true">&#9776;</span></button>
+              )}
+              {(!directionsActive || navigationMenuOpen) && (
               <div className="public-map-action-bar" role="group" aria-label="Map actions">
                 <button
                   type="button"
@@ -706,8 +829,9 @@ function RoutePage() {
                   {independentTracking ? 'Stop Track' : 'Track'}
                 </button>
               </div>
+              )}
               <div className="public-map-secondary-controls">
-                {directionsActive && (
+                {directionsActive && navigationMenuOpen && (
                   <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
                     <button
                       type="button"
@@ -727,8 +851,8 @@ function RoutePage() {
                     </button>
                   </div>
                 )}
-                {directionsActive && directionsMode === 'walking' &&
-                  directionsStatus?.status === 'ready' && directionsStatus.alternatives.length > 0 && (
+                {directionsActive && navigationMenuOpen && directionsMode === 'walking' &&
+                  directionsStatus?.status === 'ready' && (
                   <div className="route-directions-alternatives" role="group" aria-label="Walking directions">
                     {[{ id: null, name: 'Recommended' }, ...directionsStatus.alternatives].map((option, index) => (
                       <button
@@ -739,13 +863,13 @@ function RoutePage() {
                         aria-pressed={option.id === selectedAlternativeId}
                         onClick={() => handleWalkingPathSelect(option.id)}
                       >
-                        Directions {index + 1}
+                        {index + 1}
                       </button>
                     ))}
                   </div>
                 )}
-                {userPosition && (
-                  <button type="button" className="public-map-recenter" onClick={recenterOnLocation}>
+                {(userPosition || directionsActive) && (
+                  <button type="button" className="public-map-recenter" onClick={recenterOnLocation} disabled={!userPosition}>
                     Recenter
                   </button>
                 )}
@@ -763,7 +887,7 @@ function RoutePage() {
                     <p>
                       {selectedWalkingPath ? (
                         <>
-                          {selectedWalkingPathName} · Walking · {selectedWalkingPath.distanceKm.toFixed(1)} km
+                          Walking · {selectedWalkingPath.distanceKm.toFixed(1)} km
                           {formatDirectionsDuration(selectedWalkingPath.durationSeconds) &&
                             ` · ${formatDirectionsDuration(selectedWalkingPath.durationSeconds)}`}
                         </>
@@ -774,11 +898,6 @@ function RoutePage() {
                         </>
                       )}
                     </p>
-                    {selectedAccess && selectedAccess.arrival_connection?.status !== 'coincident' && (
-                      <p className="route-directions-warning">
-                        Connection unverified. Blue: destination; diamond: intended Route entry.
-                      </p>
-                    )}
                   </div>
                 )}
                 {directionsStatus?.status === 'error' && (
@@ -809,16 +928,16 @@ function RoutePage() {
             fullscreenNavigation={fullscreen}
             showBasemapSwitcher
             routes={mapRoute ? [mapRoute] : EMPTY_MAP_ROUTES}
-            waypoints={waypoints}
+            waypoints={directionsActive ? EMPTY_MAP_ROUTES : waypoints}
             waypointMediaCountById={waypointMediaCountById}
-            selectedWaypointId={selectedWaypointId}
+            selectedWaypointId={directionsActive ? null : selectedWaypointId}
             onWaypointSelect={selectWaypoint}
             onWaypointHoverStart={supportsHover && !compactNavigationWaypoints ? previewWaypoint : undefined}
             onWaypointHoverEnd={supportsHover && !compactNavigationWaypoints ? scheduleHoverClose : undefined}
-            onWaypointVisibilityChange={handleWaypointVisibilityChange}
-            routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}
-            segments={segments}
-            selectedSegmentId={selectedSegmentId}
+            onWaypointVisibilityChange={directionsActive ? undefined : handleWaypointVisibilityChange}
+            routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: !directionsActive && selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: !directionsActive && selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}
+            segments={directionsActive ? EMPTY_MAP_ROUTES : segments}
+            selectedSegmentId={directionsActive ? null : selectedSegmentId}
             onSegmentSelect={selectSegment}
             routeFocusRequest={routeFocusRequest}
             initialCenter={[50, 10]}
@@ -841,6 +960,8 @@ function RoutePage() {
                   enabled={locationActive}
                   position={userPosition}
                   permissionContainer={compassPermissionContainer}
+                  showPermissionControl={!directionsActive || navigationMenuOpen}
+                  onPermissionPending={setCompassPermissionPending}
                   followEnabled={locationFollowing && Boolean(userPosition)}
                   recenterRequest={recenterRequest}
                   centerRequest={locationCenterRequest}
@@ -849,32 +970,27 @@ function RoutePage() {
               </>
             )}
           >
-            <RouteSections
+            {!directionsActive && <RouteSections
               segments={segments}
               selectedSegmentId={selectedSegmentId}
               onSegmentSelect={selectSegment}
-            />
-            <RouteMapDetailOverlay
+            />}
+            {!directionsActive && <RouteMapDetailOverlay
               detail={mapDetail}
               onClose={closeMapDetail}
               onShowFullRoute={showFullRoute}
               onViewDetails={viewMapEntityDetails}
               onPointerEnter={cancelHoverClose}
               onPointerLeave={scheduleHoverClose}
-            />
+            />}
           </MapView>
           {navigationState === 'arrived' && (
-            <section className="route-arrival-panel" aria-labelledby="route-arrival-title">
-              <h3 id="route-arrival-title" role="status" aria-live="polite">You've reached the Route!</h3>
-              <div className="route-arrival-actions" role="group" aria-label="Route arrival actions">
-                <button type="button" className="route-arrival-action is-primary" onClick={startTrackingFromArrival}>
-                  Start Tracking
-                </button>
-                <button type="button" className="route-arrival-action" onClick={stopDirections}>
-                  End Directions
-                </button>
-              </div>
-            </section>
+            <RouteArrivalDialog
+              mapSectionRef={fullscreenRef}
+              unverifiedAccess={directionsMode === 'walking' && Boolean(selectedAccess && selectedAccess.arrival_connection?.status !== 'coincident')}
+              onStart={startTrackingFromArrival}
+              onCancel={cancelArrival}
+            />
           )}
         </section>
         <aside className="route-detail-side-content" aria-label="Route details">
