@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import MapView from '../features/map/components/MapView.jsx'
 import RouteDirectionsLayer from '../features/map/components/RouteDirectionsLayer.jsx'
 import RouteUserLocationLayer from '../features/map/components/RouteUserLocationLayer.jsx'
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import { createRouteArrivalDetector } from '../features/map/routeProximity.js'
+import useRouteHeading from '../features/map/useRouteHeading.js'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
@@ -100,6 +102,30 @@ function getMapEntityDetailPath(routeSlug, detail) {
   return null
 }
 
+function RouteTrackingLocation({ enabled, position, permissionContainer, ...layerProps }) {
+  const { heading, permission, requestCompass } = useRouteHeading(enabled, position)
+  const showPermission = enabled && permission !== 'not-required' && permission !== 'granted'
+
+  return (
+    <>
+      <RouteUserLocationLayer position={position} heading={heading} {...layerProps} />
+      {showPermission && permissionContainer && createPortal(
+        <div>
+          <button type="button" className="route-directions-mode" onClick={requestCompass}>
+            Enable compass
+          </button>
+          {(permission === 'denied' || permission === 'error') && (
+            <p className="route-directions-feedback" role="status">
+              Compass access is unavailable. Location tracking continues without it.
+            </p>
+          )}
+        </div>,
+        permissionContainer,
+      )}
+    </>
+  )
+}
+
 function RoutePage() {
   const { routeSlug } = useParams()
   const navigate = useNavigate()
@@ -130,6 +156,7 @@ function RoutePage() {
   const [independentTracking, setIndependentTracking] = useState(false)
   const [recenterRequest, setRecenterRequest] = useState(0)
   const [locationCenterRequest, setLocationCenterRequest] = useState(0)
+  const [compassPermissionContainer, setCompassPermissionContainer] = useState(null)
   const arrivalDetectorRef = useRef(createRouteArrivalDetector())
   const arrivalActionTakenRef = useRef(false)
   const hoverCloseTimerRef = useRef(null)
@@ -666,6 +693,7 @@ function RoutePage() {
                 </button>
               )}
               <div className="public-map-secondary-controls">
+                <div ref={setCompassPermissionContainer} />
                 {directionsActive && (
                   <div className="route-directions-modes" role="group" aria-label="Directions travel mode">
                     <button
@@ -768,8 +796,10 @@ function RoutePage() {
                   onPathSelect={handleWalkingPathSelect}
                   onStatusChange={handleDirectionsStatusChange}
                 />
-                <RouteUserLocationLayer
+                <RouteTrackingLocation
+                  enabled={independentTracking && locationActive && navigationState === 'idle'}
                   position={userPosition}
+                  permissionContainer={compassPermissionContainer}
                   followEnabled={locationFollowing && Boolean(userPosition)}
                   recenterRequest={recenterRequest}
                   centerRequest={locationCenterRequest}

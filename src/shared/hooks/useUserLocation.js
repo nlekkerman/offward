@@ -37,6 +37,7 @@ function normalizePosition(position) {
 
   const accuracy = position.coords.accuracy
   const speed = position.coords.speed
+  const heading = position.coords.heading
   return {
     latitude,
     longitude,
@@ -44,6 +45,9 @@ function normalizePosition(position) {
       ? accuracy
       : null,
     speed: typeof speed === 'number' && Number.isFinite(speed) && speed >= 0 ? speed : null,
+    heading: typeof heading === 'number' && Number.isFinite(heading) && heading >= 0 && heading < 360
+      ? heading
+      : null,
     timestamp: Number.isFinite(position.timestamp) ? position.timestamp : null,
   }
 }

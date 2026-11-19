@@ -10,8 +10,9 @@ const ACCURACY_CIRCLE_STYLE = {
   fillOpacity: 0.12,
 }
 
-function RouteUserLocationLayer({ position, followEnabled, recenterRequest, centerRequest = 0, onManualMovement }) {
+function RouteUserLocationLayer({ position, heading = null, followEnabled, recenterRequest, centerRequest = 0, onManualMovement }) {
   const map = useMap()
+  const markerRef = useRef(null)
   const followRef = useRef(followEnabled)
   const previousCenterRequestRef = useRef(centerRequest)
   useEffect(() => {
@@ -65,18 +66,29 @@ function RouteUserLocationLayer({ position, followEnabled, recenterRequest, cent
     }
   }, [centerRequest, followEnabled, map, position, recenterRequest])
 
+  const hasHeading = typeof heading === 'number' && Number.isFinite(heading)
   const userLocationIcon = useMemo(() => L.divIcon({
     className: 'offward-user-location-icon',
-    html: '<span class="offward-user-location-marker"><span class="offward-user-location-dot"></span><span class="offward-user-location-label">You are here</span></span>',
+    html: `<span class="offward-user-location-marker">${hasHeading
+      ? '<span class="offward-user-location-arrow" style="display:inline-flex;width:28px;height:32px;align-items:center;justify-content:center;flex-shrink:0"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M14 2 24 24 14 19 4 24Z" fill="#d8b47c" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></span>'
+      : '<span class="offward-user-location-dot"></span>'}<span class="offward-user-location-label">You are here</span></span>`,
     iconSize: [108, 32],
     iconAnchor: [14, 16],
-  }), [])
+  }), [hasHeading])
+
+  useEffect(() => {
+    const arrow = markerRef.current?.getElement()?.querySelector('.offward-user-location-arrow')
+    if (arrow && hasHeading) arrow.style.transform = `rotate(${heading}deg)`
+  }, [hasHeading, heading, position])
+
+  const latitude = position?.latitude
+  const longitude = position?.longitude
+  const markerPosition = useMemo(() => [latitude, longitude], [latitude, longitude])
 
   if (!position) return null
 
   const accuracy = position.accuracy
   const hasAccuracy = typeof accuracy === 'number' && Number.isFinite(accuracy) && accuracy > 0
-  const markerPosition = [position.latitude, position.longitude]
 
   return (
     <>
@@ -84,6 +96,7 @@ function RouteUserLocationLayer({ position, followEnabled, recenterRequest, cent
         <Circle center={markerPosition} radius={accuracy} pathOptions={ACCURACY_CIRCLE_STYLE} />
       )}
       <Marker
+        ref={markerRef}
         position={markerPosition}
         icon={userLocationIcon}
         title="You are here"
