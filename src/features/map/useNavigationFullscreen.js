@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-function isMobileDevice() {
+export function isMobileDevice() {
   return navigator.userAgentData?.mobile ||
     /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
     (window.matchMedia('(pointer: coarse)').matches &&

@@ -7,7 +7,7 @@ import RouteUserLocationLayer from '../features/map/components/RouteUserLocation
 import { isRenderableRoute } from '../features/map/mapGeometry.js'
 import { createRouteArrivalDetector } from '../features/map/routeProximity.js'
 import useRouteHeading from '../features/map/useRouteHeading.js'
-import useNavigationFullscreen from '../features/map/useNavigationFullscreen.js'
+import useNavigationFullscreen, { isMobileDevice } from '../features/map/useNavigationFullscreen.js'
 import EntityMediaSection from '../features/routes/components/EntityMediaSection.jsx'
 import RouteMapDetailOverlay from '../features/routes/components/RouteMapDetailOverlay.jsx'
 import RouteMediaGrid from '../features/routes/components/RouteMediaGrid.jsx'
@@ -186,6 +186,7 @@ function RoutePage() {
     locate: locateLocation,
   } = useUserLocation(handleLocationUpdate)
   const directionsSessionActive = navigationState !== 'idle'
+  const compactNavigationWaypoints = (directionsSessionActive || independentTracking) && isMobileDevice()
   const { containerRef: fullscreenRef, fullscreen, enterFullscreen, exitFullscreen } =
     useNavigationFullscreen(directionsSessionActive || independentTracking)
 
@@ -420,7 +421,7 @@ function RoutePage() {
     waypoint.id,
     getAttachedMediaCount(waypoint, videoById),
   ])), [videoById, waypoints])
-  const activeWaypointId = selectedSegmentId ? null : selectedWaypointId || hoveredWaypointId
+  const activeWaypointId = selectedSegmentId ? null : selectedWaypointId || (compactNavigationWaypoints ? null : hoveredWaypointId)
   const mapDetail = useMemo(() => {
     const waypoint = waypoints.find((item) => item.id === activeWaypointId)
     if (waypoint) {
@@ -471,6 +472,7 @@ function RoutePage() {
     locateLocation(() => setLocationCenterRequest((current) => current + 1))
   }
   const startFollowing = (countActivation = true) => {
+    if (isMobileDevice()) clearHoveredWaypoint()
     if (countActivation) trackInteraction('track', 'route', route?.id)
     setIndependentTracking(true)
     setLocationFollowing(true)
@@ -481,6 +483,7 @@ function RoutePage() {
     setLocationFollowing(false)
   }
   const startDirections = (countActivation = true) => {
+    if (isMobileDevice()) clearHoveredWaypoint()
     if (countActivation) trackInteraction('directions', 'route', route?.id)
     arrivalDetectorRef.current.reset()
     arrivalActionTakenRef.current = false
@@ -658,7 +661,7 @@ function RoutePage() {
       <Link className="route-detail-back" to="/explore">Back to Explore</Link>
 
       <div className="route-detail-content-grid">
-        <section ref={fullscreenRef} className={`route-map-section${fullscreen ? ' is-navigation-fullscreen' : ''}${fullscreen && navigationState === 'arrived' ? ' has-fullscreen-arrival' : ''}`} aria-labelledby="route-map-title">
+        <section ref={fullscreenRef} className={`route-map-section${compactNavigationWaypoints ? ' has-compact-navigation-waypoints' : ''}${fullscreen ? ' is-navigation-fullscreen' : ''}${fullscreen && navigationState === 'arrived' ? ' has-fullscreen-arrival' : ''}`} aria-labelledby="route-map-title">
           {fullscreen && <button type="button" className="navigation-fullscreen-exit" onClick={exitFullscreen}>Exit fullscreen</button>}
           <div className="route-map-heading">
             <h2 id="route-map-title">Route Map</h2>
@@ -810,8 +813,8 @@ function RoutePage() {
             waypointMediaCountById={waypointMediaCountById}
             selectedWaypointId={selectedWaypointId}
             onWaypointSelect={selectWaypoint}
-            onWaypointHoverStart={supportsHover ? previewWaypoint : undefined}
-            onWaypointHoverEnd={supportsHover ? scheduleHoverClose : undefined}
+            onWaypointHoverStart={supportsHover && !compactNavigationWaypoints ? previewWaypoint : undefined}
+            onWaypointHoverEnd={supportsHover && !compactNavigationWaypoints ? scheduleHoverClose : undefined}
             onWaypointVisibilityChange={handleWaypointVisibilityChange}
             routeLineStyle={{ ...ROUTE_DETAIL_LINE_STYLE, opacity: selectedSegmentId ? 0.35 : ROUTE_DETAIL_LINE_STYLE.opacity, weight: selectedSegmentId ? 5 : ROUTE_DETAIL_LINE_STYLE.weight }}
             segments={segments}

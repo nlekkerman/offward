@@ -2509,6 +2509,61 @@ nav a.is-active { color: #f3efe6; font-weight: 700; }
   }
 }
 
+.has-compact-navigation-waypoints .public-route-waypoint-marker {
+  --waypoint-pill-max-width: 150px;
+}
+
+.has-compact-navigation-waypoints .public-route-waypoint-marker .route-waypoint-pill {
+  left: 0;
+  bottom: 0;
+  min-width: 26px;
+  height: 26px;
+  gap: 0;
+  padding: 0;
+  border-radius: 13px;
+  transform: translate(-13px, 50%);
+}
+
+.has-compact-navigation-waypoints .public-route-waypoint-marker .route-waypoint-pill::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 44px;
+  height: 44px;
+}
+
+.has-compact-navigation-waypoints .public-route-waypoint-marker .route-waypoint-pill::after {
+  display: none;
+}
+
+.has-compact-navigation-waypoints .public-route-waypoint-marker .route-waypoint-number {
+  box-sizing: border-box;
+  width: 23px;
+  padding: 0;
+  border: 0;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.has-compact-navigation-waypoints .public-route-waypoint-marker:not(.is-selected) .route-waypoint-name,
+.has-compact-navigation-waypoints .public-route-waypoint-marker:not(.is-selected) .route-waypoint-media-slot {
+  display: none;
+}
+
+.has-compact-navigation-waypoints .public-route-waypoint-marker.is-selected {
+  z-index: 1000 !important;
+}
+
+.has-compact-navigation-waypoints .public-route-waypoint-marker.is-selected .route-waypoint-name {
+  display: inline-block;
+  padding-right: 0.4rem;
+}
+
+.has-compact-navigation-waypoints .public-route-waypoint-marker.is-selected .route-waypoint-media-slot {
+  margin-right: 0.4rem;
+}
+
 .route-map-panel {
   padding: 1rem;
   background: #171a17;
