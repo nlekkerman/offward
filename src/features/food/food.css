@@ -198,7 +198,19 @@
   margin: 30px 0;
 }
 
-.food-page.food-detail-page { padding-top: 0; }
+.food-page.food-detail-page {
+  max-width: none;
+  padding: 0 0 80px;
+}
+
+.food-detail-page > .food-body,
+.food-detail-page > .food-recipe-meta,
+.food-detail-page > .food-recipe,
+.food-detail-page > .entity-detail-media,
+.food-detail-page > p,
+.food-detail-page .food-related-content {
+  padding-inline: 32px;
+}
 
 .food-detail-header h1 {
   font-size: clamp(2.4rem, 5vw, 4.6rem);
@@ -211,6 +223,8 @@
   line-height: 1.85;
   overflow-wrap: anywhere;
 }
+
+.food-detail-page > .food-body { max-width: none; }
 
 .food-recipe-meta {
   display: flex;
@@ -278,7 +292,15 @@
   .food-page {
     padding: 28px 18px 56px;
   }
-  .food-page.food-detail-page { padding-top: 0; }
+  .food-page.food-detail-page { padding: 0 0 56px; }
+  .food-detail-page > .food-body,
+  .food-detail-page > .food-recipe-meta,
+  .food-detail-page > .food-recipe,
+  .food-detail-page > .entity-detail-media,
+  .food-detail-page > p,
+  .food-detail-page .food-related-content {
+    padding-inline: 18px;
+  }
   .food-grid,
   .food-recipe {
     grid-template-columns: minmax(0, 1fr);
