@@ -6,9 +6,10 @@ import SegmentList from '../../../features/routes/routeMap/components/SegmentLis
 import WaypointEditor from '../../../features/routes/routeMap/components/WaypointEditor.jsx'
 import WaypointList from '../../../features/routes/routeMap/components/WaypointList.jsx'
 import { parseGpxTrack } from '../../../features/routes/routeMap/gpxImport.js'
+import { getSplitPosition } from '../../../features/routes/routeMap/splitPosition.js'
 import { createImportWaypoints, describeImportState, endpointsHaveWaypointPrecision, EXISTING_ROUTE_MESSAGE, getVerifiedImportMap, getWaypointPrecisionEndpoints, hasExistingImportContent, verifyCompletedImport, verifyImportWaypoints } from '../../../features/routes/routeMap/gpxImportWorkflow.js'
 import ContentVideoManager from '../../../features/video/ContentVideoManager.jsx'
-import { assembleRouteSegmentGeometry, buildManualSegmentGeometry, buildWaypointPayload, createEmptyWaypoint, deriveWaypointPairs, getPlaceCoordinates, getRouteMapStatus, normalizeRouteMap, normalizeWaypoints, reorderWaypoints, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
+import { assembleRouteSegmentGeometry, buildManualSegmentGeometry, buildWaypointPayload, createEmptyWaypoint, deriveWaypointPairs, getPlaceCoordinates, getRouteMapStatus, normalizeGeometry, normalizeRouteMap, normalizeWaypoints, reorderWaypoints, validateWaypoints } from '../../../features/routes/routeMap/routeMapUtils.js'
 import { managementApis } from '../../../services/management/index.js'
 import { routeMapApi } from '../../../services/management/routeMapApi.js'
 
@@ -88,6 +89,7 @@ function RouteMapEditorPage() {
   const [advancedWaypointId, setAdvancedWaypointId] = useState('')
   const [mediaWaypointId, setMediaWaypointId] = useState('')
   const [foodWaypointId, setFoodWaypointId] = useState('')
+  const [createPlaceWaypointId, setCreatePlaceWaypointId] = useState('')
   const [savedWaypointSignature, setSavedWaypointSignature] = useState('[]')
   const [selectedConnectionId, setSelectedConnectionId] = useState('')
   const [connectionPreview, setConnectionPreview] = useState(null)
@@ -105,7 +107,30 @@ function RouteMapEditorPage() {
   const [gpxPreview, setGpxPreview] = useState(null)
   const [readingGpx, setReadingGpx] = useState(false)
   const [endpointAdjustmentConfirmed, setEndpointAdjustmentConfirmed] = useState(false)
+  const [insertion, setInsertion] = useState(null)
+  const [refreshRequired, setRefreshRequired] = useState(false)
+  const [pendingWrites, setPendingWrites] = useState(0)
   const importInProgress = useRef(false)
+  const splitInProgress = useRef(false)
+  const pendingWritesRef = useRef(0)
+  const pendingInsertedWaypointId = useRef('')
+
+  const beginWrite = () => {
+    pendingWritesRef.current += 1
+    setPendingWrites(pendingWritesRef.current)
+  }
+  const endWrite = () => {
+    pendingWritesRef.current -= 1
+    setPendingWrites(pendingWritesRef.current)
+  }
+  const trackWrite = async (operation) => {
+    beginWrite()
+    try {
+      return await operation()
+    } finally {
+      endWrite()
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -142,6 +167,7 @@ function RouteMapEditorPage() {
         setAdvancedWaypointId('')
         setMediaWaypointId('')
         setFoodWaypointId('')
+        setCreatePlaceWaypointId('')
 
       } catch (err) {
         if (active) {
@@ -169,6 +195,8 @@ function RouteMapEditorPage() {
     () => waypoints.find((waypoint) => waypoint.id === advancedWaypointId),
     [advancedWaypointId, waypoints],
   )
+  const hasWaypointDraft = Boolean(advancedWaypoint
+    || waypoints.some((waypoint) => waypoint.id === quickEditWaypointId || (waypoint.id === createPlaceWaypointId && !waypoint.place_id)))
 
   const hasUnsavedChanges = savedWaypointSignature !== getWaypointSignature(waypoints)
   const savedWaypoints = useMemo(() => waypoints.filter((waypoint) => !String(waypoint.id).startsWith('new-')), [waypoints])
@@ -190,7 +218,7 @@ function RouteMapEditorPage() {
   const reviewGeometry = assembleRouteSegmentGeometry(waypoints, segments)
   const hasUnknownReviewStatus = segments.some((segment) => typeof segment.needs_review !== 'boolean')
   const hasValidRevision = isValidMapRevision(mapRevision)
-  const importBlockedByEdit = hasUnsavedChanges || connectionPreview || manualDrawing || waypointMovePreview || addMode || calculating || quickEditSaving
+  const importBlockedByEdit = hasUnsavedChanges || connectionPreview || manualDrawing || waypointMovePreview || addMode || calculating || quickEditSaving || insertion || pendingWrites || refreshRequired
   const routeGeometryUnknown = !route || !Object.prototype.hasOwnProperty.call(route, 'geometry')
   const routeHasContent = waypoints.length > 0 || segments.length > 0 || route?.geometry != null
     || route?.accepted_geometry != null || route?.acceptedGeometry != null
@@ -209,7 +237,7 @@ function RouteMapEditorPage() {
           : connectionPreview || manualDrawing || waypointMovePreview || addMode
             ? 'Finish or cancel the current map edit before reviewing the Route.'
             : ''
-  const reviewDisabled = Boolean(reviewDisabledReason || saving || calculating || quickEditSaving)
+  const reviewDisabled = Boolean(reviewDisabledReason || saving || calculating || quickEditSaving || insertion || pendingWrites || refreshRequired)
   const reviewState = useRef(null)
   useEffect(() => {
     reviewState.current = {
@@ -225,6 +253,14 @@ function RouteMapEditorPage() {
     }
   }, [waypoints, segments, mapRevision, hasUnsavedChanges, connectionPreview, manualDrawing, waypointMovePreview, addMode, calculating, quickEditSaving])
   const selectedConnection = useMemo(() => connections.find((connection) => connection.id === selectedConnectionId), [connections, selectedConnectionId])
+  const canInsert = Boolean(selectedConnection && selectedConnection.segment.mode === 'manual'
+    && selectedConnection.segment.geometry && segments.some((segment) => segment === selectedConnection.segment)
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(selectedConnection.id))
+    && selectedConnection.segment.start_waypoint_id === selectedConnection.start_waypoint_id
+    && selectedConnection.segment.end_waypoint_id === selectedConnection.end_waypoint_id
+    && hasValidRevision && !hasUnsavedChanges && !saving && !calculating && !quickEditSaving && !pendingWrites
+    && !hasWaypointDraft && !mediaWaypointId && !foodWaypointId
+    && !connectionPreview && !manualDrawing && !waypointMovePreview && !addMode && !gpxPreview && !readingGpx && !refreshRequired)
   const drawingConnection = useMemo(() => connections.find((connection) => connection.id === manualDrawing?.connectionId), [connections, manualDrawing?.connectionId])
   const editingDisabled = hasUnsavedChanges
     || mapRevision === ''
@@ -240,7 +276,9 @@ function RouteMapEditorPage() {
     return parts.length ? parts.join(' · ') : 'No selection'
   }, [selectedConnection, selectedWaypoint])
 
+  const waypointDraftOpen = activePanel === 'waypoints' && hasWaypointDraft
   const togglePanel = (panel) => {
+    if (waypointDraftOpen || pendingWritesRef.current || splitInProgress.current) return
     setActivePanel((current) => current === panel ? '' : panel)
   }
 
@@ -249,6 +287,7 @@ function RouteMapEditorPage() {
   }
 
   const selectConnection = (connectionId) => {
+    if (pendingWritesRef.current || insertion || refreshRequired || waypointDraftOpen) return
     setSelectedConnectionId(connectionId)
     setActivePanel('connections')
     setConnectionPreview(null)
@@ -299,6 +338,162 @@ function RouteMapEditorPage() {
     return true
   }
 
+  const verifiedRefresh = async () => {
+    const map = await getVerifiedImportMap(routeId)
+    await refreshCanonicalMap(map)
+    setRefreshRequired(false)
+    return map
+  }
+
+  const recoverMap = async () => {
+    if (splitInProgress.current || pendingWritesRef.current) return
+    splitInProgress.current = true
+    setSaving(true)
+    try {
+      const map = await verifiedRefresh()
+      const waypoint = map.waypoints.find((item) => String(item.id) === String(pendingInsertedWaypointId.current))
+      if (waypoint) setSelectedWaypointId(waypoint.id)
+      pendingInsertedWaypointId.current = ''
+      setError('')
+      setNotice(waypoint
+        ? `The route was verified. Waypoint position: longitude ${waypoint.longitude}, latitude ${waypoint.latitude}.${map.route.geometry_is_current === false ? ' Route geometry is not current.' : ''}`
+        : 'The current route map was verified. Review it before making another change.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to verify the current route map. Try refreshing again.')
+    } finally {
+      splitInProgress.current = false
+      setSaving(false)
+    }
+  }
+
+  const startInsertion = () => {
+    if (!canInsert || pendingWritesRef.current || splitInProgress.current) return
+    setInsertion({
+      segmentId: selectedConnection.id,
+      startId: selectedConnection.start_waypoint_id,
+      endId: selectedConnection.end_waypoint_id,
+      revision: Number(mapRevision),
+      geometry: selectedConnection.segment.geometry,
+      edges: [],
+    })
+    setError('')
+    setNotice('')
+  }
+
+  const chooseInsertEdge = (edgeIndex, current = insertion) => {
+    if (!current || !current.edges.includes(edgeIndex)) return
+    const position = getSplitPosition(current.geometry, edgeIndex, current.click)
+    setInsertion({ ...current, edgeIndex, position })
+    setError(position ? '' : 'This position cannot be represented safely. Click another position on the track.')
+  }
+
+  const selectInsertPosition = (edges, click) => {
+    if (!insertion || splitInProgress.current) return
+    const next = { ...insertion, edges, click, edgeIndex: undefined, position: null }
+    if (edges.length === 1) chooseInsertEdge(edges[0], next)
+    else {
+      setInsertion(next)
+      setError(edges.length ? '' : 'Click closer to the selected track.')
+    }
+  }
+
+  const confirmInsertion = async () => {
+    if (!insertion?.position || splitInProgress.current || pendingWritesRef.current || refreshRequired) return
+    splitInProgress.current = true
+    setSaving(true)
+    setError('')
+    setNotice('')
+    let submitted = false
+    let writeStarted = false
+    try {
+      const before = await getVerifiedImportMap(routeId)
+      const segment = before.segments.find((item) => item.id === insertion.segmentId)
+      if (Number(before.mapRevision) !== insertion.revision || !segment || segment.mode !== 'manual'
+        || segment.start_waypoint_id !== insertion.startId || segment.end_waypoint_id !== insertion.endId
+        || JSON.stringify(segment.geometry) !== JSON.stringify(insertion.geometry)) {
+        await refreshCanonicalMap(before)
+        setInsertion(null)
+        setError('The selected connection changed. Select it again before inserting a waypoint.')
+        return
+      }
+      writeStarted = true
+      const result = await routeMapApi.splitSegment(routeId, insertion.segmentId, insertion.revision, insertion.edgeIndex, insertion.position)
+      submitted = true
+      setRefreshRequired(true)
+      const waypointId = result?.waypoint?.id
+      if (!waypointId || !isValidMapRevision(result.map_revision) || !Array.isArray(result.segments)
+        || before.waypoints.some((waypoint) => String(waypoint.id) === String(waypointId))
+        || !Object.prototype.hasOwnProperty.call(result, 'route_geometry')
+        || result.segments.length !== 2 || typeof result.geometry_is_current !== 'boolean') {
+        throw new Error('Insertion was submitted, but its response could not be verified.')
+      }
+      pendingInsertedWaypointId.current = waypointId
+      const map = await getVerifiedImportMap(routeId)
+      const waypoint = map.waypoints.find((item) => String(item.id) === String(waypointId))
+      const responseSegments = result.segments.map((segment) => segment?.id)
+      const returnedGeometry = normalizeGeometry(result.route_geometry)
+      const canonicalGeometry = normalizeGeometry(map.route.geometry)
+      const left = map.segments.find((segment) => segment.start_waypoint_id === insertion.startId && String(segment.end_waypoint_id) === String(waypointId))
+      const right = map.segments.find((segment) => String(segment.start_waypoint_id) === String(waypointId) && segment.end_waypoint_id === insertion.endId)
+      if (Number(map.mapRevision) !== Number(result.map_revision) || !waypoint || !left || !right
+        || new Set(responseSegments).size !== 2 || !responseSegments.every((id) => id && [left.id, right.id].includes(id))
+        || Number(waypoint.latitude) !== Number(result.waypoint.coordinates?.lat)
+        || Number(waypoint.longitude) !== Number(result.waypoint.coordinates?.lng)
+        || result.waypoint.coordinates?.lat == null || result.waypoint.coordinates?.lng == null
+        || map.route.geometry_is_current !== result.geometry_is_current
+        || (result.geometry_is_current && (!returnedGeometry || !canonicalGeometry
+          || JSON.stringify(returnedGeometry.coordinates) !== JSON.stringify(canonicalGeometry.coordinates)))) {
+        throw new Error('Insertion was submitted, but the canonical result could not be verified.')
+      }
+      await refreshCanonicalMap(map)
+      setSelectedWaypointId(waypoint.id)
+      setSelectedConnectionId(left.id)
+      setInsertion(null)
+      setRefreshRequired(false)
+      pendingInsertedWaypointId.current = ''
+      setNotice(`Waypoint inserted at longitude ${waypoint.longitude}, latitude ${waypoint.latitude}.${result.geometry_is_current ? '' : ' Route geometry is not current.'}`)
+    } catch (err) {
+      const status = err?.response?.status
+      const codes = Array.isArray(err?.response?.data?.errors) ? err.response.data.errors.map((item) => item?.code) : []
+      if (!writeStarted) {
+        setInsertion(null)
+        setRefreshRequired(true)
+        setError('The selected connection could not be verified. No split was submitted; verify the current map before continuing.')
+      } else if (submitted || !status || ![400, 403, 404, 409].includes(status)) {
+        setInsertion(null)
+        setRefreshRequired(true)
+        setError(submitted ? (err.message || 'Insertion was submitted, but the current map could not be verified.') : 'The insertion outcome is unknown. Verify the current map before making further changes.')
+      } else if (status === 404 || (status === 409 && codes.includes('stale_map_revision'))) {
+        setInsertion(null)
+        setRefreshRequired(true)
+        try {
+          await verifiedRefresh()
+          setError('The route changed or the connection no longer exists. Select a connection again.')
+        } catch {
+          setError('The route changed or the connection no longer exists. Verify the current map before continuing.')
+        }
+      } else if (status === 409 && codes.includes('connection_content_conflict')) {
+        setInsertion(null)
+        setError('This connection has attached content and cannot be split. No attachments were changed.')
+      } else if (status === 409 && codes.includes('split_geometry_unsupported')) {
+        setInsertion(null)
+        setError('This connection geometry cannot currently be split.')
+      } else if (status === 409 && codes.includes('split_connection_invalid')) {
+        setInsertion(null)
+        setError('This connection type cannot be split.')
+      } else if (status === 400 && (codes.includes('split_position_invalid') || codes.includes('split_edge_invalid'))) {
+        setInsertion((current) => ({ ...current, edges: [], edgeIndex: undefined, position: null }))
+        setError('The selected edge or position is invalid. Click another position on the track.')
+      } else {
+        const details = err?.response?.data
+        const messages = Array.isArray(details?.errors) ? details.errors.map((item) => item?.message).filter(Boolean).join(' ') : ''
+        setError((typeof details?.detail === 'string' ? details.detail : '') || messages || 'Unable to insert the waypoint. No split was confirmed.')
+      }
+    } finally {
+      splitInProgress.current = false
+      setSaving(false)
+    }
+  }
   const selectGpxFile = async (event) => {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -404,6 +599,7 @@ function RouteMapEditorPage() {
   }
 
   const selectWaypoint = (waypointId) => {
+    if (pendingWritesRef.current || splitInProgress.current || refreshRequired) return
     const waypoint = waypoints.find((item) => item.id === waypointId)
     setSelectedWaypointId(waypointId)
     setAdvancedWaypointId('')
@@ -533,6 +729,7 @@ function RouteMapEditorPage() {
     if (quickEditWaypointId === waypointId) setQuickEditWaypointId('')
     if (advancedWaypointId === waypointId) setAdvancedWaypointId('')
     if (mediaWaypointId === waypointId) setMediaWaypointId('')
+    if (createPlaceWaypointId === waypointId) setCreatePlaceWaypointId('')
   }
 
   const startManualConnectionDrawing = () => {
@@ -999,7 +1196,7 @@ function RouteMapEditorPage() {
       {hasUnsavedChanges && (
         <div className="management-empty route-map-notice" role="status">
           Waypoint changes are not saved. Save them before editing connections.
-          <button type="button" className="primary-button small-button" onClick={saveRouteMap} disabled={saving}>Save waypoint changes</button>
+          <button type="button" className="primary-button small-button" onClick={saveRouteMap} disabled={saving || refreshRequired || pendingWrites}>Save waypoint changes</button>
         </div>
       )}
       {connections.length > 0 && routeMapStatus.hasUnresolvedConnections && (
@@ -1007,17 +1204,19 @@ function RouteMapEditorPage() {
       )}
       {addMode && <div className="management-empty route-map-notice" role="status">Map click mode is active. Click the map to add the next waypoint.</div>}
 
+      {refreshRequired && <div className="management-error" role="alert">Map changes are locked until the current route is verified. <button type="button" className="secondary-button small-button" onClick={recoverMap} disabled={saving}>Verify and refresh map</button></div>}
+      <fieldset disabled={Boolean(pendingWrites || refreshRequired || saving)} style={{ display: 'contents' }}>
       <div className="route-map-toolbar" role="toolbar" aria-label="Route map editor tools">
-        <button type="button" className={activePanel === 'waypoints' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('waypoints')} disabled={Boolean(gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-expanded={activePanel === 'waypoints'}>
+        <button type="button" className={activePanel === 'waypoints' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('waypoints')} disabled={Boolean(waypointDraftOpen || insertion || gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-expanded={activePanel === 'waypoints'}>
           Waypoints <span>{waypoints.length}</span>
         </button>
-        <button type="button" className={activePanel === 'videos' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('videos')} disabled={Boolean(gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-expanded={activePanel === 'videos'}>
+        <button type="button" className={activePanel === 'videos' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('videos')} disabled={Boolean(waypointDraftOpen || insertion || gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-expanded={activePanel === 'videos'}>
           + Add video
         </button>
-        <button type="button" className={activePanel === 'connections' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('connections')} disabled={Boolean(gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-expanded={activePanel === 'connections'}>Connections <span>{connections.length}</span></button>
-        <button type="button" className={activePanel === 'gpx' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => setActivePanel('gpx')} disabled={Boolean(importBlockedByEdit || saving || readingGpx)} aria-expanded={activePanel === 'gpx'}>Import GPX</button>
+        <button type="button" className={activePanel === 'connections' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => togglePanel('connections')} disabled={Boolean(waypointDraftOpen || insertion || gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-expanded={activePanel === 'connections'}>Connections <span>{connections.length}</span></button>
+        <button type="button" className={activePanel === 'gpx' ? 'route-map-tool is-active' : 'route-map-tool'} onClick={() => setActivePanel('gpx')} disabled={Boolean(waypointDraftOpen || importBlockedByEdit || saving || readingGpx)} aria-expanded={activePanel === 'gpx'}>Import GPX</button>
         <span className="route-map-context-indicator" role="status">{editingContextLabel}</span>
-        {activePanel && <button type="button" className="route-map-close-tool" onClick={() => setActivePanel('')} disabled={Boolean(gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-label="Close editor panel">Close panel</button>}
+        {activePanel && <button type="button" className="route-map-close-tool" onClick={() => setActivePanel('')} disabled={Boolean(waypointDraftOpen || insertion || gpxPreview || readingGpx || (activePanel === 'gpx' && saving))} aria-label="Close editor panel">Close panel</button>}
       </div>
 
       {activePanel === 'gpx' && (
@@ -1064,6 +1263,8 @@ function RouteMapEditorPage() {
             foodWaypointId={foodWaypointId}
             quickEditWaypointId={quickEditWaypointId}
             quickEditSaving={quickEditSaving}
+            createPlaceWaypointId={createPlaceWaypointId}
+            setCreatePlaceWaypointId={setCreatePlaceWaypointId}
             addMode={addMode}
             selectedPlaceId={quickAddPlaceId}
             onPlaceIdChange={setQuickAddPlaceId}
@@ -1078,11 +1279,13 @@ function RouteMapEditorPage() {
             onOpenFood={openWaypointFood}
             onFoodIdsChange={updateWaypointFoodIds}
             onMediaChange={updateWaypointMedia}
-            onGalleryAttach={(waypointId, collection) => updateWaypointGallery(waypointId, collection, true)}
-            onGalleryDetach={(waypointId, collection) => updateWaypointGallery(waypointId, collection, false)}
+            onGalleryAttach={(waypointId, collection) => trackWrite(() => updateWaypointGallery(waypointId, collection, true))}
+            onGalleryDetach={(waypointId, collection) => trackWrite(() => updateWaypointGallery(waypointId, collection, false))}
             onMove={moveWaypoint}
             onRemove={removeWaypoint}
-            onCreatePlace={createPlaceFromWaypoint}
+            onCreatePlace={(waypointId, payload) => trackWrite(() => createPlaceFromWaypoint(waypointId, payload))}
+            onWriteStart={beginWrite}
+            onWriteEnd={endWrite}
           />
           {addMode && (
             <div className="route-map-notice route-map-inline-message" role="status">
@@ -1117,6 +1320,8 @@ function RouteMapEditorPage() {
             routeId={routeId}
             attachedVideoIds={route?.video_ids || []}
             onAttachmentsChange={(nextIds) => setRoute((current) => ({ ...current, video_ids: nextIds }))}
+            onWriteStart={beginWrite}
+            onWriteEnd={endWrite}
           />
         </section>
       )}
@@ -1136,6 +1341,12 @@ function RouteMapEditorPage() {
           drawing={manualDrawing}
           preview={connectionPreview}
           waypointMovePreview={waypointMovePreview}
+          insertion={insertion}
+          canInsert={canInsert}
+          onStartInsert={startInsertion}
+          onChooseInsertEdge={chooseInsertEdge}
+          onConfirmInsert={confirmInsertion}
+          onCancelInsert={() => { setInsertion(null); setError(''); setNotice('Waypoint insertion cancelled. No changes were saved.') }}
           onSelect={selectConnection}
           onProfileChange={setRoutingProfile}
           onActivityChange={saveConnectionActivity}
@@ -1153,6 +1364,7 @@ function RouteMapEditorPage() {
           onReviewRoute={reviewAndAcceptRoute}
         />
       )}
+      </fieldset>
 
       <div className="route-map-main-column">
         <RouteAuthoringMap
@@ -1166,9 +1378,12 @@ function RouteMapEditorPage() {
           selectedWaypointId={selectedWaypointId}
           addMode={addMode}
           onSegmentSelect={activePanel === 'gpx' ? undefined : selectConnection}
-          onWaypointSelect={activePanel === 'gpx' ? () => {} : selectWaypoint}
+          onWaypointSelect={activePanel === 'gpx' || waypointDraftOpen ? () => {} : selectWaypoint}
           manualDrawing={manualDrawing && drawingConnection ? { startWaypoint: drawingConnection.start, endWaypoint: drawingConnection.end, points: manualDrawing.points } : null}
           waypointMovePreview={waypointMovePreview}
+          insertion={insertion}
+          locked={Boolean(pendingWrites || refreshRequired || saving)}
+          onInsertClick={selectInsertPosition}
           canDragWaypoints={activePanel !== 'gpx' && !hasUnsavedChanges && !saving && !connectionPreview && !manualDrawing && !waypointMovePreview}
           onWaypointDragStart={() => { setConnectionPreview(null); setManualDrawing(null) }}
           onWaypointDragEnd={finishWaypointDrag}

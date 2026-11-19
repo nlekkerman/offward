@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { GeoJSON, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { CircleMarker, GeoJSON, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import MapErrorBoundary from './MapErrorBoundary.jsx'
 import { MAP_TILE_LAYER } from '../tileConfig.js'
 import { normalizeGeometry } from '../../routes/routeMap/routeMapUtils.js'
@@ -75,7 +75,7 @@ function getMarkerDisplayName(waypoint, places) {
   return typeof placeName === 'string' ? placeName.trim() : ''
 }
 
-function WaypointMarker({ waypoint, places, latLng, selected, draggable, onWaypointSelect, onWaypointDragStart, onWaypointDragEnd }) {
+function WaypointMarker({ waypoint, places, latLng, selected, draggable, interactive = true, onWaypointSelect, onWaypointDragStart, onWaypointDragEnd }) {
   const map = useMap()
   const displayName = getMarkerDisplayName(waypoint, places)
   const icon = useMemo(
@@ -88,6 +88,7 @@ function WaypointMarker({ waypoint, places, latLng, selected, draggable, onWaypo
       position={latLng}
       icon={icon}
       draggable={draggable}
+      interactive={interactive}
       bubblingMouseEvents={false}
       title={displayName ? `${waypoint.order} · ${displayName}` : String(waypoint.order)}
       eventHandlers={{
@@ -109,10 +110,31 @@ function WaypointMarker({ waypoint, places, latLng, selected, draggable, onWaypo
   )
 }
 
-function MapClickHandler({ addMode, drawingManually, onMapAddWaypoint, onManualDrawPoint }) {
-  useMapEvents({
+function MapClickHandler({ addMode, drawingManually, insertion, locked, onInsertClick, onMapAddWaypoint, onManualDrawPoint }) {
+  const map = useMapEvents({
     click(event) {
-      if (drawingManually) {
+      if (locked) return
+      if (insertion) {
+        const point = event.containerPoint
+        const edges = []
+        const coordinates = insertion.geometry.coordinates
+        for (let index = 0; index < coordinates.length - 1; index += 1) {
+          const a = coordinates[index]
+          const b = coordinates[index + 1]
+          if (a[0] === b[0] && a[1] === b[1]) continue
+          const start = map.latLngToContainerPoint([a[1], a[0]])
+          const end = map.latLngToContainerPoint([b[1], b[0]])
+          const dx = end.x - start.x
+          const dy = end.y - start.y
+          const length = dx * dx + dy * dy
+          if (!length) continue
+          const t = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / length))
+          const distance = Math.hypot(point.x - start.x - t * dx, point.y - start.y - t * dy)
+          if (distance <= 10) edges.push({ index, distance })
+        }
+        edges.sort((a, b) => a.distance - b.distance)
+        onInsertClick(edges.map((edge) => edge.index), [event.latlng.lng, event.latlng.lat])
+      } else if (drawingManually) {
         onManualDrawPoint({
           lat: event.latlng.lat,
           lng: event.latlng.lng,
@@ -175,7 +197,7 @@ const SELECTED_SEGMENT_STYLE = {
   lineJoin: 'round',
 }
 
-function RouteAuthoringMapContent({ waypoints, places = [], candidateGeometry, previewGeometry, previewWaypoints = [], connections = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, waypointMovePreview, canDragWaypoints, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint, onWaypointDragStart, onWaypointDragEnd }) {
+function RouteAuthoringMapContent({ waypoints, places = [], candidateGeometry, previewGeometry, previewWaypoints = [], connections = [], selectedSegmentId, selectedWaypointId, addMode, manualDrawing, waypointMovePreview, insertion, locked, canDragWaypoints, onInsertClick, onSegmentSelect, onWaypointSelect, onMapAddWaypoint, onManualDrawPoint, onWaypointDragStart, onWaypointDragEnd }) {
   const validWaypoints = useMemo(() => waypoints.map((waypoint) => ({ waypoint, latLng: toLatLng(waypoint) })).filter((item) => item.latLng), [waypoints])
   const candidate = normalizeGeometry(candidateGeometry)
   const preview = normalizeGeometry(previewGeometry)
@@ -186,7 +208,7 @@ function RouteAuthoringMapContent({ waypoints, places = [], candidateGeometry, p
   const drawingManually = manualDrawingPositions.length >= 2
 
   return (
-    <div className={addMode || drawingManually ? 'offward-map-container route-authoring-map is-add-mode' : 'offward-map-container route-authoring-map'} aria-label="Route waypoint authoring map">
+    <div className={addMode || drawingManually || insertion ? 'offward-map-container route-authoring-map is-add-mode' : 'offward-map-container route-authoring-map'} aria-label="Route waypoint authoring map">
       <MapContainer center={[50, 10]} zoom={4} scrollWheelZoom={true} className="offward-map-inner">
         <TileLayer attribution={MAP_TILE_LAYER.attribution} url={MAP_TILE_LAYER.url} />
         <WaypointMarkerZoomController />
@@ -204,8 +226,8 @@ function RouteAuthoringMapContent({ waypoints, places = [], candidateGeometry, p
           if (!geometry && (!start || !end)) return null
           return (
             geometry
-              ? <GeoJSON key={`segment-${segment.id}-${JSON.stringify(geometry.coordinates)}`} data={{ type: 'Feature', geometry, properties: {} }} style={style} bubblingMouseEvents={false} eventHandlers={{ click: (event) => selectConnectionFromMap(event, segment.id || connection.key, onSegmentSelect) }} />
-              : <Polyline key={`unresolved-${connection.key}`} positions={[start, end]} pathOptions={style} bubblingMouseEvents={false} eventHandlers={{ click: (event) => selectConnectionFromMap(event, segment.id || connection.key, onSegmentSelect) }} />
+              ? <GeoJSON key={`segment-${segment.id}-${Boolean(insertion || locked)}-${JSON.stringify(geometry.coordinates)}`} data={{ type: 'Feature', geometry, properties: {} }} style={insertion && selected ? { ...style, smoothFactor: 0 } : style} interactive={!insertion && !locked} bubblingMouseEvents={false} eventHandlers={{ click: (event) => selectConnectionFromMap(event, segment.id || connection.key, onSegmentSelect) }} />
+              : <Polyline key={`unresolved-${connection.key}-${Boolean(insertion || locked)}`} positions={[start, end]} pathOptions={style} interactive={!insertion && !locked} bubblingMouseEvents={false} eventHandlers={{ click: (event) => selectConnectionFromMap(event, segment.id || connection.key, onSegmentSelect) }} />
           )
         })}
         {candidate && <GeoJSON key={`candidate-${JSON.stringify(candidate.coordinates)}`} data={{ type: 'Feature', geometry: candidate, properties: {} }} style={CANDIDATE_STYLE} />}
@@ -214,24 +236,27 @@ function RouteAuthoringMapContent({ waypoints, places = [], candidateGeometry, p
           <Marker key={waypoint.id} position={toLatLng(waypoint)} icon={createWaypointMarkerIcon({ order: waypoint.order, displayName: waypoint.name, selected: false, extraClassNames: ['route-authoring-waypoint-marker', 'route-gpx-preview-marker'] })} title={waypoint.name} interactive={false} />
         ))}
         {drawingManually && <Polyline positions={manualDrawingPositions} pathOptions={{ color: '#f0d39c', opacity: 1, weight: 6, dashArray: '10 7' }} interactive={false} />}
+        {insertion?.edgeIndex !== undefined && <Polyline positions={insertion.geometry.coordinates.slice(insertion.edgeIndex, insertion.edgeIndex + 2).map(([lng, lat]) => [lat, lng])} pathOptions={{ color: '#f0d39c', weight: 8, smoothFactor: 0 }} interactive={false} />}
+        {insertion?.position && <CircleMarker center={[insertion.position[1], insertion.position[0]]} radius={8} pathOptions={{ color: '#ef342c', fillOpacity: 0.8 }} interactive={false} />}
         {validWaypoints.map(({ waypoint, latLng }) => {
           const selected = waypoint.id === selectedWaypointId
           return (
             <WaypointMarker
-              key={waypoint.id}
+              key={`${waypoint.id}-${Boolean(insertion || locked)}`}
               waypoint={waypoint}
               places={places}
               latLng={waypointMovePreview?.id === waypoint.id ? [waypointMovePreview.latitude, waypointMovePreview.longitude] : latLng}
               selected={selected}
-              draggable={canDragWaypoints && !addMode && !drawingManually}
-              onWaypointSelect={onWaypointSelect}
+              interactive={!insertion && !locked}
+              draggable={canDragWaypoints && !addMode && !drawingManually && !insertion && !locked}
+              onWaypointSelect={insertion ? () => {} : onWaypointSelect}
               onWaypointDragStart={onWaypointDragStart}
               onWaypointDragEnd={onWaypointDragEnd}
             />
           )
         })}
         <AuthoringViewport waypoints={waypoints} candidateGeometry={candidate} previewGeometry={preview} previewWaypoints={previewWaypoints} segments={connections.map(({ segment }) => segment)} />
-        <MapClickHandler addMode={addMode} drawingManually={drawingManually} onMapAddWaypoint={onMapAddWaypoint} onManualDrawPoint={onManualDrawPoint} />
+        <MapClickHandler addMode={addMode} drawingManually={drawingManually} insertion={insertion} locked={locked} onInsertClick={onInsertClick} onMapAddWaypoint={onMapAddWaypoint} onManualDrawPoint={onManualDrawPoint} />
       </MapContainer>
     </div>
   )

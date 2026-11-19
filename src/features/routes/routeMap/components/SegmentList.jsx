@@ -42,7 +42,13 @@ function SegmentList({
   drawing,
   preview,
   waypointMovePreview,
+  insertion,
+  canInsert,
   onSelect,
+  onStartInsert,
+  onChooseInsertEdge,
+  onConfirmInsert,
+  onCancelInsert,
   onProfileChange,
   onActivityChange,
   onCalculate,
@@ -99,6 +105,7 @@ function SegmentList({
                 aria-selected={connection.id === selectedConnectionId}
                 className={connection.id === selectedConnectionId ? 'route-connection-option is-selected' : 'route-connection-option'}
                 onClick={() => onSelect(connection.id)}
+                disabled={Boolean(insertion || saving)}
               >
                 <span>{label}</span>
                 <small>{getConnectionState(connection.segment)}</small>
@@ -124,7 +131,7 @@ function SegmentList({
               Review the connections, then accept the complete Route to clear pending reviews without changing their paths.
             </span>
           )}
-          {!preview && !drawing && (
+          {!preview && !drawing && !insertion && (
             <div className="route-connection-actions">
               <label className="route-connection-profile">
                 <span>Activity</span>
@@ -141,7 +148,7 @@ function SegmentList({
               <span className="route-map-muted">Semantic activity shown publicly; independent from the routing profile below.</span>
             </div>
           )}
-          {!preview && !drawing && (
+          {!preview && !drawing && !insertion && (
             <div className="route-connection-actions">
               <label className="route-connection-profile">
                 <span>Routing</span>
@@ -155,6 +162,24 @@ function SegmentList({
               </button>
               <button type="button" className="secondary-button small-button" onClick={onStartManual} disabled={editingDisabled || calculating || saving}>Draw manually</button>
               <button type="button" className="secondary-button small-button" onClick={onStraight} disabled={editingDisabled || calculating || saving}>Straight</button>
+              {selected.segment.mode === 'manual' && selected.segment.geometry && <button type="button" className="secondary-button small-button" onClick={onStartInsert} disabled={!canInsert}>Insert Waypoint</button>}
+              {selected.segment.mode === 'manual' && selected.segment.geometry && !canInsert && <span className="route-map-muted">Finish waypoint edits and other map or attachment operations before inserting.</span>}
+            </div>
+          )}
+          {insertion && (
+            <div className="segment-drawing-controls" role="group" aria-label="Insert waypoint controls">
+              <span className="route-map-muted">Click the selected track. The marker is an approximate preview.</span>
+              {insertion.edges.length > 1 && (
+                <label>Overlapping edges
+                  <select value={insertion.edgeIndex ?? ''} onChange={(event) => onChooseInsertEdge(Number(event.target.value))} disabled={saving}>
+                    <option value="" disabled>Choose an edge</option>
+                    {insertion.edges.map((edge) => <option key={edge} value={edge}>Edge {edge}</option>)}
+                  </select>
+                </label>
+              )}
+              {insertion.position && <span>Approximate longitude {insertion.position[0]}, latitude {insertion.position[1]}</span>}
+              <button type="button" className="primary-button small-button" onClick={onConfirmInsert} disabled={saving || !insertion.position}>{saving ? 'Saving…' : 'Confirm insertion'}</button>
+              <button type="button" className="secondary-button small-button" onClick={onCancelInsert} disabled={saving}>Cancel</button>
             </div>
           )}
           {drawing && (

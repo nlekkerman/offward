@@ -73,8 +73,7 @@ function WaypointCreatePlaceForm({ waypoint, saving, onCreate, onCancel }) {
   )
 }
 
-function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWaypointId, foodWaypointId, quickEditWaypointId, quickEditSaving, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onOpenMedia, onOpenFood, onFoodIdsChange, onMediaChange, onGalleryAttach, onGalleryDetach, onMove, onRemove, onCreatePlace }) {
-  const [createPlaceWaypointId, setCreatePlaceWaypointId] = useState('')
+function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWaypointId, foodWaypointId, quickEditWaypointId, quickEditSaving, createPlaceWaypointId, setCreatePlaceWaypointId, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onOpenMedia, onOpenFood, onFoodIdsChange, onMediaChange, onGalleryAttach, onGalleryDetach, onMove, onRemove, onCreatePlace, onWriteStart, onWriteEnd }) {
   const [createPlaceSaving, setCreatePlaceSaving] = useState(false)
 
   const createPlace = async (waypointId, payload) => {
@@ -212,6 +211,8 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
                       waypointId={waypoint.id}
                       attachedVideoIds={waypoint.media_ids || []}
                       onAttachmentsChange={(nextIds) => onMediaChange(waypoint.id, nextIds)}
+                      onWriteStart={onWriteStart}
+                      onWriteEnd={onWriteEnd}
                     />
                     <GalleryAttachmentManager
                       ownerType="RouteWaypoint"
@@ -230,6 +231,8 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
                       field="waypoint_ids"
                       attachedIds={waypoint.food_ids || []}
                       onAttachedIdsChange={(nextIds) => onFoodIdsChange(waypoint.id, nextIds)}
+                      onWriteStart={onWriteStart}
+                      onWriteEnd={onWriteEnd}
                     />
                   </section>
                 )}

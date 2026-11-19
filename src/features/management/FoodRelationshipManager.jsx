@@ -10,7 +10,7 @@ function foodCountryLabel(country) {
   return country || ''
 }
 
-function FoodRelationshipManager({ ownerId, field, attachedIds = [], onAttachedIdsChange, disabled = false }) {
+function FoodRelationshipManager({ ownerId, field, attachedIds = [], onAttachedIdsChange, disabled = false, onWriteStart, onWriteEnd }) {
   const catalog = useManagementCatalog(foodsApi, attachedIds)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -19,6 +19,7 @@ function FoodRelationshipManager({ ownerId, field, attachedIds = [], onAttachedI
   const update = async (foodId, attach) => {
     if (busy.current || disabled) return
     busy.current = true
+    onWriteStart?.()
     setSaving(true)
     setError('')
     try {
@@ -33,6 +34,7 @@ function FoodRelationshipManager({ ownerId, field, attachedIds = [], onAttachedI
     } finally {
       busy.current = false
       setSaving(false)
+      onWriteEnd?.()
     }
   }
 

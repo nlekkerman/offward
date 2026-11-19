@@ -78,6 +78,8 @@ function ContentVideoManager({
   waypointId = '',
   disabled = false,
   onBusyChange,
+  onWriteStart,
+  onWriteEnd,
 }) {
   const catalog = useManagementCatalog(managementApis.videos, attachedVideoIds)
   const allVideos = useMemo(() => catalog.items.map(normalizeVideoRecord), [catalog.items])
@@ -178,6 +180,7 @@ function ContentVideoManager({
 
   const updateRelationship = async (nextIds, { silent = false } = {}) => {
     const nextVideoIds = normalizeVideoIds(nextIds)
+    onWriteStart?.()
     setSavingAttachments(true)
     try {
       const updated = await persistRelationship(nextVideoIds)
@@ -194,6 +197,7 @@ function ContentVideoManager({
       throw requestError
     } finally {
       setSavingAttachments(false)
+      onWriteEnd?.()
     }
   }
 
@@ -246,6 +250,7 @@ function ContentVideoManager({
       return
     }
 
+    onWriteStart?.()
     setError('')
     setNotice('')
     setUploadState('requesting')
@@ -308,6 +313,7 @@ function ContentVideoManager({
       if (abortControllerRef.current === abortController) {
         abortControllerRef.current = null
       }
+      onWriteEnd?.()
     }
   }
 

@@ -111,4 +111,13 @@ export const routeMapApi = {
       mapRevision: data?.map_revision,
     }
   },
+  splitSegment: async (routeId, segmentId, revision, edgeIndex, coordinates) => {
+    const { data } = await apiClient.post(routeMapPath(routeId, `segments/${segmentId}/split/`), {
+      expected_map_revision: getExpectedMapRevision(revision),
+      edge_index: edgeIndex,
+      coordinates,
+      waypoint: { type: 'via' },
+    })
+    return data
+  },
 }
