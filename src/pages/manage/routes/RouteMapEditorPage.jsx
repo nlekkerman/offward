@@ -347,6 +347,7 @@ function RouteMapEditorPage() {
 
   const recoverMap = async () => {
     if (splitInProgress.current || pendingWritesRef.current) return
+    if (hasUnsavedChanges && !window.confirm('Verifying the Route will replace unsaved waypoint changes with the current saved map. Continue?')) return
     splitInProgress.current = true
     setSaving(true)
     try {
@@ -636,17 +637,33 @@ function RouteMapEditorPage() {
       : waypoint)))
   }
 
-  const updateWaypointMedia = (waypointId, nextIds) => {
+  const requireMediaSync = () => {
+    setRefreshRequired(true)
+    setError('The waypoint video attachment outcome or Route revision could not be verified. Verify the current map before making further changes.')
+  }
+
+  const updateWaypointMedia = async (waypointId, nextIds, result) => {
+    let map
+    try {
+      map = await getVerifiedImportMap(routeId)
+      if (!isValidMapRevision(result.mapRevision)
+        || Number(map.mapRevision) !== Number(result.mapRevision)
+        || getWaypointSignature(map.waypoints) !== getWaypointSignature(result.waypoints)) {
+        throw new Error('The saved waypoint media or Route revision could not be verified.')
+      }
+    } catch (err) {
+      requireMediaSync()
+      throw err
+    }
+
     const mediaIds = Array.isArray(nextIds) ? [...nextIds] : []
     setWaypoints((current) => normalizeWaypoints(current.map((waypoint) => waypoint.id === waypointId
       ? { ...waypoint, media_ids: mediaIds }
       : waypoint)))
-    setSavedWaypointSignature((current) => {
-      const savedWaypoints = JSON.parse(current)
-      return JSON.stringify(savedWaypoints.map((waypoint) => String(waypoint.id) === String(waypointId)
-        ? { ...waypoint, media_ids: mediaIds }
-        : waypoint))
-    })
+    setSavedWaypointSignature(getWaypointSignature(map.waypoints))
+    setMapRevision(map.mapRevision)
+    setSegments(map.segments)
+    setRoute((current) => ({ ...(current || {}), ...map.route }))
   }
 
   const updateWaypointGallery = async (waypointId, collection, attach) => {
@@ -1258,6 +1275,7 @@ function RouteMapEditorPage() {
             waypoints={waypoints}
             places={places}
             routeId={routeId}
+            mapRevision={mapRevision}
             selectedWaypointId={selectedWaypointId}
             mediaWaypointId={mediaWaypointId}
             foodWaypointId={foodWaypointId}
@@ -1279,6 +1297,7 @@ function RouteMapEditorPage() {
             onOpenFood={openWaypointFood}
             onFoodIdsChange={updateWaypointFoodIds}
             onMediaChange={updateWaypointMedia}
+            onMediaSyncRequired={requireMediaSync}
             onGalleryAttach={(waypointId, collection) => trackWrite(() => updateWaypointGallery(waypointId, collection, true))}
             onGalleryDetach={(waypointId, collection) => trackWrite(() => updateWaypointGallery(waypointId, collection, false))}
             onMove={moveWaypoint}

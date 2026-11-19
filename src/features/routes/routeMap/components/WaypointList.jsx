@@ -73,7 +73,7 @@ function WaypointCreatePlaceForm({ waypoint, saving, onCreate, onCancel }) {
   )
 }
 
-function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWaypointId, foodWaypointId, quickEditWaypointId, quickEditSaving, createPlaceWaypointId, setCreatePlaceWaypointId, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onOpenMedia, onOpenFood, onFoodIdsChange, onMediaChange, onGalleryAttach, onGalleryDetach, onMove, onRemove, onCreatePlace, onWriteStart, onWriteEnd }) {
+function WaypointList({ waypoints, places, routeId, mapRevision, selectedWaypointId, mediaWaypointId, foodWaypointId, quickEditWaypointId, quickEditSaving, createPlaceWaypointId, setCreatePlaceWaypointId, addMode, selectedPlaceId, onPlaceIdChange, onAddBlank, onAddModeChange, onAddFromPlace, onSelect, onQuickSave, onQuickCancel, onOpenAdvanced, onOpenMedia, onOpenFood, onFoodIdsChange, onMediaChange, onMediaSyncRequired, onGalleryAttach, onGalleryDetach, onMove, onRemove, onCreatePlace, onWriteStart, onWriteEnd }) {
   const [createPlaceSaving, setCreatePlaceSaving] = useState(false)
 
   const createPlace = async (waypointId, payload) => {
@@ -209,8 +209,10 @@ function WaypointList({ waypoints, places, routeId, selectedWaypointId, mediaWay
                       resourceId={waypoint.id}
                       routeId={routeId}
                       waypointId={waypoint.id}
+                      mapRevision={mapRevision}
                       attachedVideoIds={waypoint.media_ids || []}
-                      onAttachmentsChange={(nextIds) => onMediaChange(waypoint.id, nextIds)}
+                      onAttachmentsChange={(nextIds, result) => onMediaChange(waypoint.id, nextIds, result)}
+                      onSyncRequired={onMediaSyncRequired}
                       onWriteStart={onWriteStart}
                       onWriteEnd={onWriteEnd}
                     />

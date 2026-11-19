@@ -76,10 +76,12 @@ function ContentVideoManager({
   routeId = '',
   segmentId = '',
   waypointId = '',
+  mapRevision,
   disabled = false,
   onBusyChange,
   onWriteStart,
   onWriteEnd,
+  onSyncRequired,
 }) {
   const catalog = useManagementCatalog(managementApis.videos, attachedVideoIds)
   const allVideos = useMemo(() => catalog.items.map(normalizeVideoRecord), [catalog.items])
@@ -155,15 +157,25 @@ function ContentVideoManager({
         throw new Error('A Route is required to update Waypoint media.')
       }
       const routeMap = await routeMapApi.getWaypoints(routeId)
-      const { waypoints, mapRevision } = routeMap
+      const { waypoints } = routeMap
+      if (!waypoints.some((waypoint) => String(waypoint.id) === String(waypointId))) {
+        onSyncRequired?.()
+        throw new Error('This Waypoint is no longer available. Refresh the Route map.')
+      }
       const nextWaypoints = waypoints.map((waypoint) => {
         if (String(waypoint.id) !== String(waypointId)) {
           return waypoint
         }
         return { ...waypoint, media_ids: [...nextVideoIds] }
       })
-      await routeMapApi.updateWaypoints(routeId, nextWaypoints, mapRevision)
-      return nextVideoIds
+      let result
+      try {
+        result = await routeMapApi.updateWaypoints(routeId, nextWaypoints, mapRevision)
+      } catch (requestError) {
+        onSyncRequired?.()
+        throw requestError
+      }
+      return { videoIds: nextVideoIds, mapRevision: result.mapRevision, waypoints: nextWaypoints }
     }
 
     if (!resourceId) {
@@ -184,7 +196,11 @@ function ContentVideoManager({
     setSavingAttachments(true)
     try {
       const updated = await persistRelationship(nextVideoIds)
-      onAttachmentsChange?.(updated)
+      if (resourceKey === 'waypoint') {
+        await onAttachmentsChange?.(updated.videoIds, updated)
+      } else {
+        onAttachmentsChange?.(updated)
+      }
       if (!silent) {
         setNotice('Video attachment updated.')
       }
@@ -249,6 +265,11 @@ function ContentVideoManager({
       setError('Choose a video file before uploading.')
       return
     }
+    if (resourceKey === 'waypoint' && (mapRevision === '' || mapRevision === null || mapRevision === undefined
+      || !Number.isSafeInteger(Number(mapRevision)) || Number(mapRevision) < 0)) {
+      setError('A current Route map revision is required. Refresh the Route map before uploading.')
+      return
+    }
 
     onWriteStart?.()
     setError('')
@@ -302,7 +323,9 @@ function ContentVideoManager({
 
       if (session && createdVideoId) {
         setRetryVideoId(String(createdVideoId))
-        setError('Video uploaded successfully, but could not be attached.')
+        setError(resourceKey === 'waypoint'
+          ? 'The video was uploaded and already exists. Its attachment could not be confirmed. Verify the Route if required, then use Choose existing if it is not already attached. Do not upload it again.'
+          : 'Video uploaded successfully, but could not be attached.')
       } else if (session && !createdVideoId) {
         setError('The Cloudflare upload succeeded, but the Offward Video record could not be created.')
       } else {
@@ -495,7 +518,7 @@ function ContentVideoManager({
 
               {retryVideoId && (
                 <div className="content-video-error-box">
-                  <span>Video record created. You can now attach it from the existing list.</span>
+                  <span>{resourceKey === 'waypoint' ? 'Video record created. Use Choose existing if it is not already attached; do not upload it again.' : 'Video record created. You can now attach it from the existing list.'}</span>
                 </div>
               )}
 
@@ -506,7 +529,7 @@ function ContentVideoManager({
                 <button type="button" className="secondary-button" onClick={resetUploadForm}>
                   Cancel
                 </button>
-                <button type="button" className="primary-button" disabled={disabled || !selectedFile || isBusy || savingAttachments} onClick={uploadAndAttach}>
+                <button type="button" className="primary-button" disabled={disabled || !selectedFile || isBusy || savingAttachments || (resourceKey === 'waypoint' && Boolean(retryVideoId))} onClick={uploadAndAttach}>
                   {isBusy ? 'Uploading...' : 'Upload & Attach'}
                 </button>
               </div>
@@ -515,6 +538,7 @@ function ContentVideoManager({
 
           {mode === 'existing' && (
             <div className="content-video-existing-picker">
+              {error && <div className="management-error" role="alert">{error}</div>}
               <div className="form-field">
                 <label htmlFor="content-video-search">Search videos</label>
                 <input
