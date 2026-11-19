@@ -246,7 +246,8 @@ function validateRouteAccessDirectionsResponse(data, routeId, profile) {
       data.alternatives.length <= 2 &&
       data.alternatives.every(isValidRouteAlternative) &&
       new Set(data.alternatives.map((alternative) => alternative.id)).size === data.alternatives.length
-    : data?.alternatives === undefined
+    : data?.alternatives === undefined ||
+      (Array.isArray(data.alternatives) && data.alternatives.length === 0)
 
   if (
     !data ||

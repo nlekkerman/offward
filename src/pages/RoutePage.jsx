@@ -797,7 +797,7 @@ function RoutePage() {
                   onStatusChange={handleDirectionsStatusChange}
                 />
                 <RouteTrackingLocation
-                  enabled={independentTracking && locationActive && navigationState === 'idle'}
+                  enabled={locationActive}
                   position={userPosition}
                   permissionContainer={compassPermissionContainer}
                   followEnabled={locationFollowing && Boolean(userPosition)}

@@ -69,9 +69,9 @@ function RouteUserLocationLayer({ position, heading = null, followEnabled, recen
   const hasHeading = typeof heading === 'number' && Number.isFinite(heading)
   const userLocationIcon = useMemo(() => L.divIcon({
     className: 'offward-user-location-icon',
-    html: `<span class="offward-user-location-marker">${hasHeading
+    html: `<span class="offward-user-location-marker" style="display:flex;height:32px">${hasHeading
       ? '<span class="offward-user-location-arrow" style="display:inline-flex;width:28px;height:32px;align-items:center;justify-content:center;flex-shrink:0"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M14 2 24 24 14 19 4 24Z" fill="#d8b47c" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></span>'
-      : '<span class="offward-user-location-dot"></span>'}<span class="offward-user-location-label">You are here</span></span>`,
+      : '<span style="display:inline-flex;width:28px;height:32px;align-items:center;justify-content:center;flex-shrink:0"><span class="offward-user-location-dot"></span></span>'}<span class="offward-user-location-label">You are here</span></span>`,
     iconSize: [108, 32],
     iconAnchor: [14, 16],
   }), [hasHeading])
